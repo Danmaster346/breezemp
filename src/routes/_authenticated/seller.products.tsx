@@ -53,6 +53,7 @@ function SellerProductsPage() {
   const [editing, setEditing] = useState<ProductForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // При наличии ?new=1 открываем форму и убираем параметр из URL
