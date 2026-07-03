@@ -39,9 +39,14 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        // Записываем выбранную роль
+        // Записываем выбранную роль: покупатель — напрямую, продавец — через серверную функцию
         if (data.user) {
-          await supabase.from("user_roles").insert({ user_id: data.user.id, role });
+          if (role === "buyer") {
+            await supabase.from("user_roles").insert({ user_id: data.user.id, role: "buyer" });
+          } else {
+            const { becomeSeller } = await import("@/lib/roles.functions");
+            await becomeSeller();
+          }
         }
         toast.success("Аккаунт создан!");
       } else {
