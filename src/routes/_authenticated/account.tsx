@@ -84,8 +84,10 @@ function AccountPage() {
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
+  const updateStatus = useServerFn(updateOrderItemStatus);
   const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
     try {
@@ -95,6 +97,19 @@ function AccountPage() {
       navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
     } catch (err) {
       toast.error((err as Error).message);
+    }
+  };
+
+  const confirmReceived = async (itemId: string) => {
+    setConfirmingId(itemId);
+    try {
+      await updateStatus({ data: { order_item_id: itemId, status: "received" } });
+      toast.success("Спасибо! Получение подтверждено");
+      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setConfirmingId(null);
     }
   };
 
