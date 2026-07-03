@@ -1,30 +1,24 @@
-// Метки и цвета статусов заказа для UI
+// Метки, цвета и пайплайн статусов позиции заказа
 export type OrderStatus =
   | "new"
   | "confirmed"
   | "processing"
   | "shipped"
   | "delivered"
+  | "received"
+  | "returned"
   | "cancelled";
 
-// Русские названия статусов
+// Русские названия статусов (единые для продавца и покупателя)
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Новый",
   confirmed: "Подтверждён",
   processing: "На сборке",
-  shipped: "Доставляется",
+  shipped: "Отправлен",
   delivered: "Доставлен",
-  cancelled: "Отменён",
-};
-
-// Следующий статус в пайплайне (для последовательного перевода)
-export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
-  new: "confirmed",
-  confirmed: "processing",
-  processing: "shipped",
-  shipped: "delivered",
-  delivered: null,
-  cancelled: null,
+  received: "Получено",
+  returned: "Возврат",
+  cancelled: "Отмена",
 };
 
 // Классы для цветной «плашки» статуса
@@ -34,15 +28,40 @@ export const STATUS_BADGE: Record<OrderStatus, string> = {
   processing: "bg-amber-100 text-amber-800",
   shipped: "bg-indigo-100 text-indigo-800",
   delivered: "bg-emerald-100 text-emerald-800",
+  received: "bg-emerald-200 text-emerald-900",
+  returned: "bg-orange-100 text-orange-800",
   cancelled: "bg-rose-100 text-rose-800",
 };
 
-// Все статусы в порядке пайплайна
+// Основной последовательный пайплайн (кнопка «Следующий этап»)
+export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
+  new: "processing",
+  confirmed: "processing",
+  processing: "shipped",
+  shipped: "delivered",
+  delivered: "received",
+  received: null,
+  returned: null,
+  cancelled: null,
+};
+
+// Все статусы (порядок пайплайна) — для UI списка
 export const ALL_STATUSES: OrderStatus[] = [
   "new",
   "confirmed",
   "processing",
   "shipped",
   "delivered",
+  "received",
+  "returned",
+  "cancelled",
+];
+
+// Статусы, при переходе в которые показываем яркий toast.success
+export const NOTIFY_STATUSES: OrderStatus[] = [
+  "shipped",
+  "delivered",
+  "received",
+  "returned",
   "cancelled",
 ];
