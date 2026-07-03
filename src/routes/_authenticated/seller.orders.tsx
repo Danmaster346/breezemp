@@ -92,9 +92,16 @@ function SellerOrdersPage() {
                     </span>
                   </div>
                   <div className="text-right">
+                    <div className="text-sm text-muted-foreground">
+                      Заплатил покупатель
+                    </div>
                     <div className="text-lg font-bold">{formatPrice(line)}</div>
-                    <div className="text-xs text-muted-foreground">
-                      × {it.quantity} · комиссия платформы 10%
+                    <div className="text-xs text-muted-foreground">× {it.quantity}</div>
+                    <div className="mt-1 text-sm text-emerald-600 font-semibold">
+                      К выплате: {formatPrice(payout)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      после комиссии платформы 10%
                     </div>
                   </div>
                 </div>
@@ -106,9 +113,6 @@ function SellerOrdersPage() {
                   <div>
                     <span className="text-muted-foreground">Адрес:</span>{" "}
                     {it.orders?.shipping_address}
-                  </div>
-                  <div className="text-primary font-medium">
-                    К выплате: {formatPrice(payout)}
                   </div>
                 </div>
                 {/* Управление статусом */}
