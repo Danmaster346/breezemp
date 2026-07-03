@@ -20,6 +20,7 @@ function ProductPage() {
   const { id } = Route.useParams();
   // Хуки корзины
   const add = useCart((s) => s.add);
+  const [activeImg, setActiveImg] = useState(0);
 
   // Загружаем данные товара
   const { data: product, isLoading, error } = useQuery({
