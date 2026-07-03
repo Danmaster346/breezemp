@@ -54,6 +54,33 @@ function ProductPage() {
   const avg = ratingQuery.data?.avg ?? 0;
   const reviewsCount = ratingQuery.data?.count ?? 0;
 
+  // Обновляем title и description вкладки, когда товар загружен (SEO/шаринг)
+  useEffect(() => {
+    if (!product) return;
+    const title = `${product.title} — BREEZE`;
+    document.title = title;
+    const setMeta = (name: string, content: string, isProp = false) => {
+      const attr = isProp ? "property" : "name";
+      let el = document.head.querySelector(`meta[${attr}="${name}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+    const desc = (product.description ?? "").slice(0, 160) || `${product.title} — купите на BREEZE.`;
+    setMeta("description", desc);
+    setMeta("og:title", title, true);
+    setMeta("og:description", desc, true);
+    setMeta("og:type", "product", true);
+    if (product.image_url) {
+      setMeta("og:image", product.image_url, true);
+      setMeta("twitter:image", product.image_url);
+    }
+    setMeta("twitter:card", "summary_large_image");
+  }, [product]);
+
   const sellerQuery = useQuery({
     queryKey: ["seller-profile-mini", product?.seller_id],
     enabled: !!product?.seller_id,
