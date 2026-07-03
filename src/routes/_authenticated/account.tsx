@@ -36,6 +36,8 @@ const fmtDate = (s: string) =>
 // Тип позиции заказа (для локальных вычислений)
 type OrderItem = {
   id: string;
+  product_id: string | null;
+  seller_id: string;
   title_snapshot: string;
   image_url: string | null;
   price_kopecks: number;
