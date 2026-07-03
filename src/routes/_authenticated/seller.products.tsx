@@ -59,7 +59,12 @@ function SellerProductsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
+  const [searchQ, setSearchQ] = useState("");
+  const [filterCat, setFilterCat] = useState<string>("");
+  const [onlyLow, setOnlyLow] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // При наличии ?new=1 открываем форму и убираем параметр из URL
   useEffect(() => {
