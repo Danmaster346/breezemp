@@ -9,13 +9,14 @@ import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
+import { updateOrderItemStatus } from "@/lib/order-status.functions";
 import {
   ALL_STATUSES,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
 } from "@/lib/order-status";
-import { LogOut, Store, X, ShoppingBag, MessageCircle } from "lucide-react";
+import { LogOut, Store, X, ShoppingBag, MessageCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Маршрут «/account»
@@ -83,8 +84,10 @@ function AccountPage() {
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
+  const updateStatus = useServerFn(updateOrderItemStatus);
   const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
     try {
@@ -94,6 +97,19 @@ function AccountPage() {
       navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
     } catch (err) {
       toast.error((err as Error).message);
+    }
+  };
+
+  const confirmReceived = async (itemId: string) => {
+    setConfirmingId(itemId);
+    try {
+      await updateStatus({ data: { order_item_id: itemId, status: "received" } });
+      toast.success("Спасибо! Получение подтверждено");
+      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -367,8 +383,19 @@ function AccountPage() {
                             <MessageCircle className="h-3 w-3" /> Написать продавцу
                           </button>
                         </div>
-                        <div className="text-sm font-semibold shrink-0">
-                          {formatPrice(it.price_kopecks * it.quantity)}
+                        <div className="text-sm font-semibold shrink-0 flex flex-col items-end gap-2">
+                          <span>{formatPrice(it.price_kopecks * it.quantity)}</span>
+                          {st === "delivered" && (
+                            <button
+                              type="button"
+                              disabled={confirmingId === it.id}
+                              onClick={() => confirmReceived(it.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              {confirmingId === it.id ? "…" : "Подтвердить получение"}
+                            </button>
+                          )}
                         </div>
 
                       </div>
