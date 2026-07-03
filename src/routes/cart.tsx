@@ -1,94 +1,109 @@
-// Страница корзины
+// Страница корзины — премиальный e-commerce стиль с мобильной sticky-панелью
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
 import { formatPrice } from "@/lib/format";
-import { Trash2, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
 
-// Определяем маршрут «/cart»
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Корзина — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Корзина — BREEZE" }] }),
   component: CartPage,
 });
 
-// Компонент корзины
 function CartPage() {
-  // Достаём состояние и действия из стора
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const setQty = useCart((s) => s.setQty);
   const total = useCart((s) => s.totalKopecks());
+  const qtyTotal = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-4xl px-4 py-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6">Корзина</h1>
+      <div className="mx-auto max-w-5xl px-4 py-6 md:py-10 pb-32 md:pb-10">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Корзина</h1>
+          {items.length > 0 && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {qtyTotal} {qtyTotal === 1 ? "товар" : "товара(ов)"} на сумму{" "}
+              <span className="font-semibold text-foreground">{formatPrice(total)}</span>
+            </p>
+          )}
+        </div>
 
         {items.length === 0 ? (
-          // Пустая корзина
-          <div className="rounded-2xl border border-dashed p-12 text-center">
-            <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground mb-4">В корзине пока пусто</p>
+          <div className="rounded-2xl border border-dashed border-border bg-white p-10 md:p-16 text-center animate-fade-in">
+            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-brand-soft">
+              <ShoppingBag className="h-7 w-7 text-brand" />
+            </div>
+            <h2 className="text-lg font-semibold">В корзине пока пусто</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
+              Найдите что-нибудь подходящее в каталоге — тысячи товаров от продавцов со всей России.
+            </p>
             <Link
               to="/catalog"
-              className="inline-flex rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground hover:opacity-90"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
             >
-              К покупкам
+              Открыть каталог <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-[1fr_320px] gap-6">
+          <div className="grid md:grid-cols-[1fr_340px] gap-6">
             {/* Список позиций */}
             <div className="space-y-3">
               {items.map((i) => (
-                <div key={i.id} className="flex gap-3 rounded-2xl border bg-card p-3">
-                  {/* Миниатюра */}
-                  <div className="h-24 w-24 rounded-lg bg-muted overflow-hidden shrink-0">
+                <div
+                  key={i.id}
+                  className="flex gap-3 rounded-2xl border border-border bg-white p-3 md:p-4 hover:border-brand/30 transition"
+                >
+                  <Link
+                    to="/product/$id"
+                    params={{ id: i.id }}
+                    className="h-24 w-24 md:h-28 md:w-28 rounded-xl bg-surface overflow-hidden shrink-0"
+                  >
                     {i.image_url ? (
                       <img src={i.image_url} alt={i.title} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-2xl">
-                        🛍️
-                      </div>
+                      <div className="h-full w-full flex items-center justify-center text-2xl opacity-40">🛍️</div>
                     )}
-                  </div>
-                  {/* Основной блок */}
+                  </Link>
                   <div className="flex-1 min-w-0 flex flex-col">
                     <Link
                       to="/product/$id"
                       params={{ id: i.id }}
-                      className="text-sm font-medium line-clamp-2 hover:underline"
+                      className="text-sm md:text-base font-medium line-clamp-2 hover:text-brand transition"
                     >
                       {i.title}
                     </Link>
-                    <div className="mt-auto flex items-center justify-between gap-2">
-                      {/* Изменение количества */}
-                      <div className="flex items-center gap-1 rounded-lg border">
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {formatPrice(i.price_kopecks)} / шт
+                    </div>
+                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                      <div className="inline-flex items-center rounded-full border border-border bg-surface">
                         <button
                           onClick={() => setQty(i.id, i.quantity - 1)}
-                          className="p-2 hover:bg-accent rounded-l-lg"
+                          className="h-8 w-8 grid place-items-center rounded-full hover:bg-white transition"
+                          aria-label="Уменьшить"
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-3.5 w-3.5" />
                         </button>
-                        <span className="w-8 text-center text-sm font-medium">{i.quantity}</span>
+                        <span className="w-8 text-center text-sm font-semibold">{i.quantity}</span>
                         <button
                           onClick={() => setQty(i.id, i.quantity + 1)}
                           disabled={i.quantity >= i.stock}
-                          className="p-2 hover:bg-accent rounded-r-lg disabled:opacity-40"
+                          className="h-8 w-8 grid place-items-center rounded-full hover:bg-white disabled:opacity-40 transition"
+                          aria-label="Увеличить"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      {/* Цена позиции */}
-                      <div className="font-bold">
+                      <div className="text-base md:text-lg font-bold tracking-tight">
                         {formatPrice(i.price_kopecks * i.quantity)}
                       </div>
                     </div>
                   </div>
-                  {/* Удаление */}
                   <button
                     onClick={() => remove(i.id)}
-                    className="self-start p-2 text-muted-foreground hover:text-destructive"
+                    className="self-start p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition"
                     aria-label="Удалить"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -97,26 +112,54 @@ function CartPage() {
               ))}
             </div>
 
-            {/* Сводка */}
-            <div className="rounded-2xl border bg-card p-5 h-fit md:sticky md:top-20">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Товары</span>
-                <span>{items.reduce((s, i) => s + i.quantity, 0)} шт.</span>
+            {/* Сводка (desktop) */}
+            <div className="hidden md:block rounded-2xl border border-border bg-white p-6 h-fit sticky top-24 shadow-sm">
+              <h2 className="font-semibold text-lg mb-4">Ваш заказ</h2>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Товары ({qtyTotal})</span>
+                  <span>{formatPrice(total)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Доставка</span>
+                  <span className="text-emerald-600 font-medium">Бесплатно</span>
+                </div>
               </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-3 mt-3">
-                <span>К оплате</span>
-                <span>{formatPrice(total)}</span>
+              <div className="flex justify-between items-baseline border-t pt-4 mt-4">
+                <span className="font-semibold">Итого</span>
+                <span className="text-2xl font-extrabold tracking-tight">{formatPrice(total)}</span>
               </div>
               <Link
                 to="/checkout"
-                className="mt-4 flex items-center justify-center rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground hover:opacity-90"
+                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
               >
-                Оформить заказ
+                Оформить заказ <ArrowRight className="h-4 w-4" />
               </Link>
+              <p className="mt-3 text-xs text-muted-foreground text-center">
+                Демо-оплата: реальные средства не списываются
+              </p>
             </div>
           </div>
         )}
       </div>
+
+      {/* Мобильная sticky-панель оформления */}
+      {items.length > 0 && (
+        <div className="md:hidden fixed bottom-16 inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] text-muted-foreground leading-none">Итого</div>
+              <div className="text-lg font-extrabold tracking-tight">{formatPrice(total)}</div>
+            </div>
+            <Link
+              to="/checkout"
+              className="flex-1 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
+            >
+              Оформить <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
