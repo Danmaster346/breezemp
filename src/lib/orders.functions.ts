@@ -1,0 +1,105 @@
+// Серверные функции для оформления заказов с расчётом комиссии платформы 10%
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+// Ставка комиссии платформы (10%)
+const COMMISSION_RATE = 0.1;
+
+// Схема входа: список позиций и данные доставки
+const createOrderSchema = z.object({
+  items: z
+    .array(z.object({ product_id: z.string().uuid(), quantity: z.number().int().positive() }))
+    .min(1),
+  shipping_name: z.string().trim().min(1).max(100),
+  shipping_phone: z.string().trim().min(3).max(30),
+  shipping_address: z.string().trim().min(3).max(500),
+});
+
+// Создание заказа: валидируем цены и остатки на сервере
+export const createOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => createOrderSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    // Клиент от лица пользователя (RLS применяется)
+    const { supabase, userId } = context;
+
+    // Достаём актуальные товары из БД
+    const productIds = data.items.map((i) => i.product_id);
+    const { data: products, error: prodErr } = await supabase
+      .from("products")
+      .select("id, seller_id, title, image_url, price_kopecks, stock, is_active")
+      .in("id", productIds);
+    if (prodErr) throw new Error(prodErr.message);
+    if (!products || products.length !== data.items.length) {
+      throw new Error("Некоторые товары недоступны");
+    }
+
+    // Считаем позиции заказа с проверкой остатков
+    let total = 0; // итог заказа в копейках
+    let commissionTotal = 0; // общая комиссия платформы
+    const itemsToInsert: Array<{
+      product_id: string;
+      seller_id: string;
+      title_snapshot: string;
+      image_url: string | null;
+      price_kopecks: number;
+      quantity: number;
+      commission_kopecks: number;
+    }> = [];
+
+    for (const it of data.items) {
+      // Находим товар из БД по id
+      const p = products.find((pp) => pp.id === it.product_id);
+      if (!p) throw new Error("Товар не найден");
+      if (!p.is_active) throw new Error(`Товар «${p.title}» больше не продаётся`);
+      if (p.stock < it.quantity) throw new Error(`Недостаточно товара «${p.title}» на складе`);
+      // Считаем сумму позиции и комиссию
+      const lineTotal = p.price_kopecks * it.quantity;
+      const commission = Math.round(lineTotal * COMMISSION_RATE);
+      total += lineTotal;
+      commissionTotal += commission;
+      itemsToInsert.push({
+        product_id: p.id,
+        seller_id: p.seller_id,
+        title_snapshot: p.title,
+        image_url: p.image_url,
+        price_kopecks: p.price_kopecks,
+        quantity: it.quantity,
+        commission_kopecks: commission,
+      });
+    }
+
+    // Создаём заказ
+    const { data: order, error: orderErr } = await supabase
+      .from("orders")
+      .insert({
+        buyer_id: userId,
+        total_kopecks: total,
+        commission_kopecks: commissionTotal,
+        shipping_name: data.shipping_name,
+        shipping_phone: data.shipping_phone,
+        shipping_address: data.shipping_address,
+      })
+      .select("id")
+      .single();
+    if (orderErr || !order) throw new Error(orderErr?.message ?? "Не удалось создать заказ");
+
+    // Вставляем позиции заказа
+    const { error: itemsErr } = await supabase
+      .from("order_items")
+      .insert(itemsToInsert.map((i) => ({ ...i, order_id: order.id })));
+    if (itemsErr) throw new Error(itemsErr.message);
+
+    // Списываем остатки со склада
+    for (const it of data.items) {
+      const p = products.find((pp) => pp.id === it.product_id)!;
+      await supabase
+        .from("products")
+        .update({ stock: p.stock - it.quantity })
+        .eq("id", p.id);
+    }
+
+    // Возвращаем идентификатор нового заказа
+    return { id: order.id };
+  });
