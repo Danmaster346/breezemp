@@ -123,7 +123,7 @@ function SellerLayout() {
           </div>
           <button
             onClick={() =>
-              navigate({ to: "/seller/products", search: { new: 1 } as never })
+              navigate({ to: "/seller/products", search: { new: 1 } })
             }
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
           >
