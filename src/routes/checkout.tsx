@@ -47,18 +47,19 @@ function CheckoutPage() {
     }
     setSubmitting(true);
     try {
-      // Отправляем заказ на сервер
+      // Отправляем заказ на сервер (тестовая оплата — сразу «Подтверждён»)
       const res = await createOrderFn({
         data: {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
           shipping_name: name,
           shipping_phone: phone,
           shipping_address: address,
+          paid: true,
         },
       });
       // Очищаем корзину и переходим на страницу успеха
       clear();
-      toast.success("Заказ оформлен!");
+      toast.success("Тестовая оплата прошла успешно!");
       navigate({ to: "/order-success/$id", params: { id: res.id } });
     } catch (err) {
       // Показываем сообщение об ошибке
