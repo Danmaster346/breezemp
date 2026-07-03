@@ -9,13 +9,14 @@ import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
+import { updateOrderItemStatus } from "@/lib/order-status.functions";
 import {
   ALL_STATUSES,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
 } from "@/lib/order-status";
-import { LogOut, Store, X, ShoppingBag, MessageCircle } from "lucide-react";
+import { LogOut, Store, X, ShoppingBag, MessageCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Маршрут «/account»
