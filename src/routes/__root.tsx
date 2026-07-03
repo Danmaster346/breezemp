@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "BreezeMarket — простой многовендорный маркетплейс: каталог товаров, корзина и оформление заказа за минуту.",
       },
-      { property: "og:title", content: "BreezeMarket — маркетплейс" },
+      { property: "og:title", content: "BreezeMarket — маркетплейс с товарами от продавцов" },
       {
         property: "og:description",
         content:
@@ -89,6 +89,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "BreezeMarket — маркетплейс с товарами от продавцов" },
+      { name: "description", content: "True marketplace" },
+      { property: "og:description", content: "True marketplace" },
+      { name: "twitter:description", content: "True marketplace" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/qvUjVsi9wdVKHUenJLw7xtrNNpa2/social-images/social-1783082467731-1000020662.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/qvUjVsi9wdVKHUenJLw7xtrNNpa2/social-images/social-1783082467731-1000020662.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
