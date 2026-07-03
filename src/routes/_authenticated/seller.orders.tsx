@@ -25,11 +25,7 @@ export const Route = createFileRoute("/_authenticated/seller/orders")({
 });
 
 
-// Маршрут «/seller/orders»
-export const Route = createFileRoute("/_authenticated/seller/orders")({
-  head: () => ({ meta: [{ title: "Мои заказы — продавец — BreezeMarket" }] }),
-  component: SellerOrdersPage,
-});
+
 
 // Форматирование даты
 const fmt = (s: string) =>
