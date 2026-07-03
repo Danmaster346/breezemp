@@ -10,11 +10,21 @@ export type OrderStatus =
 // Русские названия статусов
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Новый",
-  confirmed: "Подтверждён продавцом",
-  processing: "Собирается",
-  shipped: "Передан в доставку",
+  confirmed: "Подтверждён",
+  processing: "На сборке",
+  shipped: "Доставляется",
   delivered: "Доставлен",
   cancelled: "Отменён",
+};
+
+// Следующий статус в пайплайне (для последовательного перевода)
+export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
+  new: "confirmed",
+  confirmed: "processing",
+  processing: "shipped",
+  shipped: "delivered",
+  delivered: null,
+  cancelled: null,
 };
 
 // Классы для цветной «плашки» статуса
