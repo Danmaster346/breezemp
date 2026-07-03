@@ -1,11 +1,11 @@
 // Список и создание/редактирование товаров продавцом
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice, rublesToKopecks } from "@/lib/format";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Маршрут «/seller/products»
@@ -19,30 +19,36 @@ type ProductForm = {
   id?: string;
   title: string;
   description: string;
-  price: string; // рубли строкой в форме
-  stock: string; // количество строкой
-  image_url: string;
+  price: string; // рубли строкой
+  stock: string;
+  image_urls: string[]; // до 5 фото
   category_id: string;
 };
 
-// Пустая форма-«новый товар»
+// Пустая форма
 const emptyForm: ProductForm = {
   title: "",
   description: "",
   price: "",
   stock: "1",
-  image_url: "",
+  image_urls: [],
   category_id: "",
 };
 
-// Основной компонент страницы
+// Максимум фото на карточку
+const MAX_IMAGES = 5;
+// Срок действия signed URL — 1 год
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
+
 function SellerProductsPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
-  // Состояние модального окна редактирования
   const [editing, setEditing] = useState<ProductForm | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Загружаем товары продавца
+  // Товары продавца
   const productsQuery = useQuery({
     queryKey: ["seller-products", user?.id],
     enabled: !!user,
@@ -57,34 +63,103 @@ function SellerProductsPage() {
     },
   });
 
-  // Загружаем категории для селекта
+  // Категории
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     queryFn: async () => (await supabase.from("categories").select("*").order("name")).data ?? [],
   });
 
-  // Сохранение (создание или обновление) товара
+  // Загрузка выбранных файлов в Supabase Storage
+  const handleFilesSelected = async (files: FileList | null) => {
+    if (!files || !user || !editing) return;
+    const remaining = MAX_IMAGES - editing.image_urls.length;
+    if (remaining <= 0) {
+      toast.error(`Можно загрузить максимум ${MAX_IMAGES} фото`);
+      return;
+    }
+    const list = Array.from(files).slice(0, remaining);
+    setUploading(true);
+    const uploaded: string[] = [];
+    try {
+      for (const file of list) {
+        if (!file.type.startsWith("image/")) {
+          toast.error(`«${file.name}» — не изображение`);
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(`«${file.name}» больше 5 МБ`);
+          continue;
+        }
+        // Кладём в папку {user.id}/... — это требование политики Storage
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const up = await supabase.storage.from("product-images").upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+        if (up.error) {
+          toast.error(up.error.message);
+          continue;
+        }
+        // Приватный бакет — создаём длинную ссылку с подписью
+        const signed = await supabase.storage
+          .from("product-images")
+          .createSignedUrl(path, SIGNED_URL_TTL);
+        if (signed.error || !signed.data) {
+          toast.error(signed.error?.message || "Не удалось получить ссылку");
+          continue;
+        }
+        uploaded.push(signed.data.signedUrl);
+      }
+      if (uploaded.length) {
+        setEditing((prev) =>
+          prev ? { ...prev, image_urls: [...prev.image_urls, ...uploaded] } : prev,
+        );
+        toast.success(`Загружено фото: ${uploaded.length}`);
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Удаление фото из формы (файл в Storage остаётся — не критично для демо)
+  const removeImage = (url: string) => {
+    setEditing((prev) =>
+      prev ? { ...prev, image_urls: prev.image_urls.filter((u) => u !== url) } : prev,
+    );
+  };
+
+  // Сохранение товара — валидация + insert/update
   const save = async (f: ProductForm) => {
     if (!user) return;
-    // Формируем payload с приведением типов
+    // Валидация
+    const title = f.title.trim();
+    if (!title) return toast.error("Введите название товара");
+    const priceKop = rublesToKopecks(f.price);
+    if (!priceKop || priceKop <= 0) return toast.error("Цена должна быть больше 0");
+    const stock = parseInt(f.stock);
+    if (isNaN(stock) || stock < 0) return toast.error("Некорректное количество");
+
     const payload = {
-      title: f.title,
-      description: f.description || null,
-      price_kopecks: rublesToKopecks(f.price),
-      stock: parseInt(f.stock) || 0,
-      image_url: f.image_url || null,
+      title,
+      description: f.description.trim() || null,
+      price_kopecks: priceKop,
+      stock,
+      image_url: f.image_urls[0] ?? null, // первое фото — обложка
+      image_urls: f.image_urls,
       category_id: f.category_id || null,
       seller_id: user.id,
       is_active: true,
     };
+    setSaving(true);
     try {
       if (f.id) {
-        // Обновление существующего товара
         const { error } = await supabase.from("products").update(payload).eq("id", f.id);
         if (error) throw error;
         toast.success("Товар обновлён");
       } else {
-        // Создание нового
         const { error } = await supabase.from("products").insert(payload);
         if (error) throw error;
         toast.success("Товар добавлен");
@@ -93,10 +168,11 @@ function SellerProductsPage() {
       qc.invalidateQueries({ queryKey: ["seller-products"] });
     } catch (e) {
       toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Удаление товара
   const remove = async (id: string) => {
     if (!confirm("Удалить товар?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
@@ -105,7 +181,7 @@ function SellerProductsPage() {
     qc.invalidateQueries({ queryKey: ["seller-products"] });
   };
 
-  // Если пользователь не продавец — просим стать
+  // Пользователь не продавец — предлагаем стать
   if (user && !isSeller) {
     return (
       <div className="rounded-2xl border border-dashed p-10 text-center">
@@ -128,21 +204,30 @@ function SellerProductsPage() {
   return (
     <div>
       {/* Кнопка «Добавить товар» */}
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="text-sm text-muted-foreground">
+          Всего товаров: {productsQuery.data?.length ?? 0}
+        </div>
         <button
-          onClick={() => setEditing(emptyForm)}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          onClick={() => setEditing({ ...emptyForm })}
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Добавить товар
         </button>
       </div>
 
-      {/* Список товаров */}
+      {/* Список */}
       {productsQuery.isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : !productsQuery.data || productsQuery.data.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
-          У вас пока нет товаров.
+        <div className="rounded-2xl border border-dashed p-10 text-center">
+          <p className="text-muted-foreground mb-4">У вас пока нет товаров.</p>
+          <button
+            onClick={() => setEditing({ ...emptyForm })}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" /> Создать первую карточку
+          </button>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -171,17 +256,24 @@ function SellerProductsPage() {
                       description: p.description ?? "",
                       price: (p.price_kopecks / 100).toString(),
                       stock: p.stock.toString(),
-                      image_url: p.image_url ?? "",
+                      image_urls:
+                        (p as { image_urls?: string[] }).image_urls?.length
+                          ? (p as { image_urls: string[] }).image_urls
+                          : p.image_url
+                            ? [p.image_url]
+                            : [],
                       category_id: p.category_id ?? "",
                     })
                   }
                   className="p-2 rounded-lg hover:bg-accent"
+                  aria-label="Редактировать"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => remove(p.id)}
                   className="p-2 rounded-lg text-destructive hover:bg-destructive/10"
+                  aria-label="Удалить"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -195,9 +287,9 @@ function SellerProductsPage() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
           <div className="w-full max-w-lg bg-card rounded-t-2xl sm:rounded-2xl border shadow-lg max-h-[95vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card">
+            <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card z-10">
               <h3 className="font-semibold">
-                {editing.id ? "Редактировать товар" : "Новый товар"}
+                {editing.id ? "Редактировать товар" : "Новая карточка"}
               </h3>
               <button
                 onClick={() => setEditing(null)}
@@ -212,33 +304,91 @@ function SellerProductsPage() {
                 e.preventDefault();
                 save(editing);
               }}
-              className="p-4 space-y-3"
+              className="p-4 space-y-4"
             >
+              {/* Фото */}
               <div>
-                <label className="text-sm text-muted-foreground">Название</label>
+                <label className="text-sm text-muted-foreground">
+                  Фото товара ({editing.image_urls.length}/{MAX_IMAGES})
+                </label>
+                <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {editing.image_urls.map((url) => (
+                    <div key={url} className="relative aspect-square rounded-lg overflow-hidden border">
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(url)}
+                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
+                        aria-label="Удалить фото"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {editing.image_urls.length < MAX_IMAGES && (
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60"
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <>
+                          <Upload className="h-5 w-5" />
+                          Добавить
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={(e) => handleFilesSelected(e.target.files)}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  До {MAX_IMAGES} изображений, каждое до 5 МБ
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm text-muted-foreground">
+                  Название <span className="text-destructive">*</span>
+                </label>
                 <input
                   required
+                  maxLength={200}
                   value={editing.title}
                   onChange={(e) => setEditing({ ...editing, title: e.target.value })}
                   className="mt-1 w-full h-11 px-3 rounded-lg border bg-background"
                 />
               </div>
+
               <div>
                 <label className="text-sm text-muted-foreground">Описание</label>
                 <textarea
                   rows={3}
+                  maxLength={2000}
                   value={editing.description}
                   onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                   className="mt-1 w-full px-3 py-2 rounded-lg border bg-background"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm text-muted-foreground">Цена, ₽</label>
+                  <label className="text-sm text-muted-foreground">
+                    Цена, ₽ <span className="text-destructive">*</span>
+                  </label>
                   <input
                     required
                     type="number"
-                    min="0"
+                    min="1"
                     step="1"
                     value={editing.price}
                     onChange={(e) => setEditing({ ...editing, price: e.target.value })}
@@ -257,6 +407,7 @@ function SellerProductsPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="text-sm text-muted-foreground">Категория</label>
                 <select
@@ -272,35 +423,22 @@ function SellerProductsPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="text-sm text-muted-foreground">Ссылка на фото</label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={editing.image_url}
-                  onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
-                  className="mt-1 w-full h-11 px-3 rounded-lg border bg-background"
-                />
-                {editing.image_url && (
-                  <img
-                    src={editing.image_url}
-                    alt=""
-                    className="mt-2 h-32 w-32 rounded-lg object-cover border"
-                  />
-                )}
-              </div>
-              <div className="flex gap-2 pt-2">
+
+              <div className="flex gap-2 pt-2 sticky bottom-0 bg-card">
                 <button
                   type="button"
                   onClick={() => setEditing(null)}
-                  className="flex-1 rounded-xl border py-3 font-medium hover:bg-accent"
+                  disabled={saving}
+                  className="flex-1 rounded-xl border py-3 font-medium hover:bg-accent disabled:opacity-60"
                 >
                   Отмена
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:opacity-90"
+                  disabled={saving || uploading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
                 >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Сохранить
                 </button>
               </div>
