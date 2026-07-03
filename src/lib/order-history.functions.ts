@@ -52,7 +52,7 @@ export const getSellerOrderItems = createServerFn({ method: "GET" })
       .order("id", { ascending: false });
 
     if (error) throw new Error(error.message);
-    return (data ?? []) as SellerOrderItem[];
+    return (data ?? []) as unknown as SellerOrderItem[];
   });
 
 export const getSellerFinance = createServerFn({ method: "GET" })
@@ -74,7 +74,7 @@ export const getSellerFinance = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (payoutsErr) throw new Error(payoutsErr.message);
 
-    const sales = (items ?? []) as SellerOrderItem[];
+    const sales = (items ?? []) as unknown as SellerOrderItem[];
     const payoutRows = (payouts ?? []) as SellerPayout[];
     const totalSales = sales.reduce((s, r) => s + r.price_kopecks * r.quantity, 0);
     const totalPayout = sales.reduce(
@@ -110,7 +110,7 @@ export const getSellerDashboardStats = createServerFn({ method: "GET" })
       .eq("seller_id", context.userId);
     if (items.error) throw new Error(items.error.message);
 
-    const rows = (items.data ?? []) as SellerOrderItem[];
+    const rows = (items.data ?? []) as unknown as SellerOrderItem[];
     const activeItems = rows.filter(
       (r) => r.status !== "delivered" && r.status !== "received" && r.status !== "returned" && r.status !== "cancelled",
     );
