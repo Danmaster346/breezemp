@@ -56,9 +56,14 @@ function SellerOrdersPage() {
       title?: string;
     }) => updateStatus({ data: { order_item_id: v.order_item_id, status: v.status } }),
     onSuccess: (_r, v) => {
-      toast.success(`Статус обновлён: ${STATUS_LABELS[v.status]}`, {
-        description: v.title,
-      });
+      // Красивое уведомление на ключевых стадиях
+      if (v.status === "processing" || v.status === "shipped" || v.status === "delivered") {
+        toast.success(`Статус обновлён: ${STATUS_LABELS[v.status]}`, {
+          description: v.title,
+        });
+      } else {
+        toast(`Статус обновлён: ${STATUS_LABELS[v.status]}`, { description: v.title });
+      }
       qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
       qc.invalidateQueries({ queryKey: ["seller-stats"] });
     },
