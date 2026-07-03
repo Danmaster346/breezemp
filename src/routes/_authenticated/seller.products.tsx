@@ -209,6 +209,19 @@ function SellerProductsPage() {
     qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
   };
 
+  // Быстрое изменение остатка (без открытия формы)
+  const bumpStock = async (id: string, current: number, delta: number) => {
+    const next = Math.max(0, current + delta);
+    if (next === current) return;
+    setStockBusy(id);
+    const { error } = await supabase.from("products").update({ stock: next }).eq("id", id);
+    setStockBusy(null);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["seller-products"] });
+    qc.invalidateQueries({ queryKey: ["seller-stats"] });
+  };
+
+
   // Пользователь не продавец — предлагаем стать
   if (user && !isSeller) {
     return (
