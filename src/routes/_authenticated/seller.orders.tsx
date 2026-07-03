@@ -130,6 +130,7 @@ function SellerOrdersPage() {
                       m.mutate({
                         order_item_id: it.id,
                         status: e.target.value as OrderStatus,
+                        title: it.title_snapshot,
                       })
                     }
                     className="h-9 px-2 rounded-lg border bg-background text-sm"
