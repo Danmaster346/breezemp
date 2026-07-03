@@ -1,4 +1,4 @@
-// Страница карточки конкретного товара
+// Страница карточки товара — премиальный e-commerce стиль
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -7,22 +7,17 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw } from "lucide-react";
 
-// Определяем маршрут «/product/$id»
 export const Route = createFileRoute("/product/$id")({
   component: ProductPage,
 });
 
-// Компонент страницы товара
 function ProductPage() {
-  // Получаем id из URL
   const { id } = Route.useParams();
-  // Хуки корзины
   const add = useCart((s) => s.add);
   const [activeImg, setActiveImg] = useState(0);
 
-  // Загружаем данные товара
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
@@ -37,24 +32,45 @@ function ProductPage() {
     },
   });
 
+  const addToCart = () => {
+    if (!product) return;
+    add({
+      id: product.id,
+      title: product.title,
+      price_kopecks: product.price_kopecks,
+      image_url: product.image_url,
+      seller_id: product.seller_id,
+      stock: product.stock,
+    });
+    toast.success("Товар добавлен в корзину");
+  };
+
   return (
     <AppLayout>
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* Возврат в каталог */}
+      <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 pb-28 md:pb-6">
         <Link
           to="/catalog"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand transition mb-4"
         >
           <ArrowLeft className="h-4 w-4" /> Назад в каталог
         </Link>
 
         {isLoading ? (
-          <div className="py-20 text-center text-muted-foreground">Загрузка...</div>
+          <div className="grid md:grid-cols-2 gap-8 animate-pulse">
+            <div className="aspect-square rounded-2xl bg-surface-strong" />
+            <div className="space-y-4">
+              <div className="h-4 w-20 bg-surface-strong rounded" />
+              <div className="h-8 w-3/4 bg-surface-strong rounded" />
+              <div className="h-10 w-40 bg-surface-strong rounded" />
+              <div className="h-4 w-32 bg-surface-strong rounded" />
+              <div className="h-24 bg-surface-strong rounded" />
+            </div>
+          </div>
         ) : error || !product ? (
           <div className="py-20 text-center text-muted-foreground">Товар не найден</div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Галерея изображений */}
+          <div className="grid md:grid-cols-2 gap-6 md:gap-10 animate-fade-in">
+            {/* Галерея */}
             {(() => {
               const gallery: string[] =
                 (product as { image_urls?: string[] }).image_urls?.length
@@ -65,7 +81,7 @@ function ProductPage() {
               const current = gallery[activeImg] ?? gallery[0];
               return (
                 <div>
-                  <div className="aspect-square rounded-2xl bg-muted overflow-hidden">
+                  <div className="aspect-square rounded-2xl bg-white border border-border overflow-hidden">
                     {current ? (
                       <img
                         src={current}
@@ -73,7 +89,7 @@ function ProductPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-8xl">
+                      <div className="h-full w-full flex items-center justify-center text-8xl opacity-30">
                         🛍️
                       </div>
                     )}
@@ -85,10 +101,10 @@ function ProductPage() {
                           key={url}
                           type="button"
                           onClick={() => setActiveImg(i)}
-                          className={`aspect-square rounded-lg overflow-hidden border-2 transition ${
+                          className={`aspect-square rounded-xl overflow-hidden border-2 transition ${
                             i === activeImg
-                              ? "border-primary"
-                              : "border-transparent hover:border-muted-foreground/40"
+                              ? "border-brand shadow-sm"
+                              : "border-transparent hover:border-border"
                           }`}
                         >
                           <img src={url} alt="" className="h-full w-full object-cover" />
@@ -100,53 +116,98 @@ function ProductPage() {
               );
             })()}
 
-            {/* Информация о товаре */}
+            {/* Информация */}
             <div>
               {product.categories && (
-                <div className="text-sm text-muted-foreground mb-1">
+                <Link
+                  to="/catalog"
+                  search={{ category: product.categories.slug }}
+                  className="inline-flex text-xs font-semibold uppercase tracking-wider text-brand hover:underline mb-2"
+                >
                   {product.categories.name}
-                </div>
+                </Link>
               )}
-              <h1 className="text-2xl md:text-3xl font-bold">{product.title}</h1>
-              <div className="mt-4 text-4xl font-black text-primary">
-                {formatPrice(product.price_kopecks)}
+              <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight leading-tight">
+                {product.title}
+              </h1>
+
+              <div className="mt-6 flex items-baseline gap-3">
+                <div className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
+                  {formatPrice(product.price_kopecks)}
+                </div>
               </div>
-              <div className="mt-2 text-sm text-muted-foreground">
+              <div
+                className={`mt-2 text-sm font-medium ${
+                  product.stock > 0 ? "text-emerald-600" : "text-destructive"
+                }`}
+              >
                 {product.stock > 0 ? `В наличии: ${product.stock} шт.` : "Нет в наличии"}
+              </div>
+
+              {/* Кнопка добавления в корзину (desktop) */}
+              <button
+                disabled={product.stock === 0}
+                onClick={addToCart}
+                className="hidden md:inline-flex mt-6 items-center justify-center gap-2 rounded-full bg-brand px-8 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {product.stock === 0 ? "Нет в наличии" : "Добавить в корзину"}
+              </button>
+
+              {/* Иконки-бенефиты */}
+              <div className="mt-6 grid grid-cols-3 gap-2 md:gap-3 rounded-2xl border border-border bg-white p-3 md:p-4">
+                {[
+                  { icon: Truck, label: "Доставка", hint: "по всей России" },
+                  { icon: ShieldCheck, label: "Безопасно", hint: "оплата защищена" },
+                  { icon: RotateCcw, label: "Возврат", hint: "в течение 14 дней" },
+                ].map((b, i) => {
+                  const Icon = b.icon;
+                  return (
+                    <div key={i} className="flex flex-col items-center text-center gap-1">
+                      <Icon className="h-5 w-5 text-brand" />
+                      <div className="text-xs font-semibold">{b.label}</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">
+                        {b.hint}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {product.description && (
                 <div className="mt-6">
                   <h2 className="font-semibold mb-2">Описание</h2>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
                     {product.description}
                   </p>
                 </div>
               )}
-
-              {/* Кнопка добавления в корзину */}
-              <button
-                disabled={product.stock === 0}
-                onClick={() => {
-                  add({
-                    id: product.id,
-                    title: product.title,
-                    price_kopecks: product.price_kopecks,
-                    image_url: product.image_url,
-                    seller_id: product.seller_id,
-                    stock: product.stock,
-                  });
-                  toast.success("Товар добавлен в корзину");
-                }}
-                className="mt-8 w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {product.stock === 0 ? "Нет в наличии" : "В корзину"}
-              </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Мобильная sticky-кнопка */}
+      {product && (
+        <div className="md:hidden fixed bottom-16 inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] text-muted-foreground leading-none">Цена</div>
+              <div className="text-lg font-extrabold tracking-tight">
+                {formatPrice(product.price_kopecks)}
+              </div>
+            </div>
+            <button
+              disabled={product.stock === 0}
+              onClick={addToCart}
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 shadow-sm transition"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {product.stock === 0 ? "Нет в наличии" : "В корзину"}
+            </button>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
