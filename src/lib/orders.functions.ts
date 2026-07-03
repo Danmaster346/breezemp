@@ -70,8 +70,11 @@ export const createOrder = createServerFn({ method: "POST" })
       });
     }
 
-    // Создаём заказ
-    const { data: order, error: orderErr } = await supabase
+    // Записи в orders/order_items разрешены только сервис-роли — используем admin-клиент
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Создаём заказ (через service role, минуя RLS, но с проверенными на сервере данными)
+    const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
       .insert({
         buyer_id: userId,
@@ -86,7 +89,7 @@ export const createOrder = createServerFn({ method: "POST" })
     if (orderErr || !order) throw new Error(orderErr?.message ?? "Не удалось создать заказ");
 
     // Вставляем позиции заказа
-    const { error: itemsErr } = await supabase
+    const { error: itemsErr } = await supabaseAdmin
       .from("order_items")
       .insert(itemsToInsert.map((i) => ({ ...i, order_id: order.id })));
     if (itemsErr) throw new Error(itemsErr.message);
@@ -94,7 +97,7 @@ export const createOrder = createServerFn({ method: "POST" })
     // Списываем остатки со склада
     for (const it of data.items) {
       const p = products.find((pp) => pp.id === it.product_id)!;
-      await supabase
+      await supabaseAdmin
         .from("products")
         .update({ stock: p.stock - it.quantity })
         .eq("id", p.id);
