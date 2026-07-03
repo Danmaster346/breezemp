@@ -1,10 +1,12 @@
 // Обёртка кабинета продавца: дашборд статистики + вкладки товаров/заказов
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import { getSellerDashboardStats } from "@/lib/order-history.functions";
 import {
   Package,
   ClipboardList,
@@ -32,6 +34,7 @@ const tabs = [
 function SellerLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const fetchStats = useServerFn(getSellerDashboardStats);
   // Активная вкладка — по текущему URL
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
@@ -39,55 +42,7 @@ function SellerLayout() {
   const stats = useQuery({
     queryKey: ["seller-stats", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      // Количество товаров продавца
-      const productsCount = await supabase
-        .from("products")
-        .select("id", { count: "exact", head: true })
-        .eq("seller_id", user!.id);
-
-      // Все позиции заказов этого продавца — из них считаем остальное
-      const items = await supabase
-        .from("order_items")
-        .select("order_id, price_kopecks, quantity, commission_kopecks, status, orders(created_at)")
-        .eq("seller_id", user!.id);
-      if (items.error) throw items.error;
-
-      const rows = items.data ?? [];
-      // Активные заказы = позиции в работе (не доставлены и не отменены)
-      const activeItems = rows.filter(
-        (r) => r.status !== "delivered" && r.status !== "cancelled",
-      );
-      const activeOrderIds = new Set(activeItems.map((r) => r.order_id));
-      // Полная сумма продаж (сколько заплатили покупатели) и сумма к выплате (−10%)
-      const totalSales = rows.reduce(
-        (s, r) => s + r.price_kopecks * r.quantity,
-        0,
-      );
-      const totalPayout = rows.reduce(
-        (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
-        0,
-      );
-      // Диапазоны для «сегодня» и «за неделю»
-      const now = new Date();
-      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const startWeek = startToday - 6 * 24 * 60 * 60 * 1000;
-      const todayOrderIds = new Set<string>();
-      const weekOrderIds = new Set<string>();
-      for (const r of rows) {
-        const created = r.orders?.created_at ? new Date(r.orders.created_at).getTime() : 0;
-        if (created >= startToday) todayOrderIds.add(r.order_id);
-        if (created >= startWeek) weekOrderIds.add(r.order_id);
-      }
-      return {
-        products: productsCount.count ?? 0,
-        active: activeOrderIds.size,
-        totalSales,
-        totalPayout,
-        today: todayOrderIds.size,
-        week: weekOrderIds.size,
-      };
-    },
+    queryFn: () => fetchStats(),
   });
 
   // Карточки статистики (данные могут ещё грузиться → показываем «—»)

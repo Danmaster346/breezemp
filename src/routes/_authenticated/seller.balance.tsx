@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { requestPayout } from "@/lib/payouts.functions";
+import { getSellerFinance } from "@/lib/order-history.functions";
+import { STATUS_LABELS, type OrderStatus } from "@/lib/order-status";
 
 export const Route = createFileRoute("/_authenticated/seller/balance")({
   component: BalancePage,
@@ -19,45 +21,21 @@ function BalancePage() {
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const requestPayoutFn = useServerFn(requestPayout);
+  const fetchFinance = useServerFn(getSellerFinance);
 
   // Продажи продавца → считаем итоги
   const salesQuery = useQuery({
     queryKey: ["seller-sales-total", user?.id],
     enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("price_kopecks, quantity, commission_kopecks")
-        .eq("seller_id", user!.id);
-      if (error) throw error;
-      const totalSales = (data ?? []).reduce((s, r) => s + r.price_kopecks * r.quantity, 0);
-      const totalPayout = (data ?? []).reduce(
-        (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
-        0,
-      );
-      return { totalSales, totalPayout };
-    },
-  });
-
-  // История выводов
-  const payoutsQuery = useQuery({
-    queryKey: ["seller-payouts", user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payouts")
-        .select("id, amount_kopecks, created_at")
-        .eq("seller_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
+    queryFn: () => fetchFinance(),
   });
 
   const totalPayout = salesQuery.data?.totalPayout ?? 0;
   const totalSales = salesQuery.data?.totalSales ?? 0;
-  const withdrawn = (payoutsQuery.data ?? []).reduce((s, p) => s + p.amount_kopecks, 0);
-  const available = Math.max(0, totalPayout - withdrawn);
+  const withdrawn = salesQuery.data?.withdrawn ?? 0;
+  const available = salesQuery.data?.available ?? 0;
+  const soldItems = salesQuery.data?.items ?? [];
+  const payouts = salesQuery.data?.payouts ?? [];
 
   // Демо-вывод: пишем запись в таблицу payouts
   const withdraw = useMutation({
@@ -69,7 +47,7 @@ function BalancePage() {
         description: `На ваш счёт зачислено ${formatPrice(available)}`,
       });
       setConfirmOpen(false);
-      qc.invalidateQueries({ queryKey: ["seller-payouts", user?.id] });
+      qc.invalidateQueries({ queryKey: ["seller-sales-total", user?.id] });
     },
     onError: (e: Error) => toast.error("Не удалось вывести средства", { description: e.message }),
   });
@@ -151,17 +129,69 @@ function BalancePage() {
         })}
       </div>
 
+      {salesQuery.isError && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+          Не удалось загрузить продажи и финансы. Обновите страницу или попробуйте ещё раз.
+        </div>
+      )}
+
+      {/* История продаж */}
+      <div className="rounded-2xl border bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b flex items-center justify-between">
+          <h2 className="font-semibold">Купленные товары</h2>
+          <span className="text-xs text-muted-foreground">
+            {soldItems.length} позиций
+          </span>
+        </div>
+        {soldItems.length > 0 ? (
+          <ul className="divide-y">
+            {soldItems.map((it) => {
+              const line = it.price_kopecks * it.quantity;
+              const payout = line - it.commission_kopecks;
+              const status = (it.status ?? "new") as OrderStatus;
+              return (
+                <li key={it.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-11 w-11 rounded-xl bg-surface overflow-hidden shrink-0">
+                      {it.image_url ? (
+                        <img src={it.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-lg">🛍️</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium line-clamp-1">{it.title_snapshot}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {formatPrice(it.price_kopecks)} × {it.quantity} · {STATUS_LABELS[status]}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-bold">{formatPrice(line)}</div>
+                    <div className="text-xs text-emerald-600 font-medium">к выплате {formatPrice(payout)}</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-muted-foreground">
+            Продаж пока нет. Здесь появятся товары, которые купили у вас.
+          </div>
+        )}
+      </div>
+
       {/* История выводов */}
       <div className="rounded-2xl border bg-white overflow-hidden">
         <div className="px-5 py-4 border-b flex items-center justify-between">
           <h2 className="font-semibold">История выводов</h2>
           <span className="text-xs text-muted-foreground">
-            {payoutsQuery.data?.length ?? 0} операций
+            {payouts.length} операций
           </span>
         </div>
-        {payoutsQuery.data && payoutsQuery.data.length > 0 ? (
+        {payouts.length > 0 ? (
           <ul className="divide-y">
-            {payoutsQuery.data.map((p) => (
+            {payouts.map((p) => (
               <li key={p.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-600 shrink-0">
