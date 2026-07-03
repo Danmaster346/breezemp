@@ -142,6 +142,24 @@ function ProductPage() {
                 {product.title}
               </h1>
 
+              {reviewsCount > 0 && (
+                <a
+                  href="#reviews"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm hover:underline"
+                >
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold">{avg.toFixed(1)}</span>
+                  <span className="text-muted-foreground">
+                    · {reviewsCount}{" "}
+                    {reviewsCount === 1
+                      ? "отзыв"
+                      : reviewsCount < 5
+                        ? "отзыва"
+                        : "отзывов"}
+                  </span>
+                </a>
+              )}
+
               <div className="mt-6 flex items-baseline gap-3">
                 <div className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
                   {formatPrice(product.price_kopecks)}
