@@ -13,6 +13,7 @@ import {
   Truck,
   Wallet,
   CalendarDays,
+  Banknote,
 } from "lucide-react";
 
 // Маршрут «/seller» — обёртка с дашбордом и вкладками
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/seller")({
 const tabs = [
   { to: "/seller/products", label: "Мои товары", icon: Package },
   { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
+  { to: "/seller/balance", label: "Финансы", icon: Banknote },
 ] as const;
 
 // Компонент обёртки

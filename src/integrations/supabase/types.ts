@@ -125,6 +125,27 @@ export type Database = {
         }
         Relationships: []
       }
+      payouts: {
+        Row: {
+          amount_kopecks: number
+          created_at: string
+          id: string
+          seller_id: string
+        }
+        Insert: {
+          amount_kopecks: number
+          created_at?: string
+          id?: string
+          seller_id: string
+        }
+        Update: {
+          amount_kopecks?: number
+          created_at?: string
+          id?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null
