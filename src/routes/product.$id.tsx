@@ -20,6 +20,7 @@ function ProductPage() {
   const { id } = Route.useParams();
   const add = useCart((s) => s.add);
   const [activeImg, setActiveImg] = useState(0);
+  const fetchReviews = useServerFn(getProductReviews);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -34,6 +35,13 @@ function ProductPage() {
       return data;
     },
   });
+
+  const ratingQuery = useQuery({
+    queryKey: ["product-reviews", id],
+    queryFn: () => fetchReviews({ data: { product_id: id } }),
+  });
+  const avg = ratingQuery.data?.avg ?? 0;
+  const reviewsCount = ratingQuery.data?.count ?? 0;
 
   const addToCart = () => {
     if (!product) return;
