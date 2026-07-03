@@ -27,6 +27,10 @@ function ProductPage() {
   const [activeImg, setActiveImg] = useState(0);
   const fetchReviews = useServerFn(getProductReviews);
   const fetchSeller = useServerFn(getSellerProfile);
+  const openChat = useServerFn(getOrCreateChat);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
 
 
   const { data: product, isLoading, error } = useQuery({
