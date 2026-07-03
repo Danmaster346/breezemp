@@ -5,7 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { requestPayout } from "@/lib/payouts.functions";
@@ -70,7 +69,7 @@ function BalancePage() {
     {
       label: "Уже выведено",
       value: formatPrice(withdrawn),
-      hint: `выводов: ${payoutsQuery.data?.length ?? 0}`,
+      hint: `выводов: ${payouts.length}`,
       icon: ArrowDownToLine,
       accent: "from-slate-500/15 to-slate-500/5 text-slate-700",
     },
