@@ -127,43 +127,69 @@ function SellerOrdersPage() {
                     {it.orders?.shipping_address}
                   </div>
                 </div>
-                {/* Управление статусом — последовательный пайплайн */}
-                {status !== "delivered" && status !== "cancelled" && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
-                    {NEXT_STATUS[status] && (
-                      <button
-                        type="button"
-                        disabled={m.isPending}
-                        onClick={() =>
-                          m.mutate({
-                            order_item_id: it.id,
-                            status: NEXT_STATUS[status]!,
-                            title: it.title_snapshot,
-                          })
-                        }
-                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
-                      >
-                        Перевести в: {STATUS_LABELS[NEXT_STATUS[status]!]}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      disabled={m.isPending}
-                      onClick={() => {
-                        if (confirm("Отменить эту позицию заказа?")) {
-                          m.mutate({
-                            order_item_id: it.id,
-                            status: "cancelled",
-                            title: it.title_snapshot,
-                          });
-                        }
-                      }}
-                      className="inline-flex items-center rounded-lg border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50"
-                    >
-                      Отменить
-                    </button>
-                  </div>
-                )}
+                {/* Управление статусом — последовательный пайплайн + возврат/отмена */}
+                {status !== "received" &&
+                  status !== "returned" &&
+                  status !== "cancelled" && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                      {NEXT_STATUS[status] && (
+                        <button
+                          type="button"
+                          disabled={m.isPending}
+                          onClick={() =>
+                            m.mutate({
+                              order_item_id: it.id,
+                              status: NEXT_STATUS[status]!,
+                              title: it.title_snapshot,
+                            })
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                        >
+                          Перевести в: {STATUS_LABELS[NEXT_STATUS[status]!]}
+                        </button>
+                      )}
+                      {/* Возврат доступен после доставки */}
+                      {(status === "delivered" || status === "shipped") && (
+                        <button
+                          type="button"
+                          disabled={m.isPending}
+                          onClick={() => {
+                            if (confirm("Оформить возврат этой позиции?")) {
+                              m.mutate({
+                                order_item_id: it.id,
+                                status: "returned",
+                                title: it.title_snapshot,
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center rounded-lg border border-orange-300 text-orange-700 px-3 py-2 text-sm hover:bg-orange-50 disabled:opacity-50"
+                        >
+                          Возврат
+                        </button>
+                      )}
+                      {/* Отмена — пока заказ не отправлен */}
+                      {(status === "new" ||
+                        status === "confirmed" ||
+                        status === "processing") && (
+                        <button
+                          type="button"
+                          disabled={m.isPending}
+                          onClick={() => {
+                            if (confirm("Отменить эту позицию заказа?")) {
+                              m.mutate({
+                                order_item_id: it.id,
+                                status: "cancelled",
+                                title: it.title_snapshot,
+                              });
+                            }
+                          }}
+                          className="inline-flex items-center rounded-lg border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50"
+                        >
+                          Отмена
+                        </button>
+                      )}
+                    </div>
+                  )}
               </div>
             );
           })}
