@@ -186,6 +186,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             )}
 
+            {user && (
+              <Link
+                to="/messages"
+                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                aria-label="Сообщения"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {unreadChats > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
+                    {unreadChats > 9 ? "9+" : unreadChats}
+                  </span>
+                )}
+              </Link>
+            )}
+
             <Link
               to={user ? accountHref : "/auth"}
               className="inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
@@ -193,6 +208,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <User className="h-5 w-5" />
             </Link>
+
           </div>
         </div>
 
