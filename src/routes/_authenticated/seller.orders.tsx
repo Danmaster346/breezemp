@@ -58,7 +58,8 @@ function SellerOrdersPage() {
     }) => updateStatus({ data: { order_item_id: v.order_item_id, status: v.status } }),
     onSuccess: (_r, v) => {
       // Красивое уведомление на ключевых стадиях
-      if (v.status === "processing" || v.status === "shipped" || v.status === "delivered") {
+      // Красивое уведомление на ключевых стадиях
+      if (NOTIFY_STATUSES.includes(v.status)) {
         toast.success(`Статус обновлён: ${STATUS_LABELS[v.status]}`, {
           description: v.title,
         });
