@@ -54,18 +54,51 @@ function ProductPage() {
           <div className="py-20 text-center text-muted-foreground">Товар не найден</div>
         ) : (
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Изображение товара */}
-            <div className="aspect-square rounded-2xl bg-muted overflow-hidden">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-8xl">🛍️</div>
-              )}
-            </div>
+            {/* Галерея изображений */}
+            {(() => {
+              const gallery: string[] =
+                (product as { image_urls?: string[] }).image_urls?.length
+                  ? (product as { image_urls: string[] }).image_urls
+                  : product.image_url
+                    ? [product.image_url]
+                    : [];
+              const current = gallery[activeImg] ?? gallery[0];
+              return (
+                <div>
+                  <div className="aspect-square rounded-2xl bg-muted overflow-hidden">
+                    {current ? (
+                      <img
+                        src={current}
+                        alt={product.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-8xl">
+                        🛍️
+                      </div>
+                    )}
+                  </div>
+                  {gallery.length > 1 && (
+                    <div className="mt-3 grid grid-cols-5 gap-2">
+                      {gallery.map((url, i) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setActiveImg(i)}
+                          className={`aspect-square rounded-lg overflow-hidden border-2 transition ${
+                            i === activeImg
+                              ? "border-primary"
+                              : "border-transparent hover:border-muted-foreground/40"
+                          }`}
+                        >
+                          <img src={url} alt="" className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Информация о товаре */}
             <div>
