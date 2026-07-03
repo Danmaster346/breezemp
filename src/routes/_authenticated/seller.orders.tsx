@@ -162,6 +162,8 @@ function SellerOrdersPage() {
                     </button>
                   </div>
                 )}
+              </div>
+            );
           })}
         </div>
       )}
