@@ -171,6 +171,30 @@ function ProductPage() {
                 </a>
               )}
 
+              {sellerQuery.data && (
+                <Link
+                  to="/seller/$id"
+                  params={{ id: sellerQuery.data.id }}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-surface hover:bg-surface-strong px-3 py-1.5 text-sm transition group"
+                >
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-foreground">
+                    <Store className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-muted-foreground">Продавец:</span>
+                  <span className="font-semibold text-foreground group-hover:text-brand transition">
+                    {sellerQuery.data.name}
+                  </span>
+                  {sellerQuery.data.reviewsCount > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      {sellerQuery.data.avgRating.toFixed(1)}
+                    </span>
+                  )}
+                </Link>
+              )}
+
+
+
               <div className="mt-6 flex items-baseline gap-3">
                 <div className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
                   {formatPrice(product.price_kopecks)}
