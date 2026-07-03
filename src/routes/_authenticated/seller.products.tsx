@@ -112,7 +112,8 @@ function SellerProductsPage() {
         <p className="text-muted-foreground mb-3">Вы зарегистрированы как покупатель.</p>
         <button
           onClick={async () => {
-            await supabase.from("user_roles").insert({ user_id: user.id, role: "seller" });
+            const { becomeSeller } = await import("@/lib/roles.functions");
+            await becomeSeller();
             toast.success("Теперь вы продавец!");
             window.location.reload();
           }}
