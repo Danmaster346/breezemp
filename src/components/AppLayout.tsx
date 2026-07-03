@@ -55,14 +55,23 @@ const sellerTopNav = [
 ] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const count = useCart((s) => s.totalCount());
+  // На сервере Zustand-persist читать localStorage не может — рендерим одинаково,
+  // чтобы избежать hydration mismatch. Реальные значения появятся после монтирования.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const rawCount = useCart((s) => s.totalCount());
   const { user, isSeller } = useAuth();
-  const mode = useMode((s) => s.mode);
+  const rawMode = useMode((s) => s.mode);
   const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const unreadChats = useUnreadChats();
+  const rawUnread = useUnreadChats();
+
+  const count = mounted ? rawCount : 0;
+  const mode = mounted ? rawMode : "buyer";
+  const unreadChats = mounted ? rawUnread : 0;
 
 
   // Пользователи без роли продавца всегда в режиме покупателя
