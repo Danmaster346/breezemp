@@ -262,7 +262,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Нижняя навигация */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-white">
-        <div className={`grid ${mobileNav.length === 5 ? "grid-cols-5" : "grid-cols-4"}`}>
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}>
           {mobileNav.map((item, i) => {
             const Icon = item.icon;
             const active = pathname === item.to || pathname.startsWith(item.to);
