@@ -1,7 +1,6 @@
 // Валидация промокодов на сервере
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 export interface PromoValidationResult {
@@ -12,13 +11,6 @@ export interface PromoValidationResult {
   min_order_kopecks: number;
 }
 
-function serverClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 // Вычисляем размер скидки в копейках по промокоду и сумме заказа
 export function computeDiscountKopecks(
@@ -37,9 +29,11 @@ const validateSchema = z.object({
 });
 
 export const validatePromoCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => validateSchema.parse(d))
   .handler(async ({ data }): Promise<PromoValidationResult> => {
-    const supabase = serverClient();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabase = supabaseAdmin;
     const code = data.code.trim().toUpperCase();
     const { data: promo, error } = await supabase
       .from("promo_codes")
