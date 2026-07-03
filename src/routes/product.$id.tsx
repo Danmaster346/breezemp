@@ -221,6 +221,18 @@ function ProductPage() {
                 </Link>
               )}
 
+              {product.seller_id && (!user || user.id !== product.seller_id) && (
+                <button
+                  type="button"
+                  onClick={writeSeller}
+                  className="mt-3 ml-2 inline-flex items-center gap-2 rounded-full border border-brand/40 bg-white px-3 py-1.5 text-sm text-brand hover:bg-brand-soft transition"
+                >
+                  <MessageCircle className="h-4 w-4" /> Написать продавцу
+                </button>
+              )}
+
+
+
 
 
               <div className="mt-6 flex items-baseline gap-3">
