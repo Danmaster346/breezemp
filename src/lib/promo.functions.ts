@@ -29,9 +29,11 @@ const validateSchema = z.object({
 });
 
 export const validatePromoCode = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => validateSchema.parse(d))
   .handler(async ({ data }): Promise<PromoValidationResult> => {
-    const supabase = serverClient();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabase = supabaseAdmin;
     const code = data.code.trim().toUpperCase();
     const { data: promo, error } = await supabase
       .from("promo_codes")
