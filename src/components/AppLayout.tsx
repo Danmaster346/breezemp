@@ -176,8 +176,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {mobileNav.map((item, i) => {
             const Icon = item.icon;
             const active =
-              pathname === item.to ||
-              (item.to !== "/" && pathname.startsWith(item.to));
+              pathname === item.to || pathname.startsWith(item.to);
             return (
               <Link
                 key={`${item.to}-${i}`}
