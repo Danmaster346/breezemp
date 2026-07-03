@@ -129,6 +129,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          image_urls: string[]
           is_active: boolean
           price_kopecks: number
           seller_id: string
@@ -141,6 +142,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           is_active?: boolean
           price_kopecks: number
           seller_id: string
@@ -153,6 +155,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           is_active?: boolean
           price_kopecks?: number
           seller_id?: string
