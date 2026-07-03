@@ -12,6 +12,8 @@ const schema = z.object({
     "processing",
     "shipped",
     "delivered",
+    "received",
+    "returned",
     "cancelled",
   ]),
 });
