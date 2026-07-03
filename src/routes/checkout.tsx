@@ -147,17 +147,6 @@ function CheckoutPage() {
                 </div>
               ))}
             </div>
-            {/* Разбивка суммы с комиссией платформы */}
-            <div className="border-t pt-3 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Товары</span>
-                <span>{formatPrice(total - Math.round(total * 0.1))}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Комиссия платформы (10%)</span>
-                <span>{formatPrice(Math.round(total * 0.1))}</span>
-              </div>
-            </div>
             <div className="flex justify-between text-lg font-bold border-t pt-3">
               <span>Итого</span>
               <span>{formatPrice(total)}</span>

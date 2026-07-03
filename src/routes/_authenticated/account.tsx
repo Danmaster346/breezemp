@@ -71,14 +71,6 @@ function aggregateStatus(items: OrderItem[]): OrderStatus {
   return ALL_STATUSES[minIdx] ?? "new";
 }
 
-// Общая комиссия по заказу — из БД или сумма по позициям
-function orderCommission(o: Order): number {
-  if (o.commission_kopecks != null) return o.commission_kopecks;
-  return (o.order_items ?? []).reduce(
-    (acc, it) => acc + (it.commission_kopecks ?? 0) * it.quantity,
-    0,
-  );
-}
 
 // Компонент кабинета
 function AccountPage() {
@@ -359,29 +351,11 @@ function AccountPage() {
               </div>
 
               {/* Итого */}
-              <div className="rounded-xl bg-muted/50 p-3 space-y-1.5 text-sm">
-                {(() => {
-                  const commission = orderCommission(openOrder);
-                  const goods = openOrder.total_kopecks - commission;
-                  return (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Товары</span>
-                        <span>{formatPrice(goods)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Комиссия платформы (10%)
-                        </span>
-                        <span>{formatPrice(commission)}</span>
-                      </div>
-                      <div className="flex justify-between pt-1.5 border-t font-bold text-base">
-                        <span>Итого</span>
-                        <span>{formatPrice(openOrder.total_kopecks)}</span>
-                      </div>
-                    </>
-                  );
-                })()}
+              <div className="rounded-xl bg-muted/50 p-3 text-sm">
+                <div className="flex justify-between font-bold text-base">
+                  <span>Итого оплачено</span>
+                  <span>{formatPrice(openOrder.total_kopecks)}</span>
+                </div>
               </div>
             </div>
           </div>
