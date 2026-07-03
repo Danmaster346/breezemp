@@ -7,7 +7,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star } from "lucide-react";
+import { ProductReviews } from "@/components/ProductReviews";
+import { useServerFn } from "@tanstack/react-start";
+import { getProductReviews } from "@/lib/reviews.functions";
 
 export const Route = createFileRoute("/product/$id")({
   component: ProductPage,
@@ -17,6 +20,7 @@ function ProductPage() {
   const { id } = Route.useParams();
   const add = useCart((s) => s.add);
   const [activeImg, setActiveImg] = useState(0);
+  const fetchReviews = useServerFn(getProductReviews);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -31,6 +35,13 @@ function ProductPage() {
       return data;
     },
   });
+
+  const ratingQuery = useQuery({
+    queryKey: ["product-reviews", id],
+    queryFn: () => fetchReviews({ data: { product_id: id } }),
+  });
+  const avg = ratingQuery.data?.avg ?? 0;
+  const reviewsCount = ratingQuery.data?.count ?? 0;
 
   const addToCart = () => {
     if (!product) return;
@@ -131,6 +142,24 @@ function ProductPage() {
                 {product.title}
               </h1>
 
+              {reviewsCount > 0 && (
+                <a
+                  href="#reviews"
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm hover:underline"
+                >
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold">{avg.toFixed(1)}</span>
+                  <span className="text-muted-foreground">
+                    · {reviewsCount}{" "}
+                    {reviewsCount === 1
+                      ? "отзыв"
+                      : reviewsCount < 5
+                        ? "отзыва"
+                        : "отзывов"}
+                  </span>
+                </a>
+              )}
+
               <div className="mt-6 flex items-baseline gap-3">
                 <div className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
                   {formatPrice(product.price_kopecks)}
@@ -183,6 +212,12 @@ function ProductPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {product && (
+          <div id="reviews">
+            <ProductReviews productId={product.id} />
           </div>
         )}
       </div>
