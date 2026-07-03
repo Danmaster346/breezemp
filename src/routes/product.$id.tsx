@@ -7,10 +7,12 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
+import { getSellerProfile } from "@/lib/seller-profile.functions";
+
 
 export const Route = createFileRoute("/product/$id")({
   component: ProductPage,
