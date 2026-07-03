@@ -16,11 +16,13 @@ import {
   Wallet,
   ArrowLeftRight,
   ShoppingBag,
+  MessageCircle,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
+import { useUnreadChats } from "@/lib/use-unread-chats";
 import logo from "@/assets/breeze-logo.png.asset.json";
 
 // Нижнее мобильное меню — свой набор для каждого режима
@@ -60,6 +62,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const unreadChats = useUnreadChats();
+
 
   // Пользователи без роли продавца всегда в режиме покупателя
   useEffect(() => {
@@ -182,6 +186,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </Link>
             )}
 
+            {user && (
+              <Link
+                to="/messages"
+                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                aria-label="Сообщения"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {unreadChats > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
+                    {unreadChats > 9 ? "9+" : unreadChats}
+                  </span>
+                )}
+              </Link>
+            )}
+
             <Link
               to={user ? accountHref : "/auth"}
               className="inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
@@ -189,6 +208,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <User className="h-5 w-5" />
             </Link>
+
           </div>
         </div>
 

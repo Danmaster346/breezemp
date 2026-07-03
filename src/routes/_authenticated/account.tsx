@@ -1,5 +1,5 @@
 // Личный кабинет покупателя: список его заказов и модалка с деталями
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,13 +8,14 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
+import { getOrCreateChat } from "@/lib/chat.functions";
 import {
   ALL_STATUSES,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
 } from "@/lib/order-status";
-import { LogOut, Store, X, ShoppingBag } from "lucide-react";
+import { LogOut, Store, X, ShoppingBag, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 // Маршрут «/account»
@@ -36,6 +37,8 @@ const fmtDate = (s: string) =>
 // Тип позиции заказа (для локальных вычислений)
 type OrderItem = {
   id: string;
+  product_id: string | null;
+  seller_id: string;
   title_snapshot: string;
   image_url: string | null;
   price_kopecks: number;
@@ -79,7 +82,21 @@ function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
+  const openChat = useServerFn(getOrCreateChat);
+  const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
+    try {
+      const res = await openChat({
+        data: { seller_id: sellerId, product_id: productId, order_id: orderId },
+      });
+      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
 
   // Загружаем заказы покупателя со связанными позициями
   const ordersQuery = useQuery({
@@ -342,10 +359,18 @@ function AccountPage() {
                           >
                             {STATUS_LABELS[st]}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => writeSeller(it.seller_id, it.product_id, openOrder.id)}
+                            className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
+                          >
+                            <MessageCircle className="h-3 w-3" /> Написать продавцу
+                          </button>
                         </div>
                         <div className="text-sm font-semibold shrink-0">
                           {formatPrice(it.price_kopecks * it.quantity)}
                         </div>
+
                       </div>
                     );
                   })}

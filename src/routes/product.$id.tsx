@@ -7,11 +7,14 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store, MessageCircle } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
+import { getOrCreateChat } from "@/lib/chat.functions";
+import { useAuth } from "@/lib/use-auth";
+import { useNavigate } from "@tanstack/react-router";
 
 
 export const Route = createFileRoute("/product/$id")({
@@ -24,6 +27,10 @@ function ProductPage() {
   const [activeImg, setActiveImg] = useState(0);
   const fetchReviews = useServerFn(getProductReviews);
   const fetchSeller = useServerFn(getSellerProfile);
+  const openChat = useServerFn(getOrCreateChat);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
 
 
   const { data: product, isLoading, error } = useQuery({
@@ -66,6 +73,27 @@ function ProductPage() {
     });
     toast.success("Товар добавлен в корзину");
   };
+  const writeSeller = async () => {
+    if (!product) return;
+    if (!user) {
+      toast.error("Войдите, чтобы написать продавцу");
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (user.id === product.seller_id) {
+      toast.error("Это ваш собственный товар");
+      return;
+    }
+    try {
+      const res = await openChat({
+        data: { seller_id: product.seller_id, product_id: product.id },
+      });
+      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
 
   return (
     <AppLayout>
@@ -192,6 +220,18 @@ function ProductPage() {
                   )}
                 </Link>
               )}
+
+              {product.seller_id && (!user || user.id !== product.seller_id) && (
+                <button
+                  type="button"
+                  onClick={writeSeller}
+                  className="mt-3 ml-2 inline-flex items-center gap-2 rounded-full border border-brand/40 bg-white px-3 py-1.5 text-sm text-brand hover:bg-brand-soft transition"
+                >
+                  <MessageCircle className="h-4 w-4" /> Написать продавцу
+                </button>
+              )}
+
+
 
 
 
