@@ -24,18 +24,24 @@ export const updateOrderItemStatus = createServerFn({ method: "POST" })
   .inputValidator((d) => schema.parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    // Загружаем сервис-роль клиента, чтобы обновление не блокировалось RLS
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Проверяем, что этот order_item принадлежит текущему продавцу
     const { data: item, error: fetchErr } = await supabaseAdmin
       .from("order_items")
-      .select("id, seller_id")
+      .select("id, seller_id, status, orders!inner(buyer_id)")
       .eq("id", data.order_item_id)
       .maybeSingle();
     if (fetchErr) throw new Error(fetchErr.message);
     if (!item) throw new Error("Позиция не найдена");
-    if (item.seller_id !== userId) throw new Error("Нет доступа к этой позиции");
-    // Применяем новый статус
+    const buyerId = (item as unknown as { orders: { buyer_id: string } }).orders.buyer_id;
+    const isSeller = item.seller_id === userId;
+    const isBuyer = buyerId === userId;
+    if (!isSeller && !isBuyer) throw new Error("Нет доступа к этой позиции");
+    // Покупатель может только подтвердить получение (delivered → received)
+    if (!isSeller && isBuyer) {
+      if (!(item.status === "delivered" && data.status === "received")) {
+        throw new Error("Покупатель может только подтвердить получение");
+      }
+    }
     const { error: updErr } = await supabaseAdmin
       .from("order_items")
       .update({ status: data.status })
