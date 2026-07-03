@@ -7,11 +7,14 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store, MessageCircle } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
+import { getOrCreateChat } from "@/lib/chat.functions";
+import { useAuth } from "@/lib/use-auth";
+import { useNavigate } from "@tanstack/react-router";
 
 
 export const Route = createFileRoute("/product/$id")({
