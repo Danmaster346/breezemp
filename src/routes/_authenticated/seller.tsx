@@ -57,7 +57,11 @@ function SellerLayout() {
         (r) => r.status !== "delivered" && r.status !== "cancelled",
       );
       const activeOrderIds = new Set(activeItems.map((r) => r.order_id));
-      // Общая выручка продавца за всё время (за вычетом комиссии платформы)
+      // Полная сумма продаж (сколько заплатили покупатели) и сумма к выплате (−10%)
+      const totalSales = rows.reduce(
+        (s, r) => s + r.price_kopecks * r.quantity,
+        0,
+      );
       const totalPayout = rows.reduce(
         (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
         0,
@@ -76,6 +80,7 @@ function SellerLayout() {
       return {
         products: productsCount.count ?? 0,
         active: activeOrderIds.size,
+        totalSales,
         totalPayout,
         today: todayOrderIds.size,
         week: weekOrderIds.size,
