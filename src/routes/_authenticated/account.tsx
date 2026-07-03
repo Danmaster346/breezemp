@@ -71,14 +71,6 @@ function aggregateStatus(items: OrderItem[]): OrderStatus {
   return ALL_STATUSES[minIdx] ?? "new";
 }
 
-// Общая комиссия по заказу — из БД или сумма по позициям
-function orderCommission(o: Order): number {
-  if (o.commission_kopecks != null) return o.commission_kopecks;
-  return (o.order_items ?? []).reduce(
-    (acc, it) => acc + (it.commission_kopecks ?? 0) * it.quantity,
-    0,
-  );
-}
 
 // Компонент кабинета
 function AccountPage() {
