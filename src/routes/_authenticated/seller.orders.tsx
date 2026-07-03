@@ -1,9 +1,18 @@
-// Заказы продавца: показываем позиции, относящиеся к текущему продавцу
+// Заказы продавца: таблица с возможностью менять статус позиции
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import {
+  ALL_STATUSES,
+  STATUS_BADGE,
+  STATUS_LABELS,
+  type OrderStatus,
+} from "@/lib/order-status";
+import { updateOrderItemStatus } from "@/lib/order-status.functions";
+import { toast } from "sonner";
 
 // Маршрут «/seller/orders»
 export const Route = createFileRoute("/_authenticated/seller/orders")({
@@ -12,11 +21,15 @@ export const Route = createFileRoute("/_authenticated/seller/orders")({
 });
 
 // Форматирование даты
-const fmt = (s: string) => new Date(s).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+const fmt = (s: string) =>
+  new Date(s).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
 
 // Компонент страницы
 function SellerOrdersPage() {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  // Обёртка серверной функции, чтобы автоматически подставился bearer-токен
+  const updateStatus = useServerFn(updateOrderItemStatus);
 
   // Загружаем позиции заказов, где продавец = текущий пользователь
   const q = useQuery({
@@ -25,12 +38,25 @@ function SellerOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("*, orders(id, created_at, status, shipping_name, shipping_phone, shipping_address)")
+        .select(
+          "*, orders(id, created_at, shipping_name, shipping_phone, shipping_address)",
+        )
         .eq("seller_id", user!.id)
         .order("id", { ascending: false });
       if (error) throw error;
       return data;
     },
+  });
+
+  // Мутация смены статуса позиции
+  const m = useMutation({
+    mutationFn: (v: { order_item_id: string; status: OrderStatus }) =>
+      updateStatus({ data: v }),
+    onSuccess: () => {
+      toast.success("Статус обновлён");
+      qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   return (
@@ -44,9 +70,10 @@ function SellerOrdersPage() {
       ) : (
         <div className="space-y-3">
           {q.data.map((it) => {
-            // Считаем сумму позиции и выручку продавца после комиссии
+            // Считаем сумму позиции и выручку продавца после комиссии платформы
             const line = it.price_kopecks * it.quantity;
             const payout = line - it.commission_kopecks;
+            const status = (it.status ?? "new") as OrderStatus;
             return (
               <div key={it.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex justify-between items-start gap-2 flex-wrap">
@@ -56,11 +83,17 @@ function SellerOrdersPage() {
                       Заказ №{it.orders?.id.slice(0, 8).toUpperCase()} ·{" "}
                       {it.orders && fmt(it.orders.created_at)}
                     </div>
+                    {/* Плашка текущего статуса */}
+                    <span
+                      className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[status]}`}
+                    >
+                      {STATUS_LABELS[status]}
+                    </span>
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold">{formatPrice(line)}</div>
                     <div className="text-xs text-muted-foreground">
-                      × {it.quantity} · комиссия 10%
+                      × {it.quantity} · комиссия платформы 10%
                     </div>
                   </div>
                 </div>
@@ -76,6 +109,27 @@ function SellerOrdersPage() {
                   <div className="text-primary font-medium">
                     К выплате: {formatPrice(payout)}
                   </div>
+                </div>
+                {/* Управление статусом */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                  <label className="text-sm text-muted-foreground">Статус:</label>
+                  <select
+                    value={status}
+                    disabled={m.isPending}
+                    onChange={(e) =>
+                      m.mutate({
+                        order_item_id: it.id,
+                        status: e.target.value as OrderStatus,
+                      })
+                    }
+                    className="h-9 px-2 rounded-lg border bg-background text-sm"
+                  >
+                    {ALL_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABELS[s]}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             );
