@@ -1,18 +1,23 @@
 // Список и создание/редактирование товаров продавцом
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice, rublesToKopecks } from "@/lib/format";
 import { Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Маршрут «/seller/products»
+// Маршрут «/seller/products» с поддержкой ?new=1 (сразу открыть форму)
 export const Route = createFileRoute("/_authenticated/seller/products")({
   head: () => ({ meta: [{ title: "Мои товары — BreezeMarket" }] }),
+  // Разбираем query — принимаем ?new=1 как флаг открытия модалки
+  validateSearch: (s: Record<string, unknown>) => ({
+    new: s.new === 1 || s.new === "1" ? 1 : undefined,
+  }),
   component: SellerProductsPage,
 });
+
 
 // Тип для формы товара
 type ProductForm = {
@@ -43,10 +48,22 @@ const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 function SellerProductsPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
   const [editing, setEditing] = useState<ProductForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // При наличии ?new=1 открываем форму и убираем параметр из URL
+  useEffect(() => {
+    if (search.new === 1 && !editing) {
+      setEditing({ ...emptyForm });
+      navigate({ to: "/seller/products", search: {}, replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search.new]);
+
 
   // Товары продавца
   const productsQuery = useQuery({
@@ -165,7 +182,7 @@ function SellerProductsPage() {
         toast.success("Товар добавлен");
       }
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["seller-products"] });
+      qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -178,7 +195,7 @@ function SellerProductsPage() {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Удалено");
-    qc.invalidateQueries({ queryKey: ["seller-products"] });
+    qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
   };
 
   // Пользователь не продавец — предлагаем стать
