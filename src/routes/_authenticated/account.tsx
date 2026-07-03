@@ -82,7 +82,21 @@ function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
+  const openChat = useServerFn(getOrCreateChat);
+  const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
+
+  const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
+    try {
+      const res = await openChat({
+        data: { seller_id: sellerId, product_id: productId, order_id: orderId },
+      });
+      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
 
   // Загружаем заказы покупателя со связанными позициями
   const ordersQuery = useQuery({
