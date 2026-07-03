@@ -112,12 +112,13 @@ function BalancePage() {
               {formatPrice(available)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Сумма формируется из ваших продаж за вычетом комиссии платформы 10% и уже сделанных выводов.
+              Деньги переходят сюда после того, как заказ получает статус «Доставлен».
+              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>.
             </p>
           </div>
           <button
             disabled={available <= 0 || withdraw.isPending}
-            onClick={() => setConfirmOpen(true)}
+            onClick={openWithdraw}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground shadow-sm hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             <ArrowDownToLine className="h-4 w-4" />
@@ -126,8 +127,9 @@ function BalancePage() {
         </div>
       </div>
 
-      {/* Три показателя */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Показатели */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
         {cards.map((c) => {
           const Icon = c.icon;
           return (
