@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import {
-  ALL_STATUSES,
+  NEXT_STATUS,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
