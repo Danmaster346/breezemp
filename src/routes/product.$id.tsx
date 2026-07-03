@@ -7,10 +7,12 @@ import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
 import { toast } from "sonner";
-import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
+import { getSellerProfile } from "@/lib/seller-profile.functions";
+
 
 export const Route = createFileRoute("/product/$id")({
   component: ProductPage,
@@ -21,6 +23,8 @@ function ProductPage() {
   const add = useCart((s) => s.add);
   const [activeImg, setActiveImg] = useState(0);
   const fetchReviews = useServerFn(getProductReviews);
+  const fetchSeller = useServerFn(getSellerProfile);
+
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -42,6 +46,13 @@ function ProductPage() {
   });
   const avg = ratingQuery.data?.avg ?? 0;
   const reviewsCount = ratingQuery.data?.count ?? 0;
+
+  const sellerQuery = useQuery({
+    queryKey: ["seller-profile-mini", product?.seller_id],
+    enabled: !!product?.seller_id,
+    queryFn: () => fetchSeller({ data: { id: product!.seller_id } }),
+  });
+
 
   const addToCart = () => {
     if (!product) return;
@@ -159,6 +170,30 @@ function ProductPage() {
                   </span>
                 </a>
               )}
+
+              {sellerQuery.data && (
+                <Link
+                  to="/seller/$id"
+                  params={{ id: sellerQuery.data.id }}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-surface hover:bg-surface-strong px-3 py-1.5 text-sm transition group"
+                >
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-foreground">
+                    <Store className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-muted-foreground">Продавец:</span>
+                  <span className="font-semibold text-foreground group-hover:text-brand transition">
+                    {sellerQuery.data.name}
+                  </span>
+                  {sellerQuery.data.reviewsCount > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      {sellerQuery.data.avgRating.toFixed(1)}
+                    </span>
+                  )}
+                </Link>
+              )}
+
+
 
               <div className="mt-6 flex items-baseline gap-3">
                 <div className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground">
