@@ -2,11 +2,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { calcShippingCost, getShippingOption } from "@/lib/shipping";
+import { computeDiscountKopecks } from "@/lib/promo.functions";
 
 // Ставка комиссии платформы (10%)
 const COMMISSION_RATE = 0.1;
 
-// Схема входа: список позиций и данные доставки
+// Схема входа: список позиций, данные доставки, способ и промокод
 const createOrderSchema = z.object({
   items: z
     .array(z.object({ product_id: z.string().uuid(), quantity: z.number().int().positive() }))
@@ -14,6 +16,8 @@ const createOrderSchema = z.object({
   shipping_name: z.string().trim().min(1).max(100),
   shipping_phone: z.string().trim().min(3).max(30),
   shipping_address: z.string().trim().min(3).max(500),
+  shipping_method: z.enum(["pickup", "cdek", "yandex"]).default("pickup"),
+  promo_code: z.string().trim().max(64).optional().nullable(),
   // Флаг тестовой оплаты — сразу помечаем позиции как «Подтверждён»
   paid: z.boolean().optional(),
 });
