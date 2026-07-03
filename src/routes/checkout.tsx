@@ -68,8 +68,6 @@ function CheckoutPage() {
     }
   };
 
-  // Считаем комиссию платформы 10% (справочно)
-  const commission = Math.round(total * 0.1);
 
   return (
     <AppLayout>
@@ -144,9 +142,6 @@ function CheckoutPage() {
                   <span className="shrink-0">{formatPrice(i.price_kopecks * i.quantity)}</span>
                 </div>
               ))}
-            </div>
-            <div className="border-t pt-3 text-xs text-muted-foreground">
-              Комиссия платформы (10%): {formatPrice(commission)}
             </div>
             <div className="flex justify-between text-lg font-bold border-t pt-3">
               <span>Итого</span>
