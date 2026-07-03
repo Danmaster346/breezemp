@@ -1,5 +1,6 @@
 // Каркас приложения — Askona-style: мягкий серый фон, крупная пилюля поиска,
 // круглая бирюзовая кнопка меню, минималистичная шапка.
+// Навигация и нижнее меню перестраиваются под режим «Покупатель / Продавец».
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ShoppingCart,
@@ -9,38 +10,115 @@ import {
   Home,
   Menu,
   Phone,
-  Heart,
-  Flame,
+  Package,
+  ClipboardList,
+  BarChart3,
+  Wallet,
+  ArrowLeftRight,
+  ShoppingBag,
 } from "lucide-react";
-import { useState, type ReactNode, type FormEvent } from "react";
+import { useEffect, useState, type ReactNode, type FormEvent } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
+import { useMode } from "@/lib/mode-store";
 import logo from "@/assets/breeze-logo.png.asset.json";
 
-const mobileNav = [
+// Нижнее мобильное меню — свой набор для каждого режима
+const buyerMobileNav = [
   { to: "/catalog", label: "Каталог", icon: Menu },
-  { to: "/catalog", label: "Акции", icon: Flame, search: { sort: "new" } },
   { to: "/cart", label: "Корзина", icon: ShoppingCart },
-  { to: "/account", label: "Избранное", icon: Heart },
-  { to: "/account", label: "Войти", icon: User },
+  { to: "/account", label: "Заказы", icon: ShoppingBag },
+  { to: "/account", label: "Кабинет", icon: User },
+] as const;
+
+const sellerMobileNav = [
+  { to: "/seller/products", label: "Товары", icon: Package },
+  { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
+  { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
+  { to: "/seller/balance", label: "Финансы", icon: Wallet },
+] as const;
+
+// Верхнее меню (desktop) — свой набор для каждого режима
+const buyerTopNav = [
+  { to: "/catalog", label: "Каталог" },
+  { to: "/catalog", label: "Акции" },
+  { to: "/catalog", label: "Новинки" },
+] as const;
+
+const sellerTopNav = [
+  { to: "/seller/products", label: "Мои товары" },
+  { to: "/seller/orders", label: "Заказы" },
+  { to: "/seller/analytics", label: "Аналитика" },
+  { to: "/seller/balance", label: "Баланс" },
 ] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const count = useCart((s) => s.totalCount());
   const { user, isSeller } = useAuth();
+  const mode = useMode((s) => s.mode);
+  const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+
+  // Пользователи без роли продавца всегда в режиме покупателя
+  useEffect(() => {
+    if (!isSeller && mode === "seller") setMode("buyer");
+  }, [isSeller, mode, setMode]);
+
+  // Автоматически переключаем режим при заходе в раздел /seller/*
+  useEffect(() => {
+    if (isSeller && pathname.startsWith("/seller") && mode !== "seller") {
+      setMode("seller");
+    }
+  }, [pathname, isSeller, mode, setMode]);
+
+  const effectiveMode: "buyer" | "seller" = isSeller && mode === "seller" ? "seller" : "buyer";
+  const topNav = effectiveMode === "seller" ? sellerTopNav : buyerTopNav;
+  const mobileNav = effectiveMode === "seller" ? sellerMobileNav : buyerMobileNav;
+  const accountHref = effectiveMode === "seller" ? "/seller/products" : "/account";
 
   const submitSearch = (e: FormEvent) => {
     e.preventDefault();
     navigate({ to: "/catalog", search: { q: q || undefined } as never });
   };
 
+  const switchMode = (next: "buyer" | "seller") => {
+    setMode(next);
+    if (next === "seller") navigate({ to: "/seller/products" });
+    else navigate({ to: "/account" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-foreground">
       {/* Шапка */}
       <header className="sticky top-0 z-40 bg-white">
+        {/* Индикатор роли */}
+        {user && (
+          <div
+            className={`w-full text-center text-[11px] font-medium py-1 ${
+              effectiveMode === "seller"
+                ? "bg-brand text-brand-foreground"
+                : "bg-surface text-foreground/70"
+            }`}
+          >
+            {effectiveMode === "seller" ? "Режим продавца" : "Режим покупателя"}
+            {isSeller && (
+              <button
+                onClick={() => switchMode(effectiveMode === "seller" ? "buyer" : "seller")}
+                className={`ml-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition ${
+                  effectiveMode === "seller"
+                    ? "bg-white/15 text-white hover:bg-white/25"
+                    : "bg-brand/10 text-brand hover:bg-brand/20"
+                }`}
+              >
+                <ArrowLeftRight className="h-3 w-3" />
+                {effectiveMode === "seller" ? "В покупатели" : "В продавцы"}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Верхняя полоса: логотип + иконки */}
         <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-3">
           <Link to="/" className="flex items-center shrink-0" aria-label="BREEZE">
@@ -49,12 +127,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
           {/* Desktop-меню */}
           <nav className="hidden md:flex items-center gap-1 ml-6 text-sm">
-            {[
-              { to: "/catalog", label: "Каталог" },
-              { to: "/catalog", label: "Акции" },
-              { to: "/catalog", label: "Новинки" },
-              { to: "/auth", label: "Продавать" },
-            ].map((it, i) => (
+            {topNav.map((it, i) => (
               <Link
                 key={i}
                 to={it.to}
@@ -63,6 +136,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {it.label}
               </Link>
             ))}
+            {/* Ссылка «стать продавцом» — только для тех, у кого нет роли */}
+            {!isSeller && effectiveMode === "buyer" && (
+              <Link
+                to="/auth"
+                className="px-3 py-2 rounded-full font-medium text-foreground/60 hover:text-brand transition"
+              >
+                Продавать
+              </Link>
+            )}
           </nav>
 
           <div className="ml-auto flex items-center gap-1 md:gap-2">
@@ -73,61 +155,67 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <Phone className="h-5 w-5" />
             </a>
-            {user && isSeller && (
-              <Link
-                to="/seller/products"
+
+            {/* Быстрая ссылка на кабинет продавца — только сверху для продавцов */}
+            {user && isSeller && effectiveMode === "buyer" && (
+              <button
+                onClick={() => switchMode("seller")}
                 className="hidden md:inline-flex items-center gap-2 h-10 px-3 rounded-full text-sm font-medium text-foreground hover:bg-surface transition"
               >
-                <Store className="h-4 w-4" /> Мои товары
+                <Store className="h-4 w-4" /> Кабинет продавца
+              </button>
+            )}
+
+            {/* Корзина показывается только покупателям */}
+            {effectiveMode === "buyer" && (
+              <Link
+                to="/cart"
+                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                aria-label="Корзина"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {count > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
+                    {count}
+                  </span>
+                )}
               </Link>
             )}
+
             <Link
-              to={user ? "/account" : "/auth"}
-              className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+              to={user ? accountHref : "/auth"}
+              className="inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
               aria-label={user ? "Кабинет" : "Войти"}
             >
               <User className="h-5 w-5" />
             </Link>
-            <Link
-              to="/cart"
-              className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
-              aria-label="Корзина"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {count > 0 && (
-                <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
-                  {count}
-                </span>
-              )}
-            </Link>
           </div>
         </div>
 
-        {/* Полоса поиска в стиле Askona: круглая бирюзовая кнопка меню + пилюля */}
-        <div className="mx-auto max-w-7xl px-4 pb-3">
-          <form
-            onSubmit={submitSearch}
-            className="flex items-center gap-2.5"
-          >
-            <Link
-              to="/catalog"
-              className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-full bg-brand text-brand-foreground shadow-sm hover:bg-brand-strong transition"
-              aria-label="Каталог"
-            >
-              <Menu className="h-5 w-5" />
-            </Link>
-            <div className="flex-1 flex items-center h-12 rounded-full bg-surface pl-4 pr-2 focus-within:ring-2 focus-within:ring-brand/30 transition">
-              <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                type="search"
-                placeholder="Поиск"
-                className="flex-1 bg-transparent px-3 text-base outline-none placeholder:text-muted-foreground/80 min-w-0"
-              />
-            </div>
-          </form>
-        </div>
+        {/* Полоса поиска — только в режиме покупателя */}
+        {effectiveMode === "buyer" && (
+          <div className="mx-auto max-w-7xl px-4 pb-3">
+            <form onSubmit={submitSearch} className="flex items-center gap-2.5">
+              <Link
+                to="/catalog"
+                className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-full bg-brand text-brand-foreground shadow-sm hover:bg-brand-strong transition"
+                aria-label="Каталог"
+              >
+                <Menu className="h-5 w-5" />
+              </Link>
+              <div className="flex-1 flex items-center h-12 rounded-full bg-surface pl-4 pr-2 focus-within:ring-2 focus-within:ring-brand/30 transition">
+                <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  type="search"
+                  placeholder="Поиск"
+                  className="flex-1 bg-transparent px-3 text-base outline-none placeholder:text-muted-foreground/80 min-w-0"
+                />
+              </div>
+            </form>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 pb-24 md:pb-0 bg-white">{children}</main>
@@ -154,6 +242,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <ul className="space-y-1.5 text-white/70">
               <li><Link to="/auth" className="hover:text-brand transition">Начать продавать</Link></li>
               <li><Link to="/seller/products" className="hover:text-brand transition">Мои товары</Link></li>
+              <li><Link to="/seller/analytics" className="hover:text-brand transition">Аналитика</Link></li>
+              <li><Link to="/seller/balance" className="hover:text-brand transition">Баланс</Link></li>
             </ul>
           </div>
           <div>
@@ -170,13 +260,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      {/* Нижняя навигация в стиле Askona */}
+      {/* Нижняя навигация */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-white">
-        <div className="grid grid-cols-5">
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}>
           {mobileNav.map((item, i) => {
             const Icon = item.icon;
-            const active =
-              pathname === item.to || pathname.startsWith(item.to);
+            const active = pathname === item.to || pathname.startsWith(item.to);
             return (
               <Link
                 key={`${item.to}-${i}`}
