@@ -90,10 +90,13 @@ export const createOrder = createServerFn({ method: "POST" })
       .single();
     if (orderErr || !order) throw new Error(orderErr?.message ?? "Не удалось создать заказ");
 
-    // Вставляем позиции заказа
+    // Вставляем позиции заказа; при тестовой оплате статус сразу «Подтверждён»
+    const initialStatus = data.paid ? "confirmed" : "new";
     const { error: itemsErr } = await supabaseAdmin
       .from("order_items")
-      .insert(itemsToInsert.map((i) => ({ ...i, order_id: order.id })));
+      .insert(
+        itemsToInsert.map((i) => ({ ...i, order_id: order.id, status: initialStatus })),
+      );
     if (itemsErr) throw new Error(itemsErr.message);
 
     // Списываем остатки со склада
