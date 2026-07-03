@@ -50,14 +50,19 @@ function SellerOrdersPage() {
 
   // Мутация смены статуса позиции
   const m = useMutation({
-    mutationFn: (v: { order_item_id: string; status: OrderStatus }) =>
-      updateStatus({ data: v }),
-    onSuccess: () => {
-      toast.success("Статус обновлён");
+    mutationFn: (v: {
+      order_item_id: string;
+      status: OrderStatus;
+      title?: string;
+    }) => updateStatus({ data: { order_item_id: v.order_item_id, status: v.status } }),
+    onSuccess: (_r, v) => {
+      toast.success(`Статус обновлён: ${STATUS_LABELS[v.status]}`, {
+        description: v.title,
+      });
       qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
       qc.invalidateQueries({ queryKey: ["seller-stats"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error("Не удалось обновить статус", { description: e.message }),
   });
 
   return (
@@ -125,6 +130,7 @@ function SellerOrdersPage() {
                       m.mutate({
                         order_item_id: it.id,
                         status: e.target.value as OrderStatus,
+                        title: it.title_snapshot,
                       })
                     }
                     className="h-9 px-2 rounded-lg border bg-background text-sm"

@@ -128,7 +128,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster position="top-center" richColors />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        expand
+        duration={3500}
+        mobileOffset={{ top: "12px", left: "12px", right: "12px" }}
+        toastOptions={{
+          classNames: {
+            toast:
+              "rounded-xl border shadow-lg text-sm font-medium",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
