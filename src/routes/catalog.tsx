@@ -181,7 +181,7 @@ function CatalogPage() {
         </div>
 
         {/* Панель фильтров + сортировки */}
-        <div className="rounded-2xl border bg-card p-3 mb-4 flex flex-wrap items-center gap-2">
+        <div className="rounded-2xl border border-border bg-white p-3 md:p-4 mb-4 flex flex-wrap items-center gap-2 shadow-sm">
           <SlidersHorizontal className="h-4 w-4 text-muted-foreground ml-1 hidden sm:block" />
 
           {/* Цена */}
@@ -195,7 +195,7 @@ function CatalogPage() {
               onChange={(e) => setMinInput(e.target.value)}
               onBlur={applyPrice}
               onKeyDown={(e) => e.key === "Enter" && applyPrice()}
-              className="w-24 sm:w-28 h-10 px-3 rounded-lg border bg-background text-sm"
+              className="w-24 sm:w-28 h-10 px-3 rounded-xl border border-border bg-surface text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition"
             />
             <span className="text-muted-foreground">—</span>
             <input
@@ -207,7 +207,7 @@ function CatalogPage() {
               onChange={(e) => setMaxInput(e.target.value)}
               onBlur={applyPrice}
               onKeyDown={(e) => e.key === "Enter" && applyPrice()}
-              className="w-24 sm:w-28 h-10 px-3 rounded-lg border bg-background text-sm"
+              className="w-24 sm:w-28 h-10 px-3 rounded-xl border border-border bg-surface text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition"
             />
           </div>
 
@@ -217,7 +217,7 @@ function CatalogPage() {
             <select
               value={search.sort ?? "new"}
               onChange={(e) => upd({ sort: e.target.value as SortKey })}
-              className="h-10 px-3 rounded-lg border bg-background text-sm"
+              className="h-10 px-3 rounded-xl border border-border bg-surface text-sm outline-none focus:border-brand cursor-pointer"
             >
               {(Object.entries(SORTS) as [SortKey, (typeof SORTS)[SortKey]][]).map(
                 ([k, v]) => (
@@ -234,7 +234,7 @@ function CatalogPage() {
             <Link
               to="/catalog"
               search={{ sort: search.sort }}
-              className="h-10 inline-flex items-center gap-1 px-3 rounded-lg text-sm text-muted-foreground hover:bg-accent"
+              className="h-10 inline-flex items-center gap-1 px-3 rounded-xl text-sm text-muted-foreground hover:bg-surface hover:text-foreground transition"
             >
               <X className="h-3.5 w-3.5" /> Сбросить
             </Link>
@@ -244,7 +244,7 @@ function CatalogPage() {
         {/* Счётчик найденного */}
         <div className="mb-3 text-sm text-muted-foreground">
           {productsQuery.isLoading
-            ? "Ищем товары..."
+            ? "Ищем товары…"
             : `Найдено товаров: ${count}`}
         </div>
 
@@ -254,25 +254,35 @@ function CatalogPage() {
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-[3/4] rounded-2xl bg-muted animate-pulse"
-              />
+                className="rounded-xl border border-border bg-white overflow-hidden animate-pulse"
+              >
+                <div className="aspect-square bg-surface-strong" />
+                <div className="p-3 space-y-2">
+                  <div className="h-3 w-3/4 bg-surface-strong rounded" />
+                  <div className="h-4 w-1/2 bg-surface-strong rounded" />
+                </div>
+              </div>
             ))}
           </div>
         ) : items.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
             {items.map((p) => (
               <ProductCard key={p.id} {...p} />
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed p-10 text-center">
-            <p className="text-muted-foreground mb-3">
-              Ничего не найдено. Попробуйте изменить фильтры.
+          <div className="rounded-2xl border border-dashed border-border bg-white p-10 md:p-16 text-center animate-fade-in">
+            <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-brand">
+              <Search className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-semibold mb-1">Ничего не найдено</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Попробуйте изменить фильтры или запрос.
             </p>
             {hasFilters && (
               <Link
                 to="/catalog"
-                className="inline-flex items-center gap-1 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                className="inline-flex items-center gap-1 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
               >
                 Сбросить фильтры
               </Link>
