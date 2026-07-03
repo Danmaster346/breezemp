@@ -20,17 +20,20 @@ export const requestPayout = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
 
-    // Compute earned = sum(price * qty - commission) for this seller
+    // Учитываем только доставленные позиции (delivered/received);
+    // pending-суммы (new/confirmed/processing/shipped) в баланс не идут.
     const { data: items, error: itemsErr } = await supabase
       .from("order_items")
-      .select("price_kopecks, quantity, commission_kopecks")
-      .eq("seller_id", userId);
+      .select("price_kopecks, quantity, commission_kopecks, status")
+      .eq("seller_id", userId)
+      .in("status", ["delivered", "received"]);
     if (itemsErr) throw new Error(itemsErr.message);
 
     const totalPayout = (items ?? []).reduce(
       (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
       0,
     );
+
 
     const { data: payouts, error: payErr } = await supabase
       .from("payouts")

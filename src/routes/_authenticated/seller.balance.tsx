@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2 } from "lucide-react";
+import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2, Clock } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { requestPayout } from "@/lib/payouts.functions";
@@ -19,6 +19,7 @@ function BalancePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [amountInput, setAmountInput] = useState("");
   const requestPayoutFn = useServerFn(requestPayout);
   const fetchFinance = useServerFn(getSellerFinance);
 
@@ -33,23 +34,38 @@ function BalancePage() {
   const totalSales = salesQuery.data?.totalSales ?? 0;
   const withdrawn = salesQuery.data?.withdrawn ?? 0;
   const available = salesQuery.data?.available ?? 0;
+  const pending = salesQuery.data?.pending ?? 0;
   const soldItems = salesQuery.data?.items ?? [];
   const payouts = salesQuery.data?.payouts ?? [];
+
+  // Введённая сумма → копейки. Пустое поле = 0.
+  const amountRub = Number(amountInput.replace(",", "."));
+  const amountKopecks = Number.isFinite(amountRub) && amountRub > 0
+    ? Math.round(amountRub * 100)
+    : 0;
+  const amountInvalid = amountKopecks <= 0 || amountKopecks > available;
 
   // Демо-вывод: пишем запись в таблицу payouts
   const withdraw = useMutation({
     mutationFn: async (amount: number) => {
       await requestPayoutFn({ data: { amount_kopecks: amount } });
+      return amount;
     },
-    onSuccess: () => {
+    onSuccess: (amount) => {
       toast.success("Средства выведены (демо)", {
-        description: `На ваш счёт зачислено ${formatPrice(available)}`,
+        description: `На ваш счёт зачислено ${formatPrice(amount)}`,
       });
       setConfirmOpen(false);
+      setAmountInput("");
       qc.invalidateQueries({ queryKey: ["seller-sales-total", user?.id] });
     },
     onError: (e: Error) => toast.error("Не удалось вывести средства", { description: e.message }),
   });
+
+  const openWithdraw = () => {
+    setAmountInput((available / 100).toFixed(2));
+    setConfirmOpen(true);
+  };
 
   const cards = [
     {
@@ -60,9 +76,16 @@ function BalancePage() {
       accent: "from-sky-500/15 to-sky-500/5 text-sky-700",
     },
     {
-      label: "Заработано (после комиссии 10%)",
+      label: "В ожидании",
+      value: formatPrice(pending),
+      hint: "поступит после доставки",
+      icon: Clock,
+      accent: "from-amber-500/15 to-amber-500/5 text-amber-700",
+    },
+    {
+      label: "Заработано (после доставки)",
       value: formatPrice(totalPayout),
-      hint: "всего начислено вам",
+      hint: "минус комиссия 10%",
       icon: Wallet,
       accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-700",
     },
@@ -74,6 +97,7 @@ function BalancePage() {
       accent: "from-slate-500/15 to-slate-500/5 text-slate-700",
     },
   ];
+
 
   return (
     <div className="space-y-6">
@@ -88,12 +112,13 @@ function BalancePage() {
               {formatPrice(available)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Сумма формируется из ваших продаж за вычетом комиссии платформы 10% и уже сделанных выводов.
+              Деньги переходят сюда после того, как заказ получает статус «Доставлен».
+              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>.
             </p>
           </div>
           <button
             disabled={available <= 0 || withdraw.isPending}
-            onClick={() => setConfirmOpen(true)}
+            onClick={openWithdraw}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground shadow-sm hover:bg-brand/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             <ArrowDownToLine className="h-4 w-4" />
@@ -102,8 +127,9 @@ function BalancePage() {
         </div>
       </div>
 
-      {/* Три показателя */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Показатели */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
         {cards.map((c) => {
           const Icon = c.icon;
           return (
@@ -238,11 +264,39 @@ function BalancePage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-muted-foreground">
-                На ваш банковский счёт будет переведена вся доступная сумма. Это демо-режим — реальные средства не переводятся.
+                Введите сумму для вывода. Это демо-режим — реальные средства не переводятся.
               </p>
-              <div className="rounded-xl border bg-surface p-4 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">К выводу</span>
-                <span className="text-2xl font-extrabold text-brand">{formatPrice(available)}</span>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="amount" className="text-sm font-medium">Сумма, ₽</label>
+                  <button
+                    type="button"
+                    onClick={() => setAmountInput((available / 100).toFixed(2))}
+                    className="text-xs font-semibold text-brand hover:text-brand/80"
+                  >
+                    Вся сумма
+                  </button>
+                </div>
+                <input
+                  id="amount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  max={(available / 100).toFixed(2)}
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-4 py-3 text-xl font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                  placeholder="0.00"
+                />
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    Максимум: <span className="font-semibold text-foreground">{formatPrice(available)}</span>
+                  </span>
+                  {amountKopecks > 0 && amountKopecks > available && (
+                    <span className="text-destructive font-medium">Больше доступного</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex gap-2 px-5 py-4 border-t bg-surface/50">
@@ -253,13 +307,14 @@ function BalancePage() {
                 Отмена
               </button>
               <button
-                onClick={() => withdraw.mutate(available)}
-                disabled={withdraw.isPending || available <= 0}
-                className="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 transition"
+                onClick={() => withdraw.mutate(amountKopecks)}
+                disabled={withdraw.isPending || amountInvalid}
+                className="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {withdraw.isPending ? "Отправка…" : "Подтвердить"}
+                {withdraw.isPending ? "Отправка…" : "Вывести"}
               </button>
             </div>
+
           </div>
         </div>
       )}

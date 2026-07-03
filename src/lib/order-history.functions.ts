@@ -76,22 +76,42 @@ export const getSellerFinance = createServerFn({ method: "GET" })
 
     const sales = (items ?? []) as unknown as SellerOrderItem[];
     const payoutRows = (payouts ?? []) as SellerPayout[];
-    const totalSales = sales.reduce((s, r) => s + r.price_kopecks * r.quantity, 0);
-    const totalPayout = sales.reduce(
-      (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
-      0,
-    );
+
+    // Итоги считаем по статусам:
+    // - «pending» пока заказ не доставлен (new/confirmed/processing/shipped);
+    // - «earned» после доставки (delivered/received) — только это доступно к выводу;
+    // - «returned»/«cancelled» полностью исключаем.
+    const PENDING = new Set(["new", "confirmed", "processing", "shipped"]);
+    const EARNED = new Set(["delivered", "received"]);
+
+    let totalSales = 0;
+    let earned = 0;
+    let pending = 0;
+    for (const r of sales) {
+      const line = r.price_kopecks * r.quantity;
+      const payout = line - r.commission_kopecks;
+      const s = r.status ?? "new";
+      if (PENDING.has(s)) {
+        totalSales += line;
+        pending += payout;
+      } else if (EARNED.has(s)) {
+        totalSales += line;
+        earned += payout;
+      }
+    }
     const withdrawn = payoutRows.reduce((s, p) => s + p.amount_kopecks, 0);
 
     return {
       items: sales,
       payouts: payoutRows,
       totalSales,
-      totalPayout,
+      totalPayout: earned, // всего заработано (после доставки)
+      pending,             // ожидает доставки
       withdrawn,
-      available: Math.max(0, totalPayout - withdrawn),
+      available: Math.max(0, earned - withdrawn),
     };
   });
+
 
 export const getSellerDashboardStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
