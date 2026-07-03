@@ -45,6 +45,7 @@ export type Database = {
           product_id: string | null
           quantity: number
           seller_id: string
+          status: string
           title_snapshot: string
         }
         Insert: {
@@ -56,6 +57,7 @@ export type Database = {
           product_id?: string | null
           quantity: number
           seller_id: string
+          status?: string
           title_snapshot: string
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           seller_id?: string
+          status?: string
           title_snapshot?: string
         }
         Relationships: [

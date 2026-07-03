@@ -1,10 +1,16 @@
-// Личный кабинет покупателя: список его заказов
+// Личный кабинет покупателя: список его заказов с текущими статусами позиций
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import {
+  STATUS_BADGE,
+  STATUS_LABELS,
+  type OrderStatus,
+} from "@/lib/order-status";
 import { LogOut, Store } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,8 +32,8 @@ const fmtDate = (s: string) =>
 
 // Компонент кабинета
 function AccountPage() {
-  // Данные пользователя и роль
   const { user, isSeller } = useAuth();
+  const qc = useQueryClient();
 
   // Загружаем заказы покупателя со связанными позициями
   const ordersQuery = useQuery({
@@ -43,6 +49,44 @@ function AccountPage() {
       return data;
     },
   });
+
+  // Запоминаем прошлые статусы, чтобы показывать уведомления только при их смене
+  const prevStatusesRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    if (!ordersQuery.data) return;
+    const next: Record<string, string> = {};
+    for (const o of ordersQuery.data) {
+      for (const it of o.order_items ?? []) {
+        const prev = prevStatusesRef.current[it.id];
+        const cur = (it.status ?? "new") as OrderStatus;
+        if (prev && prev !== cur) {
+          // Показываем всплывающее сообщение о новом статусе
+          toast.info(`«${it.title_snapshot}» — ${STATUS_LABELS[cur]}`);
+        }
+        next[it.id] = cur;
+      }
+    }
+    prevStatusesRef.current = next;
+  }, [ordersQuery.data]);
+
+  // Подписываемся на изменения order_items в реальном времени
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`buyer-orders-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "order_items" },
+        () => {
+          // При изменении обновляем список заказов
+          qc.invalidateQueries({ queryKey: ["my-orders", user.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
 
   // Выход из аккаунта
   const logout = async () => {
@@ -98,24 +142,35 @@ function AccountPage() {
                     <div className="text-sm text-muted-foreground">
                       №{o.id.slice(0, 8).toUpperCase()} · {fmtDate(o.created_at)}
                     </div>
-                    <div className="text-xs mt-1">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
-                        {o.status === "new" ? "Новый" : o.status}
-                      </span>
-                    </div>
                   </div>
                   <div className="text-xl font-bold">{formatPrice(o.total_kopecks)}</div>
                 </div>
-                {/* Позиции заказа */}
-                <div className="mt-3 space-y-1 text-sm">
-                  {o.order_items?.map((it) => (
-                    <div key={it.id} className="flex justify-between gap-2">
-                      <span className="text-muted-foreground line-clamp-1">
-                        {it.title_snapshot} × {it.quantity}
-                      </span>
-                      <span>{formatPrice(it.price_kopecks * it.quantity)}</span>
-                    </div>
-                  ))}
+                {/* Позиции заказа со статусами */}
+                <div className="mt-3 space-y-2 text-sm border-t pt-3">
+                  {o.order_items?.map((it) => {
+                    const st = (it.status ?? "new") as OrderStatus;
+                    return (
+                      <div
+                        key={it.id}
+                        className="flex justify-between items-center gap-2 flex-wrap"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-foreground line-clamp-1">
+                            {it.title_snapshot}{" "}
+                            <span className="text-muted-foreground">× {it.quantity}</span>
+                          </div>
+                          <span
+                            className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[st]}`}
+                          >
+                            {STATUS_LABELS[st]}
+                          </span>
+                        </div>
+                        <div className="shrink-0 font-medium">
+                          {formatPrice(it.price_kopecks * it.quantity)}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
