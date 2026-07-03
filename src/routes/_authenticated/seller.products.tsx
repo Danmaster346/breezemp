@@ -329,37 +329,61 @@ function SellerProductsPage() {
                 <label className="text-sm text-muted-foreground">
                   Фото товара ({editing.image_urls.length}/{MAX_IMAGES})
                 </label>
-                <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {editing.image_urls.map((url) => (
-                    <div key={url} className="relative aspect-square rounded-lg overflow-hidden border">
-                      <img src={url} alt="" className="h-full w-full object-cover" />
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (editing.image_urls.length < MAX_IMAGES && !uploading) setDragOver(true);
+                  }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    handleFilesSelected(e.dataTransfer.files);
+                  }}
+                  className={`mt-2 rounded-xl transition ${
+                    dragOver ? "ring-2 ring-primary bg-primary/5" : ""
+                  }`}
+                >
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 p-1">
+                    {editing.image_urls.map((url, i) => (
+                      <div
+                        key={url}
+                        className="relative aspect-square rounded-lg overflow-hidden border group"
+                      >
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        {i === 0 && (
+                          <div className="absolute bottom-1 left-1 rounded bg-primary/90 px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            Обложка
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
+                          aria-label="Удалить фото"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {editing.image_urls.length < MAX_IMAGES && (
                       <button
                         type="button"
-                        onClick={() => removeImage(url)}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white hover:bg-black/80"
-                        aria-label="Удалить фото"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60"
                       >
-                        <X className="h-3 w-3" />
+                        {uploading ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Upload className="h-5 w-5" />
+                            Добавить
+                          </>
+                        )}
                       </button>
-                    </div>
-                  ))}
-                  {editing.image_urls.length < MAX_IMAGES && (
-                    <button
-                      type="button"
-                      disabled={uploading}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-60"
-                    >
-                      {uploading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Upload className="h-5 w-5" />
-                          Добавить
-                        </>
-                      )}
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <input
                   ref={fileInputRef}
@@ -370,7 +394,7 @@ function SellerProductsPage() {
                   onChange={(e) => handleFilesSelected(e.target.files)}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  До {MAX_IMAGES} изображений, каждое до 5 МБ
+                  Перетащите фото сюда или нажмите «Добавить». До {MAX_IMAGES} изображений, каждое до 5 МБ. Первое фото — обложка.
                 </p>
               </div>
 
