@@ -33,40 +33,48 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --color-brand-strong: var(--brand-strong);
   --color-surface: var(--surface);
   --color-surface-strong: var(--surface-strong);
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-promo: var(--promo);
+  --color-promo-foreground: var(--promo-foreground);
+  --font-sans: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Manrope", "Inter", system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Чистый белый фон + очень светло-серый surface */
+  --radius: 0.875rem;
+  /* Askona-inspired: чистый белый + мягкие бежево-серые плитки */
   --background: #ffffff;
-  --foreground: #1f2933;               /* тёмно-серый текст */
+  --foreground: #111827;
   --card: #ffffff;
-  --card-foreground: #1f2933;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #1f2933;
-  /* Бренд BREEZE — насыщенный бирюзово-синий из логотипа */
-  --brand: #17879b;
+  --popover-foreground: #111827;
+  /* Бренд — яркая бирюза как у Askona */
+  --brand: #17c3b2;
   --brand-foreground: #ffffff;
-  --brand-soft: #e6f4f7;
-  --primary: #17879b;
+  --brand-soft: #d8f5f1;
+  --brand-strong: #0fa595;
+  --primary: #17c3b2;
   --primary-foreground: #ffffff;
-  --secondary: #f4f6f8;
-  --secondary-foreground: #1f2933;
-  --muted: #f6f8fa;
-  --muted-foreground: #6b7684;
-  --accent: #e6f4f7;
-  --accent-foreground: #0d5e6d;
-  --destructive: #d0342c;
+  --secondary: #f4f5f7;
+  --secondary-foreground: #111827;
+  --muted: #f4f5f7;
+  --muted-foreground: #6b7280;
+  --accent: #d8f5f1;
+  --accent-foreground: #0c6a5f;
+  --destructive: #e5484d;
   --destructive-foreground: #ffffff;
-  --border: #e5e9ee;
-  --input: #e5e9ee;
-  --ring: #17879b;
-  --surface: #f7f9fb;                  /* мягкий серо-голубой фон */
-  --surface-strong: #eef2f6;
+  --border: #ececec;
+  --input: #ececec;
+  --ring: #17c3b2;
+  /* Askona-серый для плиток и фонов картинок */
+  --surface: #f6f6f6;
+  --surface-strong: #eeeeee;
+  /* Тёплые «баннерные» акценты Askona */
+  --promo: #ffd83b;
+  --promo-foreground: #111827;
 }
 
 .dark {
