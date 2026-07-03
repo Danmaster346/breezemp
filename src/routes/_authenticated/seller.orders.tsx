@@ -1,11 +1,14 @@
 // Заказы продавца: таблица с возможностью менять статус позиции
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerOrderItems } from "@/lib/order-history.functions";
 import {
+  ALL_STATUSES,
   NEXT_STATUS,
   NOTIFY_STATUSES,
   STATUS_BADGE,
@@ -14,6 +17,13 @@ import {
 } from "@/lib/order-status";
 import { updateOrderItemStatus } from "@/lib/order-status.functions";
 import { toast } from "sonner";
+
+// Маршрут «/seller/orders»
+export const Route = createFileRoute("/_authenticated/seller/orders")({
+  head: () => ({ meta: [{ title: "Мои заказы — продавец — BreezeMarket" }] }),
+  component: SellerOrdersPage,
+});
+
 
 // Маршрут «/seller/orders»
 export const Route = createFileRoute("/_authenticated/seller/orders")({
