@@ -14,6 +14,8 @@ const createOrderSchema = z.object({
   shipping_name: z.string().trim().min(1).max(100),
   shipping_phone: z.string().trim().min(3).max(30),
   shipping_address: z.string().trim().min(3).max(500),
+  // Флаг тестовой оплаты — сразу помечаем позиции как «Подтверждён»
+  paid: z.boolean().optional(),
 });
 
 // Создание заказа: валидируем цены и остатки на сервере
@@ -88,10 +90,13 @@ export const createOrder = createServerFn({ method: "POST" })
       .single();
     if (orderErr || !order) throw new Error(orderErr?.message ?? "Не удалось создать заказ");
 
-    // Вставляем позиции заказа
+    // Вставляем позиции заказа; при тестовой оплате статус сразу «Подтверждён»
+    const initialStatus = data.paid ? "confirmed" : "new";
     const { error: itemsErr } = await supabaseAdmin
       .from("order_items")
-      .insert(itemsToInsert.map((i) => ({ ...i, order_id: order.id })));
+      .insert(
+        itemsToInsert.map((i) => ({ ...i, order_id: order.id, status: initialStatus })),
+      );
     if (itemsErr) throw new Error(itemsErr.message);
 
     // Списываем остатки со склада
