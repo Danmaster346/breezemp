@@ -14,6 +14,8 @@ const createOrderSchema = z.object({
   shipping_name: z.string().trim().min(1).max(100),
   shipping_phone: z.string().trim().min(3).max(30),
   shipping_address: z.string().trim().min(3).max(500),
+  // Флаг тестовой оплаты — сразу помечаем позиции как «Подтверждён»
+  paid: z.boolean().optional(),
 });
 
 // Создание заказа: валидируем цены и остатки на сервере
