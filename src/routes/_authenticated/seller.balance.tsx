@@ -18,6 +18,7 @@ function BalancePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const requestPayoutFn = useServerFn(requestPayout);
 
   // Продажи продавца → считаем итоги
   const salesQuery = useQuery({
