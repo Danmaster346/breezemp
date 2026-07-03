@@ -21,6 +21,7 @@ import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedSellerProductsRouteImport } from './routes/_authenticated/seller.products'
 import { Route as AuthenticatedSellerOrdersRouteImport } from './routes/_authenticated/seller.orders'
+import { Route as AuthenticatedSellerBalanceRouteImport } from './routes/_authenticated/seller.balance'
 
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
@@ -83,6 +84,12 @@ const AuthenticatedSellerOrdersRoute =
     path: '/orders',
     getParentRoute: () => AuthenticatedSellerRoute,
   } as any)
+const AuthenticatedSellerBalanceRoute =
+  AuthenticatedSellerBalanceRouteImport.update({
+    id: '/balance',
+    path: '/balance',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/seller/products': typeof AuthenticatedSellerProductsRoute
 }
@@ -107,6 +115,7 @@ export interface FileRoutesByTo {
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/seller/products': typeof AuthenticatedSellerProductsRoute
 }
@@ -122,6 +131,7 @@ export interface FileRoutesById {
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
+  '/_authenticated/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/_authenticated/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/_authenticated/seller/products': typeof AuthenticatedSellerProductsRoute
 }
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/order-success/$id'
     | '/product/$id'
+    | '/seller/balance'
     | '/seller/orders'
     | '/seller/products'
   fileRoutesByTo: FileRoutesByTo
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/order-success/$id'
     | '/product/$id'
+    | '/seller/balance'
     | '/seller/orders'
     | '/seller/products'
   id:
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/order-success/$id'
     | '/product/$id'
+    | '/_authenticated/seller/balance'
     | '/_authenticated/seller/orders'
     | '/_authenticated/seller/products'
   fileRoutesById: FileRoutesById
@@ -265,15 +278,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellerOrdersRouteImport
       parentRoute: typeof AuthenticatedSellerRoute
     }
+    '/_authenticated/seller/balance': {
+      id: '/_authenticated/seller/balance'
+      path: '/balance'
+      fullPath: '/seller/balance'
+      preLoaderRoute: typeof AuthenticatedSellerBalanceRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
   }
 }
 
 interface AuthenticatedSellerRouteChildren {
+  AuthenticatedSellerBalanceRoute: typeof AuthenticatedSellerBalanceRoute
   AuthenticatedSellerOrdersRoute: typeof AuthenticatedSellerOrdersRoute
   AuthenticatedSellerProductsRoute: typeof AuthenticatedSellerProductsRoute
 }
 
 const AuthenticatedSellerRouteChildren: AuthenticatedSellerRouteChildren = {
+  AuthenticatedSellerBalanceRoute: AuthenticatedSellerBalanceRoute,
   AuthenticatedSellerOrdersRoute: AuthenticatedSellerOrdersRoute,
   AuthenticatedSellerProductsRoute: AuthenticatedSellerProductsRoute,
 }
