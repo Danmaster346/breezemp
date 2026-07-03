@@ -1,12 +1,14 @@
 // Финансы продавца: баланс, история и демо-вывод средств
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import { requestPayout } from "@/lib/payouts.functions";
 
 export const Route = createFileRoute("/_authenticated/seller/balance")({
   component: BalancePage,
