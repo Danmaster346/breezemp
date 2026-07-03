@@ -73,6 +73,27 @@ function ProductPage() {
     });
     toast.success("Товар добавлен в корзину");
   };
+  const writeSeller = async () => {
+    if (!product) return;
+    if (!user) {
+      toast.error("Войдите, чтобы написать продавцу");
+      navigate({ to: "/auth" });
+      return;
+    }
+    if (user.id === product.seller_id) {
+      toast.error("Это ваш собственный товар");
+      return;
+    }
+    try {
+      const res = await openChat({
+        data: { seller_id: product.seller_id, product_id: product.id },
+      });
+      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
 
   return (
     <AppLayout>
