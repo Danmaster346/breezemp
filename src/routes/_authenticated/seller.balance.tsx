@@ -62,10 +62,7 @@ function BalancePage() {
   // Демо-вывод: пишем запись в таблицу payouts
   const withdraw = useMutation({
     mutationFn: async (amount: number) => {
-      const { error } = await supabase
-        .from("payouts")
-        .insert({ seller_id: user!.id, amount_kopecks: amount });
-      if (error) throw error;
+      await requestPayoutFn({ data: { amount_kopecks: amount } });
     },
     onSuccess: () => {
       toast.success("Средства выведены (демо)", {
