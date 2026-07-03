@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import {
   NEXT_STATUS,
+  NOTIFY_STATUSES,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
