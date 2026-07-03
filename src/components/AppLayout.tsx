@@ -202,7 +202,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* Плавающая кнопка «Главная» — только не на главной */}
-      {pathname !== "/" && (
+      {pathname !== "/" ? (
         <Link
           to="/"
           className="md:hidden fixed right-3 bottom-20 z-40 h-11 w-11 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground/70 hover:text-brand transition"
@@ -210,7 +210,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         >
           <Home className="h-5 w-5" />
         </Link>
-      )}
+      ) : null}
     </div>
   );
 }
