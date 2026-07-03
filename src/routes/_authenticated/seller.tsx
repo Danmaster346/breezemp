@@ -103,8 +103,16 @@ function SellerLayout() {
       accent: "from-amber-500/15 to-amber-500/5 text-amber-600",
     },
     {
-      label: "Продажи за всё время",
+      label: "Сумма продаж",
+      value: stats.data ? formatPrice(stats.data.totalSales) : "—",
+      hint: "заплатили покупатели",
+      icon: Wallet,
+      accent: "from-sky-500/15 to-sky-500/5 text-sky-600",
+    },
+    {
+      label: "К получению",
       value: stats.data ? formatPrice(stats.data.totalPayout) : "—",
+      hint: "после комиссии 10%",
       icon: Wallet,
       accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-600",
     },
