@@ -23,6 +23,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSellerProductsRouteImport } from './routes/_authenticated/seller.products'
 import { Route as AuthenticatedSellerOrdersRouteImport } from './routes/_authenticated/seller.orders'
 import { Route as AuthenticatedSellerBalanceRouteImport } from './routes/_authenticated/seller.balance'
+import { Route as AuthenticatedSellerAnalyticsRouteImport } from './routes/_authenticated/seller.analytics'
 
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
@@ -96,6 +97,12 @@ const AuthenticatedSellerBalanceRoute =
     path: '/balance',
     getParentRoute: () => AuthenticatedSellerRoute,
   } as any)
+const AuthenticatedSellerAnalyticsRoute =
+  AuthenticatedSellerAnalyticsRouteImport.update({
+    id: '/analytics',
+    path: '/analytics',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
   '/seller/$id': typeof SellerIdRoute
+  '/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/seller/products': typeof AuthenticatedSellerProductsRoute
@@ -123,6 +131,7 @@ export interface FileRoutesByTo {
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
   '/seller/$id': typeof SellerIdRoute
+  '/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/seller/products': typeof AuthenticatedSellerProductsRoute
@@ -140,6 +149,7 @@ export interface FileRoutesById {
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
   '/seller/$id': typeof SellerIdRoute
+  '/_authenticated/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/_authenticated/seller/balance': typeof AuthenticatedSellerBalanceRoute
   '/_authenticated/seller/orders': typeof AuthenticatedSellerOrdersRoute
   '/_authenticated/seller/products': typeof AuthenticatedSellerProductsRoute
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/order-success/$id'
     | '/product/$id'
     | '/seller/$id'
+    | '/seller/analytics'
     | '/seller/balance'
     | '/seller/orders'
     | '/seller/products'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/order-success/$id'
     | '/product/$id'
     | '/seller/$id'
+    | '/seller/analytics'
     | '/seller/balance'
     | '/seller/orders'
     | '/seller/products'
@@ -188,6 +200,7 @@ export interface FileRouteTypes {
     | '/order-success/$id'
     | '/product/$id'
     | '/seller/$id'
+    | '/_authenticated/seller/analytics'
     | '/_authenticated/seller/balance'
     | '/_authenticated/seller/orders'
     | '/_authenticated/seller/products'
@@ -305,16 +318,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellerBalanceRouteImport
       parentRoute: typeof AuthenticatedSellerRoute
     }
+    '/_authenticated/seller/analytics': {
+      id: '/_authenticated/seller/analytics'
+      path: '/analytics'
+      fullPath: '/seller/analytics'
+      preLoaderRoute: typeof AuthenticatedSellerAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
   }
 }
 
 interface AuthenticatedSellerRouteChildren {
+  AuthenticatedSellerAnalyticsRoute: typeof AuthenticatedSellerAnalyticsRoute
   AuthenticatedSellerBalanceRoute: typeof AuthenticatedSellerBalanceRoute
   AuthenticatedSellerOrdersRoute: typeof AuthenticatedSellerOrdersRoute
   AuthenticatedSellerProductsRoute: typeof AuthenticatedSellerProductsRoute
 }
 
 const AuthenticatedSellerRouteChildren: AuthenticatedSellerRouteChildren = {
+  AuthenticatedSellerAnalyticsRoute: AuthenticatedSellerAnalyticsRoute,
   AuthenticatedSellerBalanceRoute: AuthenticatedSellerBalanceRoute,
   AuthenticatedSellerOrdersRoute: AuthenticatedSellerOrdersRoute,
   AuthenticatedSellerProductsRoute: AuthenticatedSellerProductsRoute,

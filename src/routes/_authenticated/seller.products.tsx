@@ -5,8 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice, rublesToKopecks } from "@/lib/format";
-import { Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Loader2, Search, AlertTriangle, Minus, ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+
+// Порог низкого остатка — ниже этого числа товар помечается
+const LOW_STOCK_THRESHOLD = 10;
+
 
 // Маршрут «/seller/products» с поддержкой ?new=1 (сразу открыть форму)
 export const Route = createFileRoute("/_authenticated/seller/products")({
@@ -54,7 +59,12 @@ function SellerProductsPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
+  const [searchQ, setSearchQ] = useState("");
+  const [filterCat, setFilterCat] = useState<string>("");
+  const [onlyLow, setOnlyLow] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   // При наличии ?new=1 открываем форму и убираем параметр из URL
   useEffect(() => {
@@ -199,6 +209,19 @@ function SellerProductsPage() {
     qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
   };
 
+  // Быстрое изменение остатка (без открытия формы)
+  const bumpStock = async (id: string, current: number, delta: number) => {
+    const next = Math.max(0, current + delta);
+    if (next === current) return;
+    setStockBusy(id);
+    const { error } = await supabase.from("products").update({ stock: next }).eq("id", id);
+    setStockBusy(null);
+    if (error) return toast.error(error.message);
+    qc.invalidateQueries({ queryKey: ["seller-products"] });
+    qc.invalidateQueries({ queryKey: ["seller-stats"] });
+  };
+
+
   // Пользователь не продавец — предлагаем стать
   if (user && !isSeller) {
     return (
@@ -219,25 +242,87 @@ function SellerProductsPage() {
     );
   }
 
+  const all = productsQuery.data ?? [];
+  const lowCount = all.filter((p) => p.stock > 0 && p.stock < LOW_STOCK_THRESHOLD).length;
+  const outCount = all.filter((p) => p.stock === 0).length;
+
+  // Клиентская фильтрация: поиск + категория + низкий остаток
+  const filtered = all.filter((p) => {
+    if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
+    if (filterCat && p.category_id !== filterCat) return false;
+    if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
+    return true;
+  });
+
   return (
     <div>
-      {/* Кнопка «Добавить товар» */}
-      <div className="flex items-center justify-between mb-4 gap-2">
-        <div className="text-sm text-muted-foreground">
-          Всего товаров: {productsQuery.data?.length ?? 0}
+      {/* Панель управления */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="search"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder="Поиск по названию…"
+            className="w-full h-10 pl-9 pr-3 rounded-xl border bg-background text-sm"
+          />
         </div>
+        <select
+          value={filterCat}
+          onChange={(e) => setFilterCat(e.target.value)}
+          className="h-10 px-3 rounded-xl border bg-background text-sm"
+        >
+          <option value="">Все категории</option>
+          {categoriesQuery.data?.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setOnlyLow((v) => !v)}
+          className={`inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border text-sm font-medium transition ${
+            onlyLow ? "bg-amber-100 border-amber-300 text-amber-800" : "hover:bg-accent"
+          }`}
+        >
+          <AlertTriangle className="h-4 w-4" /> Мало на складе
+          {lowCount > 0 && (
+            <span className="ml-1 rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5">
+              {lowCount}
+            </span>
+          )}
+        </button>
         <button
           onClick={() => setEditing({ ...emptyForm })}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
+          className="inline-flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
         >
           <Plus className="h-4 w-4" /> Добавить товар
         </button>
       </div>
 
+      {/* Итоги */}
+      <div className="mb-4 flex flex-wrap gap-2 text-xs">
+        <span className="rounded-full bg-surface px-3 py-1">Всего: <b className="text-foreground">{all.length}</b></span>
+        {lowCount > 0 && (
+          <span className="rounded-full bg-amber-100 text-amber-800 px-3 py-1">Мало: <b>{lowCount}</b></span>
+        )}
+        {outCount > 0 && (
+          <span className="rounded-full bg-rose-100 text-rose-800 px-3 py-1">Закончились: <b>{outCount}</b></span>
+        )}
+        {(searchQ || filterCat || onlyLow) && (
+          <button
+            onClick={() => { setSearchQ(""); setFilterCat(""); setOnlyLow(false); }}
+            className="rounded-full border px-3 py-1 hover:bg-accent"
+          >
+            Сбросить фильтры
+          </button>
+        )}
+      </div>
+
       {/* Список */}
       {productsQuery.isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
-      ) : !productsQuery.data || productsQuery.data.length === 0 ? (
+      ) : all.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center">
           <p className="text-muted-foreground mb-4">У вас пока нет товаров.</p>
           <button
@@ -247,59 +332,117 @@ function SellerProductsPage() {
             <Plus className="h-4 w-4" /> Создать первую карточку
           </button>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
+          Ничего не найдено под текущие фильтры.
+        </div>
       ) : (
         <div className="grid gap-3">
-          {productsQuery.data.map((p) => (
-            <div key={p.id} className="flex gap-3 rounded-2xl border bg-card p-3">
-              <div className="h-20 w-20 rounded-lg bg-muted overflow-hidden shrink-0">
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center text-2xl">🛍️</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold line-clamp-1">{p.title}</div>
-                <div className="text-lg font-bold text-primary">
-                  {formatPrice(p.price_kopecks)}
+          {filtered.map((p) => {
+            const low = p.stock > 0 && p.stock < LOW_STOCK_THRESHOLD;
+            const out = p.stock === 0;
+            return (
+              <div
+                key={p.id}
+                className={`flex gap-3 rounded-2xl border bg-card p-3 transition ${
+                  out ? "border-rose-200 bg-rose-50/40" : low ? "border-amber-200 bg-amber-50/40" : ""
+                }`}
+              >
+                <div className="h-20 w-20 rounded-lg bg-muted overflow-hidden shrink-0">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-2xl">🛍️</div>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground">Остаток: {p.stock} шт.</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="font-semibold line-clamp-1">{p.title}</div>
+                    {out && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5">
+                        Нет в наличии
+                      </span>
+                    )}
+                    {low && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                        <AlertTriangle className="h-3 w-3" /> Мало
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-lg font-bold text-primary">{formatPrice(p.price_kopecks)}</div>
+                  {/* Быстрое изменение остатка */}
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Остаток:</span>
+                    <button
+                      type="button"
+                      disabled={stockBusy === p.id || p.stock === 0}
+                      onClick={() => bumpStock(p.id, p.stock, -1)}
+                      className="h-6 w-6 grid place-items-center rounded-md border hover:bg-accent disabled:opacity-40"
+                      aria-label="Убрать 1"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="min-w-[2ch] text-center text-sm font-semibold tabular-nums">
+                      {p.stock}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={stockBusy === p.id}
+                      onClick={() => bumpStock(p.id, p.stock, +1)}
+                      className="h-6 w-6 grid place-items-center rounded-md border hover:bg-accent disabled:opacity-40"
+                      aria-label="Добавить 1"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    {stockBusy === p.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Link
+                    to="/product/$id"
+                    params={{ id: p.id }}
+                    className="p-2 rounded-lg hover:bg-accent"
+                    aria-label="Открыть в каталоге"
+                    title="Открыть в каталоге"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                  <button
+                    onClick={() =>
+                      setEditing({
+                        id: p.id,
+                        title: p.title,
+                        description: p.description ?? "",
+                        price: (p.price_kopecks / 100).toString(),
+                        stock: p.stock.toString(),
+                        image_urls:
+                          (p as { image_urls?: string[] }).image_urls?.length
+                            ? (p as { image_urls: string[] }).image_urls
+                            : p.image_url
+                              ? [p.image_url]
+                              : [],
+                        category_id: p.category_id ?? "",
+                      })
+                    }
+                    className="p-2 rounded-lg hover:bg-accent"
+                    aria-label="Редактировать"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => remove(p.id)}
+                    className="p-2 rounded-lg text-destructive hover:bg-destructive/10"
+                    aria-label="Удалить"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() =>
-                    setEditing({
-                      id: p.id,
-                      title: p.title,
-                      description: p.description ?? "",
-                      price: (p.price_kopecks / 100).toString(),
-                      stock: p.stock.toString(),
-                      image_urls:
-                        (p as { image_urls?: string[] }).image_urls?.length
-                          ? (p as { image_urls: string[] }).image_urls
-                          : p.image_url
-                            ? [p.image_url]
-                            : [],
-                      category_id: p.category_id ?? "",
-                    })
-                  }
-                  className="p-2 rounded-lg hover:bg-accent"
-                  aria-label="Редактировать"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => remove(p.id)}
-                  className="p-2 rounded-lg text-destructive hover:bg-destructive/10"
-                  aria-label="Удалить"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
 
       {/* Модальное окно формы */}
       {editing && (
