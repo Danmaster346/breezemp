@@ -182,7 +182,7 @@ function SellerProductsPage() {
         toast.success("Товар добавлен");
       }
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["seller-products"] });
+      qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -195,7 +195,7 @@ function SellerProductsPage() {
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Удалено");
-    qc.invalidateQueries({ queryKey: ["seller-products"] });
+    qc.invalidateQueries({ queryKey: ["seller-products"] }); qc.invalidateQueries({ queryKey: ["seller-stats"] });
   };
 
   // Пользователь не продавец — предлагаем стать
