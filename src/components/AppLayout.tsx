@@ -62,6 +62,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const unreadChats = useUnreadChats();
+
 
   // Пользователи без роли продавца всегда в режиме покупателя
   useEffect(() => {
