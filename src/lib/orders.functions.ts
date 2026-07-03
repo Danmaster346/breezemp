@@ -2,11 +2,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { calcShippingCost, getShippingOption } from "@/lib/shipping";
+import { computeDiscountKopecks } from "@/lib/promo.functions";
 
 // Ставка комиссии платформы (10%)
 const COMMISSION_RATE = 0.1;
 
-// Схема входа: список позиций и данные доставки
+// Схема входа: список позиций, данные доставки, способ и промокод
 const createOrderSchema = z.object({
   items: z
     .array(z.object({ product_id: z.string().uuid(), quantity: z.number().int().positive() }))
@@ -14,6 +16,8 @@ const createOrderSchema = z.object({
   shipping_name: z.string().trim().min(1).max(100),
   shipping_phone: z.string().trim().min(3).max(30),
   shipping_address: z.string().trim().min(3).max(500),
+  shipping_method: z.enum(["pickup", "cdek", "yandex"]).default("pickup"),
+  promo_code: z.string().trim().max(64).optional().nullable(),
   // Флаг тестовой оплаты — сразу помечаем позиции как «Подтверждён»
   paid: z.boolean().optional(),
 });
@@ -75,16 +79,55 @@ export const createOrder = createServerFn({ method: "POST" })
     // Записи в orders/order_items разрешены только сервис-роли — используем admin-клиент
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Стоимость доставки считаем на сервере из константной таблицы
+    const shippingOption = getShippingOption(data.shipping_method);
+    const shippingCost = calcShippingCost(data.shipping_method, total);
+
+    // Валидация промокода (если указан) и вычисление скидки
+    let promoCode: string | null = null;
+    let discount = 0;
+    if (data.promo_code && data.promo_code.trim().length > 0) {
+      const code = data.promo_code.trim().toUpperCase();
+      const { data: promo, error: promoErr } = await supabaseAdmin
+        .from("promo_codes")
+        .select("code, discount_type, discount_value, active, expires_at, max_uses, used_count, min_order_kopecks")
+        .eq("code", code)
+        .maybeSingle();
+      if (promoErr) throw new Error(promoErr.message);
+      if (!promo || !promo.active) throw new Error("Промокод не найден или неактивен");
+      if (promo.expires_at && new Date(promo.expires_at).getTime() < Date.now()) {
+        throw new Error("Срок действия промокода истёк");
+      }
+      if (promo.max_uses !== null && promo.used_count >= promo.max_uses) {
+        throw new Error("Промокод больше не действует");
+      }
+      if (total < promo.min_order_kopecks) {
+        throw new Error(`Промокод действует от суммы ${(promo.min_order_kopecks / 100).toFixed(0)} ₽`);
+      }
+      discount = computeDiscountKopecks(promo, total);
+      promoCode = promo.code;
+      await supabaseAdmin
+        .from("promo_codes")
+        .update({ used_count: promo.used_count + 1 })
+        .eq("code", promo.code);
+    }
+
+    const finalTotal = Math.max(0, total - discount) + shippingCost;
+
     // Создаём заказ (через service role, минуя RLS, но с проверенными на сервере данными)
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
       .insert({
         buyer_id: userId,
-        total_kopecks: total,
+        total_kopecks: finalTotal,
         commission_kopecks: commissionTotal,
         shipping_name: data.shipping_name,
         shipping_phone: data.shipping_phone,
         shipping_address: data.shipping_address,
+        shipping_method: shippingOption.id,
+        shipping_cost_kopecks: shippingCost,
+        promo_code: promoCode,
+        discount_kopecks: discount,
       })
       .select("id")
       .single();

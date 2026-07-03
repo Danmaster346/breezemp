@@ -94,8 +94,12 @@ export type Database = {
           buyer_id: string
           commission_kopecks: number
           created_at: string
+          discount_kopecks: number
           id: string
+          promo_code: string | null
           shipping_address: string
+          shipping_cost_kopecks: number
+          shipping_method: string
           shipping_name: string
           shipping_phone: string
           status: string
@@ -105,8 +109,12 @@ export type Database = {
           buyer_id: string
           commission_kopecks: number
           created_at?: string
+          discount_kopecks?: number
           id?: string
+          promo_code?: string | null
           shipping_address: string
+          shipping_cost_kopecks?: number
+          shipping_method?: string
           shipping_name: string
           shipping_phone: string
           status?: string
@@ -116,8 +124,12 @@ export type Database = {
           buyer_id?: string
           commission_kopecks?: number
           created_at?: string
+          discount_kopecks?: number
           id?: string
+          promo_code?: string | null
           shipping_address?: string
+          shipping_cost_kopecks?: number
+          shipping_method?: string
           shipping_name?: string
           shipping_phone?: string
           status?: string
@@ -214,6 +226,48 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          min_order_kopecks: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_kopecks?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          min_order_kopecks?: number
+          updated_at?: string
+          used_count?: number
         }
         Relationships: []
       }
