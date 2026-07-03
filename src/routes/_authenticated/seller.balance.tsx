@@ -264,11 +264,39 @@ function BalancePage() {
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-muted-foreground">
-                На ваш банковский счёт будет переведена вся доступная сумма. Это демо-режим — реальные средства не переводятся.
+                Введите сумму для вывода. Это демо-режим — реальные средства не переводятся.
               </p>
-              <div className="rounded-xl border bg-surface p-4 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">К выводу</span>
-                <span className="text-2xl font-extrabold text-brand">{formatPrice(available)}</span>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="amount" className="text-sm font-medium">Сумма, ₽</label>
+                  <button
+                    type="button"
+                    onClick={() => setAmountInput((available / 100).toFixed(2))}
+                    className="text-xs font-semibold text-brand hover:text-brand/80"
+                  >
+                    Вся сумма
+                  </button>
+                </div>
+                <input
+                  id="amount"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  max={(available / 100).toFixed(2)}
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-4 py-3 text-xl font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                  placeholder="0.00"
+                />
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    Максимум: <span className="font-semibold text-foreground">{formatPrice(available)}</span>
+                  </span>
+                  {amountKopecks > 0 && amountKopecks > available && (
+                    <span className="text-destructive font-medium">Больше доступного</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex gap-2 px-5 py-4 border-t bg-surface/50">
@@ -279,13 +307,14 @@ function BalancePage() {
                 Отмена
               </button>
               <button
-                onClick={() => withdraw.mutate(available)}
-                disabled={withdraw.isPending || available <= 0}
-                className="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 transition"
+                onClick={() => withdraw.mutate(amountKopecks)}
+                disabled={withdraw.isPending || amountInvalid}
+                className="flex-1 rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {withdraw.isPending ? "Отправка…" : "Подтвердить"}
+                {withdraw.isPending ? "Отправка…" : "Вывести"}
               </button>
             </div>
+
           </div>
         </div>
       )}
