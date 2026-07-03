@@ -1,5 +1,5 @@
 // Личный кабинет покупателя: список его заказов и модалка с деталями
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,13 +8,14 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
+import { getOrCreateChat } from "@/lib/chat.functions";
 import {
   ALL_STATUSES,
   STATUS_BADGE,
   STATUS_LABELS,
   type OrderStatus,
 } from "@/lib/order-status";
-import { LogOut, Store, X, ShoppingBag } from "lucide-react";
+import { LogOut, Store, X, ShoppingBag, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 // Маршрут «/account»
