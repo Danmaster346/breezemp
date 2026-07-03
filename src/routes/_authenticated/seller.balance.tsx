@@ -1,12 +1,14 @@
 // Финансы продавца: баланс, история и демо-вывод средств
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import { requestPayout } from "@/lib/payouts.functions";
 
 export const Route = createFileRoute("/_authenticated/seller/balance")({
   component: BalancePage,
@@ -16,6 +18,7 @@ function BalancePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const requestPayoutFn = useServerFn(requestPayout);
 
   // Продажи продавца → считаем итоги
   const salesQuery = useQuery({
@@ -59,10 +62,7 @@ function BalancePage() {
   // Демо-вывод: пишем запись в таблицу payouts
   const withdraw = useMutation({
     mutationFn: async (amount: number) => {
-      const { error } = await supabase
-        .from("payouts")
-        .insert({ seller_id: user!.id, amount_kopecks: amount });
-      if (error) throw error;
+      await requestPayoutFn({ data: { amount_kopecks: amount } });
     },
     onSuccess: () => {
       toast.success("Средства выведены (демо)", {
