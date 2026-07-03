@@ -19,6 +19,7 @@ function BalancePage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [amountInput, setAmountInput] = useState("");
   const requestPayoutFn = useServerFn(requestPayout);
   const fetchFinance = useServerFn(getSellerFinance);
 
@@ -33,23 +34,38 @@ function BalancePage() {
   const totalSales = salesQuery.data?.totalSales ?? 0;
   const withdrawn = salesQuery.data?.withdrawn ?? 0;
   const available = salesQuery.data?.available ?? 0;
+  const pending = salesQuery.data?.pending ?? 0;
   const soldItems = salesQuery.data?.items ?? [];
   const payouts = salesQuery.data?.payouts ?? [];
+
+  // Введённая сумма → копейки. Пустое поле = 0.
+  const amountRub = Number(amountInput.replace(",", "."));
+  const amountKopecks = Number.isFinite(amountRub) && amountRub > 0
+    ? Math.round(amountRub * 100)
+    : 0;
+  const amountInvalid = amountKopecks <= 0 || amountKopecks > available;
 
   // Демо-вывод: пишем запись в таблицу payouts
   const withdraw = useMutation({
     mutationFn: async (amount: number) => {
       await requestPayoutFn({ data: { amount_kopecks: amount } });
+      return amount;
     },
-    onSuccess: () => {
+    onSuccess: (amount) => {
       toast.success("Средства выведены (демо)", {
-        description: `На ваш счёт зачислено ${formatPrice(available)}`,
+        description: `На ваш счёт зачислено ${formatPrice(amount)}`,
       });
       setConfirmOpen(false);
+      setAmountInput("");
       qc.invalidateQueries({ queryKey: ["seller-sales-total", user?.id] });
     },
     onError: (e: Error) => toast.error("Не удалось вывести средства", { description: e.message }),
   });
+
+  const openWithdraw = () => {
+    setAmountInput((available / 100).toFixed(2));
+    setConfirmOpen(true);
+  };
 
   const cards = [
     {
@@ -60,9 +76,16 @@ function BalancePage() {
       accent: "from-sky-500/15 to-sky-500/5 text-sky-700",
     },
     {
-      label: "Заработано (после комиссии 10%)",
+      label: "В ожидании",
+      value: formatPrice(pending),
+      hint: "поступит после доставки",
+      icon: Clock,
+      accent: "from-amber-500/15 to-amber-500/5 text-amber-700",
+    },
+    {
+      label: "Заработано (после доставки)",
       value: formatPrice(totalPayout),
-      hint: "всего начислено вам",
+      hint: "минус комиссия 10%",
       icon: Wallet,
       accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-700",
     },
@@ -74,6 +97,7 @@ function BalancePage() {
       accent: "from-slate-500/15 to-slate-500/5 text-slate-700",
     },
   ];
+
 
   return (
     <div className="space-y-6">
