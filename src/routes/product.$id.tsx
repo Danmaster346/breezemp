@@ -23,6 +23,8 @@ function ProductPage() {
   const add = useCart((s) => s.add);
   const [activeImg, setActiveImg] = useState(0);
   const fetchReviews = useServerFn(getProductReviews);
+  const fetchSeller = useServerFn(getSellerProfile);
+
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
