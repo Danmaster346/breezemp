@@ -4,7 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Дизайн-токены маркетплейса BreezeMarket */
+/* Дизайн-токены BREEZE — премиальный e-commerce (Amazon × Аскона) */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -32,64 +32,78 @@
   --color-ring: var(--ring);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Manrope", "Inter", system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.75rem;
-  /* Основной фон — тёплый почти-белый */
-  --background: oklch(0.99 0.005 220);
-  --foreground: oklch(0.2 0.03 220);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.03 220);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.03 220);
-  /* Бренд — насыщенный бирюзовый (Breeze) */
-  --brand: oklch(0.62 0.12 205);
-  --brand-foreground: oklch(0.99 0 0);
-  --primary: oklch(0.62 0.12 205);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.95 0.03 205);
-  --secondary-foreground: oklch(0.3 0.08 205);
-  --muted: oklch(0.96 0.01 220);
-  --muted-foreground: oklch(0.5 0.02 220);
-  --accent: oklch(0.92 0.05 205);
-  --accent-foreground: oklch(0.3 0.1 205);
-  --destructive: oklch(0.6 0.24 27);
-  --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.92 0.01 220);
-  --input: oklch(0.92 0.01 220);
-  --ring: oklch(0.62 0.12 205);
+  --radius: 0.625rem;
+  /* Чистый белый фон + очень светло-серый surface */
+  --background: #ffffff;
+  --foreground: #1f2933;               /* тёмно-серый текст */
+  --card: #ffffff;
+  --card-foreground: #1f2933;
+  --popover: #ffffff;
+  --popover-foreground: #1f2933;
+  /* Бренд BREEZE — насыщенный бирюзово-синий из логотипа */
+  --brand: #17879b;
+  --brand-foreground: #ffffff;
+  --brand-soft: #e6f4f7;
+  --primary: #17879b;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f6f8;
+  --secondary-foreground: #1f2933;
+  --muted: #f6f8fa;
+  --muted-foreground: #6b7684;
+  --accent: #e6f4f7;
+  --accent-foreground: #0d5e6d;
+  --destructive: #d0342c;
+  --destructive-foreground: #ffffff;
+  --border: #e5e9ee;
+  --input: #e5e9ee;
+  --ring: #17879b;
+  --surface: #f7f9fb;                  /* мягкий серо-голубой фон */
+  --surface-strong: #eef2f6;
 }
 
 .dark {
-  --background: oklch(0.16 0.02 220);
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.21 0.02 220);
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.21 0.02 220);
-  --popover-foreground: oklch(0.98 0 0);
-  --brand: oklch(0.7 0.13 205);
-  --brand-foreground: oklch(0.15 0 0);
-  --primary: oklch(0.7 0.13 205);
-  --primary-foreground: oklch(0.15 0 0);
-  --secondary: oklch(0.26 0.04 205);
-  --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.26 0.02 220);
-  --muted-foreground: oklch(0.7 0.02 220);
-  --accent: oklch(0.3 0.08 205);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.65 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.7 0.13 205);
+  --background: #0f1720;
+  --foreground: #f2f5f8;
+  --card: #17212b;
+  --card-foreground: #f2f5f8;
+  --popover: #17212b;
+  --popover-foreground: #f2f5f8;
+  --brand: #4bbccf;
+  --brand-foreground: #0b1218;
+  --brand-soft: #10323a;
+  --primary: #4bbccf;
+  --primary-foreground: #0b1218;
+  --secondary: #1c2732;
+  --secondary-foreground: #f2f5f8;
+  --muted: #1c2732;
+  --muted-foreground: #9aa6b2;
+  --accent: #10323a;
+  --accent-foreground: #d7eef3;
+  --destructive: #e5544c;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255,255,255,0.10);
+  --input: rgba(255,255,255,0.14);
+  --ring: #4bbccf;
+  --surface: #0f1720;
+  --surface-strong: #17212b;
 }
 
 @layer base {
   * { border-color: var(--color-border); }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
