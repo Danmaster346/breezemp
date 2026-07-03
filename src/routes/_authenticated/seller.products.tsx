@@ -5,8 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice, rublesToKopecks } from "@/lib/format";
-import { Plus, Pencil, Trash2, X, Upload, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Upload, Loader2, Search, AlertTriangle, Minus, ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+
+// Порог низкого остатка — ниже этого числа товар помечается
+const LOW_STOCK_THRESHOLD = 10;
+
 
 // Маршрут «/seller/products» с поддержкой ?new=1 (сразу открыть форму)
 export const Route = createFileRoute("/_authenticated/seller/products")({
