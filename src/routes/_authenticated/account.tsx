@@ -359,10 +359,18 @@ function AccountPage() {
                           >
                             {STATUS_LABELS[st]}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => writeSeller(it.seller_id, it.product_id, openOrder.id)}
+                            className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
+                          >
+                            <MessageCircle className="h-3 w-3" /> Написать продавцу
+                          </button>
                         </div>
                         <div className="text-sm font-semibold shrink-0">
                           {formatPrice(it.price_kopecks * it.quantity)}
                         </div>
+
                       </div>
                     );
                   })}
