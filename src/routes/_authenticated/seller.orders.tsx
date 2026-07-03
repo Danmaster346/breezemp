@@ -55,6 +55,7 @@ function SellerOrdersPage() {
     onSuccess: () => {
       toast.success("Статус обновлён");
       qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
+      qc.invalidateQueries({ queryKey: ["seller-stats"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
