@@ -214,6 +214,12 @@ function ProductPage() {
             </div>
           </div>
         )}
+
+        {product && (
+          <div id="reviews">
+            <ProductReviews productId={product.id} />
+          </div>
+        )}
       </div>
 
       {/* Мобильная sticky-кнопка */}
