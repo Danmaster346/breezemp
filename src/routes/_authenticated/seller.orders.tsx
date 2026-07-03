@@ -73,21 +73,65 @@ function SellerOrdersPage() {
     onError: (e: Error) => toast.error("Не удалось обновить статус", { description: e.message }),
   });
 
+  const all = q.data ?? [];
+  const counts: Record<string, number> = { all: all.length };
+  for (const it of all) {
+    const s = it.status ?? "new";
+    counts[s] = (counts[s] ?? 0) + 1;
+  }
+  const filtered = statusFilter === "all"
+    ? all
+    : all.filter((it) => (it.status ?? "new") === statusFilter);
+
   return (
     <div>
+      {/* Фильтры по статусам */}
+      {all.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition ${
+              statusFilter === "all" ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"
+            }`}
+          >
+            Все <span className="opacity-70">({counts.all})</span>
+          </button>
+          {ALL_STATUSES.map((s) => {
+            const n = counts[s] ?? 0;
+            if (n === 0) return null;
+            const active = statusFilter === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium border transition ${
+                  active ? "bg-primary text-primary-foreground border-primary" : `${STATUS_BADGE[s]} border-transparent hover:opacity-90`
+                }`}
+              >
+                {STATUS_LABELS[s]} <span className="opacity-70">({n})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {q.isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
       ) : q.isError ? (
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
           Не удалось загрузить заказы продавца. Обновите страницу или попробуйте ещё раз.
         </div>
-      ) : !q.data || q.data.length === 0 ? (
+      ) : all.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
           Пока нет заказов на ваши товары.
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
+          Нет заказов в выбранном статусе.
+        </div>
       ) : (
         <div className="space-y-3">
-          {q.data.map((it) => {
+          {filtered.map((it) => {
             // Считаем сумму позиции и выручку продавца после комиссии платформы
             const line = it.price_kopecks * it.quantity;
             const payout = line - it.commission_kopecks;
@@ -95,8 +139,21 @@ function SellerOrdersPage() {
             return (
               <div key={it.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex justify-between items-start gap-2 flex-wrap">
-                  <div>
-                    <div className="font-semibold">{it.title_snapshot}</div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="font-semibold">{it.title_snapshot}</div>
+                      {it.product_id && (
+                        <Link
+                          to="/product/$id"
+                          params={{ id: it.product_id }}
+                          className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition"
+                          title="Открыть карточку товара"
+                        >
+                          <ExternalLink className="h-3 w-3" /> К товару
+                        </Link>
+                      )}
+                    </div>
+
                     <div className="text-sm text-muted-foreground">
                       Заказ №{it.orders?.id.slice(0, 8).toUpperCase()} ·{" "}
                       {it.orders && fmt(it.orders.created_at)}
