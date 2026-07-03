@@ -39,6 +39,8 @@ function SellerOrdersPage() {
   const updateStatus = useServerFn(updateOrderItemStatus);
   const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+
   // Загружаем позиции заказов, где продавец = текущий пользователь
   const q = useQuery({
     queryKey: ["seller-orders", user?.id],
