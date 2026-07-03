@@ -70,7 +70,7 @@ function CatalogPage() {
 
   // Обновляем параметр в URL
   const upd = (patch: Partial<z.infer<typeof searchSchema>>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch }) });
+    navigate({ search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...patch }) });
 
   return (
     <AppLayout>
