@@ -125,30 +125,43 @@ function SellerOrdersPage() {
                     {it.orders?.shipping_address}
                   </div>
                 </div>
-                {/* Управление статусом */}
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
-                  <label className="text-sm text-muted-foreground">Статус:</label>
-                  <select
-                    value={status}
-                    disabled={m.isPending}
-                    onChange={(e) =>
-                      m.mutate({
-                        order_item_id: it.id,
-                        status: e.target.value as OrderStatus,
-                        title: it.title_snapshot,
-                      })
-                    }
-                    className="h-9 px-2 rounded-lg border bg-background text-sm"
-                  >
-                    {ALL_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            );
+                {/* Управление статусом — последовательный пайплайн */}
+                {status !== "delivered" && status !== "cancelled" && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                    {NEXT_STATUS[status] && (
+                      <button
+                        type="button"
+                        disabled={m.isPending}
+                        onClick={() =>
+                          m.mutate({
+                            order_item_id: it.id,
+                            status: NEXT_STATUS[status]!,
+                            title: it.title_snapshot,
+                          })
+                        }
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+                      >
+                        Перевести в: {STATUS_LABELS[NEXT_STATUS[status]!]}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={m.isPending}
+                      onClick={() => {
+                        if (confirm("Отменить эту позицию заказа?")) {
+                          m.mutate({
+                            order_item_id: it.id,
+                            status: "cancelled",
+                            title: it.title_snapshot,
+                          });
+                        }
+                      }}
+                      className="inline-flex items-center rounded-lg border px-3 py-2 text-sm hover:bg-accent disabled:opacity-50"
+                    >
+                      Отменить
+                    </button>
+                  </div>
+                )}
           })}
         </div>
       )}
