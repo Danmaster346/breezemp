@@ -49,43 +49,41 @@ function HomePage() {
 
   return (
     <AppLayout>
-      {/* Герой-блок */}
-      <section className="relative overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 py-10 md:py-16 grid md:grid-cols-2 gap-8 items-center">
+      {/* Герой-баннер */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand-soft via-white to-surface border-b border-border">
+        <div className="mx-auto max-w-7xl px-4 py-12 md:py-20 grid md:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground mb-4">
-              Новый маркетплейс
+            <div className="inline-flex items-center rounded-full bg-white border border-border px-3 py-1 text-xs font-semibold text-brand mb-5 shadow-sm">
+              Новый премиальный маркетплейс
             </div>
-            <h1 className="text-4xl md:text-6xl font-black leading-tight">
-              Всё, что нужно —<br />
-              <span className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-transparent">
-                в одном месте
-              </span>
+            <h1 className="text-4xl md:text-6xl font-extrabold leading-[1.05] tracking-tight text-foreground">
+              Всё для дома и жизни —<br />
+              <span className="text-brand">на BREEZE</span>
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground max-w-md">
-              Тысячи товаров от продавцов со всей страны. Простая корзина и быстрый заказ.
+            <p className="mt-5 text-base md:text-lg text-muted-foreground max-w-md leading-relaxed">
+              Тысячи товаров от проверенных продавцов. Быстрая доставка по всей России, честные цены и понятная корзина.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 to="/catalog"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
               >
                 Открыть каталог <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/auth"
-                className="inline-flex items-center gap-2 rounded-xl border px-5 py-3 font-semibold hover:bg-accent"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-6 py-3 font-semibold text-foreground hover:border-brand hover:text-brand transition"
               >
                 Стать продавцом
               </Link>
             </div>
           </div>
-          {/* Декоративная плитка */}
+          {/* Плитка категорий-превью */}
           <div className="hidden md:grid grid-cols-3 gap-3">
-            {["🛍️", "📱", "👗", "🏠", "💄", "⚽"].map((e, i) => (
+            {["🛋️", "📱", "👗", "🏠", "💄", "⚽"].map((e, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-2xl bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-5xl shadow-sm"
+                className="aspect-square rounded-2xl bg-white border border-border flex items-center justify-center text-5xl shadow-[0_4px_16px_-8px_rgba(23,135,155,0.15)] hover:shadow-[0_8px_24px_-8px_rgba(23,135,155,0.3)] hover:-translate-y-0.5 transition"
               >
                 {e}
               </div>
@@ -94,29 +92,34 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Сетка категорий */}
-      <section className="mx-auto max-w-7xl px-4 py-6">
-        <h2 className="text-2xl font-bold mb-4">Категории</h2>
+      {/* Категории */}
+      <section className="mx-auto max-w-7xl px-4 py-10">
+        <div className="flex items-baseline justify-between mb-5">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Категории</h2>
+          <Link to="/catalog" className="text-sm font-semibold text-brand hover:underline">
+            Все категории →
+          </Link>
+        </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-3">
           {categoriesQuery.data?.map((c) => (
             <Link
               key={c.id}
               to="/catalog"
               search={{ category: c.slug }}
-              className="flex flex-col items-center gap-2 rounded-2xl border bg-card p-3 hover:bg-accent transition"
+              className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white p-4 hover:border-brand hover:shadow-md hover:-translate-y-0.5 transition"
             >
               <span className="text-3xl">{c.icon ?? "📦"}</span>
-              <span className="text-xs font-medium text-center">{c.name}</span>
+              <span className="text-xs font-semibold text-center text-foreground">{c.name}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Витрина товаров */}
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Новинки</h2>
-          <Link to="/catalog" className="text-sm text-primary hover:underline">
+      {/* Витрина */}
+      <section className="mx-auto max-w-7xl px-4 pb-14">
+        <div className="flex items-baseline justify-between mb-5">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Новинки</h2>
+          <Link to="/catalog" className="text-sm font-semibold text-brand hover:underline">
             Все товары →
           </Link>
         </div>
@@ -127,7 +130,7 @@ function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border bg-white p-10 text-center text-muted-foreground">
             Пока нет товаров. Станьте первым продавцом!
           </div>
         )}
