@@ -73,7 +73,7 @@ function CatalogPage() {
   const productsQuery = useQuery({
     queryKey: ["catalog", search],
     queryFn: async () => {
-      const sort = SORTS[search.sort ?? "new"];
+      const sort = SORTS[(search.sort ?? "new") as SortKey];
       let q = supabase
         .from("products")
         .select(
