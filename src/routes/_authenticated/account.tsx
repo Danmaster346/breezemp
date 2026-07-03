@@ -1,11 +1,13 @@
 // Личный кабинет покупателя: список его заказов и модалка с деталями
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import { getBuyerOrders } from "@/lib/order-history.functions";
 import {
   ALL_STATUSES,
   STATUS_BADGE,
@@ -76,6 +78,7 @@ function aggregateStatus(items: OrderItem[]): OrderStatus {
 function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
+  const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const [openId, setOpenId] = useState<string | null>(null);
 
   // Загружаем заказы покупателя со связанными позициями
@@ -83,12 +86,7 @@ function AccountPage() {
     queryKey: ["my-orders", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*, order_items(*)")
-        .eq("buyer_id", user!.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const data = await fetchBuyerOrders();
       return (data ?? []) as unknown as Order[];
     },
   });
@@ -173,6 +171,10 @@ function AccountPage() {
         <h2 className="text-xl font-bold mb-3">История заказов</h2>
         {ordersQuery.isLoading ? (
           <div className="text-muted-foreground">Загрузка...</div>
+        ) : ordersQuery.isError ? (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+            Не удалось загрузить заказы. Обновите страницу или попробуйте ещё раз.
+          </div>
         ) : orders.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-10 text-center">
             <ShoppingBag className="h-10 w-10 mx-auto text-muted-foreground mb-3" />

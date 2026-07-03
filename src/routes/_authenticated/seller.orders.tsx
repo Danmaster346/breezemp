@@ -2,9 +2,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
+import { getSellerOrderItems } from "@/lib/order-history.functions";
 import {
   NEXT_STATUS,
   NOTIFY_STATUSES,
@@ -31,21 +31,14 @@ function SellerOrdersPage() {
   const qc = useQueryClient();
   // Обёртка серверной функции, чтобы автоматически подставился bearer-токен
   const updateStatus = useServerFn(updateOrderItemStatus);
+  const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
   // Загружаем позиции заказов, где продавец = текущий пользователь
   const q = useQuery({
     queryKey: ["seller-orders", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select(
-          "*, orders(id, created_at, shipping_name, shipping_phone, shipping_address)",
-        )
-        .eq("seller_id", user!.id)
-        .order("id", { ascending: false });
-      if (error) throw error;
-      return data;
+      return fetchSellerOrders();
     },
   });
 
@@ -76,6 +69,10 @@ function SellerOrdersPage() {
     <div>
       {q.isLoading ? (
         <div className="text-muted-foreground">Загрузка...</div>
+      ) : q.isError ? (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+          Не удалось загрузить заказы продавца. Обновите страницу или попробуйте ещё раз.
+        </div>
       ) : !q.data || q.data.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-10 text-center text-muted-foreground">
           Пока нет заказов на ваши товары.
