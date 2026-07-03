@@ -47,6 +47,13 @@ function ProductPage() {
   const avg = ratingQuery.data?.avg ?? 0;
   const reviewsCount = ratingQuery.data?.count ?? 0;
 
+  const sellerQuery = useQuery({
+    queryKey: ["seller-profile-mini", product?.seller_id],
+    enabled: !!product?.seller_id,
+    queryFn: () => fetchSeller({ data: { id: product!.seller_id } }),
+  });
+
+
   const addToCart = () => {
     if (!product) return;
     add({
