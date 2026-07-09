@@ -10,16 +10,17 @@ export const listAdminLogs = createServerFn({ method: "POST" })
     const page = data.page ?? 1;
     const size = Math.min(data.pageSize ?? 50, 200);
     const from = (page - 1) * size;
-    let q = supabaseAdmin.from("admin_logs").select("*, profiles!admin_logs_admin_id_fkey(full_name)" as never, { count: "exact" });
+    let q = supabaseAdmin.from("admin_logs").select("*", { count: "exact" });
     if (data.adminId) q = q.eq("admin_id", data.adminId);
     if (data.action) q = q.ilike("action", `%${data.action}%`);
     const { data: rows, error, count } = await q.order("created_at", { ascending: false }).range(from, from + size - 1);
-    if (error) {
-      // fallback without join
-      const alt = supabaseAdmin.from("admin_logs").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + size - 1);
-      const { data: r2, error: e2, count: c2 } = await alt;
-      if (e2) throw new Error(e2.message);
-      return { rows: r2 ?? [], total: c2 ?? 0, page, pageSize: size };
-    }
-    return { rows: rows ?? [], total: count ?? 0, page, pageSize: size };
+    if (error) throw new Error(error.message);
+    // Fetch admin names
+    const ids = [...new Set((rows ?? []).map((r) => r.admin_id))];
+    const { data: names } = ids.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name").in("id", ids)
+      : { data: [] };
+    const map = new Map((names ?? []).map((n) => [n.id, n.full_name]));
+    const enriched = (rows ?? []).map((r) => ({ ...r, profiles: { full_name: map.get(r.admin_id) ?? null } }));
+    return { rows: enriched, total: count ?? 0, page, pageSize: size };
   });
