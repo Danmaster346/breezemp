@@ -272,7 +272,7 @@ function SellerOrdersPage() {
                   </div>
                 )}
 
-                {(canShip || canCancel) && (
+                {(canShip || canCancel || canDeliver) && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                     {canShip && (
                       <button
@@ -281,6 +281,26 @@ function SellerOrdersPage() {
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
                       >
                         <Truck className="h-4 w-4" /> Отправить
+                      </button>
+                    )}
+                    {canDeliver && (
+                      <button
+                        type="button"
+                        disabled={deliverMut.isPending}
+                        onClick={() =>
+                          deliverMut.mutate({
+                            order_item_id: it.id,
+                            title: it.title_snapshot,
+                          })
+                        }
+                        className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      >
+                        {deliverMut.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <PackageCheck className="h-4 w-4" />
+                        )}
+                        Отметить как доставленный
                       </button>
                     )}
                     {canCancel && (
@@ -300,6 +320,11 @@ function SellerOrdersPage() {
                         <XCircle className="h-4 w-4" /> Отменить
                       </button>
                     )}
+                  </div>
+                )}
+                {status === "delivered" && (
+                  <div className="mt-3 rounded-lg bg-sky-50 border border-sky-100 p-2.5 text-xs text-sky-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Заказ доставлен покупателю
                   </div>
                 )}
               </div>
