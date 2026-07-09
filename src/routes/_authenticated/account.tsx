@@ -361,6 +361,7 @@ function AccountPage() {
                   {openOrder.order_items?.map((it) => {
                     const st = normalizeStatus(it.status);
                     const canReturn = st === "shipped" || st === "delivered";
+                    const canReview = (st === "delivered" || st === "received") && !!it.product_id;
                     return (
                       <div
                         key={it.id}
