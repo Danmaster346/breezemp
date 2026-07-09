@@ -1,4 +1,4 @@
-// Личный кабинет покупателя: список его заказов и модалка с деталями
+// Личный кабинет покупателя: список заказов, детали, подтверждение/возврат в стиле WB
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,23 +9,36 @@ import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
-import { updateOrderItemStatus } from "@/lib/order-status.functions";
 import {
-  ALL_STATUSES,
+  buyerConfirmReceivedItem,
+  buyerReturnOrderItem,
+} from "@/lib/order-status.functions";
+import {
   STATUS_BADGE,
   STATUS_LABELS,
+  RETURN_REASONS,
+  normalizeStatus,
   type OrderStatus,
 } from "@/lib/order-status";
-import { LogOut, Store, X, ShoppingBag, MessageCircle, CheckCircle2 } from "lucide-react";
+import {
+  LogOut,
+  Store,
+  X,
+  ShoppingBag,
+  MessageCircle,
+  CheckCircle2,
+  Truck,
+  Undo2,
+  Upload,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
-// Маршрут «/account»
 export const Route = createFileRoute("/_authenticated/account")({
   head: () => ({ meta: [{ title: "Мои заказы — BreezeMarket" }] }),
   component: AccountPage,
 });
 
-// Форматирование даты по-русски
 const fmtDate = (s: string) =>
   new Date(s).toLocaleDateString("ru-RU", {
     day: "numeric",
@@ -35,7 +48,6 @@ const fmtDate = (s: string) =>
     minute: "2-digit",
   });
 
-// Тип позиции заказа (для локальных вычислений)
 type OrderItem = {
   id: string;
   product_id: string | null;
@@ -46,9 +58,16 @@ type OrderItem = {
   quantity: number;
   commission_kopecks: number | null;
   status: string | null;
+  tracking_number: string | null;
+  shipping_carrier: string | null;
+  shipped_at: string | null;
+  received_at: string | null;
+  returned_at: string | null;
+  return_reason: string | null;
+  return_comment: string | null;
+  return_photos: string[] | null;
 };
 
-// Тип заказа
 type Order = {
   id: string;
   buyer_id: string;
@@ -62,32 +81,39 @@ type Order = {
   order_items: OrderItem[];
 };
 
-// Агрегированный статус: минимальная стадия по всем позициям
-// (заказ считается «доставленным» только когда все позиции доставлены).
+// Агрегированный статус заказа: показываем «минимальную» стадию — WB-подобно
+const STAGE_ORDER: OrderStatus[] = [
+  "processing",
+  "shipped",
+  "received",
+  "returned",
+  "cancelled",
+];
 function aggregateStatus(items: OrderItem[]): OrderStatus {
-  if (!items.length) return "new";
-  const nonCancelled = items.filter((it) => (it.status ?? "new") !== "cancelled");
+  if (!items.length) return "processing";
+  const nonCancelled = items.filter((it) => normalizeStatus(it.status) !== "cancelled");
   if (!nonCancelled.length) return "cancelled";
-  let minIdx = ALL_STATUSES.length;
+  let minIdx = STAGE_ORDER.length;
   for (const it of nonCancelled) {
-    const st = (it.status ?? "new") as OrderStatus;
-    const idx = ALL_STATUSES.indexOf(st);
+    const st = normalizeStatus(it.status);
+    const idx = STAGE_ORDER.indexOf(st);
     if (idx >= 0 && idx < minIdx) minIdx = idx;
   }
-  return ALL_STATUSES[minIdx] ?? "new";
+  return STAGE_ORDER[minIdx] ?? "processing";
 }
 
-
-// Компонент кабинета
 function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
-  const updateStatus = useServerFn(updateOrderItemStatus);
+  const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
+  const returnItemFn = useServerFn(buyerReturnOrderItem);
   const navigate = useNavigate();
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [returnItem, setReturnItem] = useState<OrderItem | null>(null);
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
     try {
@@ -103,7 +129,7 @@ function AccountPage() {
   const confirmReceived = async (itemId: string) => {
     setConfirmingId(itemId);
     try {
-      await updateStatus({ data: { order_item_id: itemId, status: "received" } });
+      await confirmReceivedFn({ data: { order_item_id: itemId } });
       toast.success("Спасибо! Получение подтверждено");
       qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
     } catch (err) {
@@ -113,8 +139,6 @@ function AccountPage() {
     }
   };
 
-
-  // Загружаем заказы покупателя со связанными позициями
   const ordersQuery = useQuery({
     queryKey: ["my-orders", user?.id],
     enabled: !!user,
@@ -130,7 +154,7 @@ function AccountPage() {
     [orders, openId],
   );
 
-  // Уведомляем об изменениях статусов позиций
+  // Уведомления при смене статусов позиций (продавец → отправил, и т.д.)
   const prevStatusesRef = useRef<Record<string, string>>({});
   useEffect(() => {
     if (!orders.length) return;
@@ -138,9 +162,17 @@ function AccountPage() {
     for (const o of orders) {
       for (const it of o.order_items ?? []) {
         const prev = prevStatusesRef.current[it.id];
-        const cur = (it.status ?? "new") as OrderStatus;
+        const cur = normalizeStatus(it.status);
         if (prev && prev !== cur) {
-          toast.info(`«${it.title_snapshot}» — ${STATUS_LABELS[cur]}`);
+          if (cur === "shipped") {
+            toast.success(`Заказ отправлен: «${it.title_snapshot}»`, {
+              description: it.tracking_number
+                ? `${it.shipping_carrier ?? ""} · ${it.tracking_number}`
+                : undefined,
+            });
+          } else {
+            toast.info(`«${it.title_snapshot}» — ${STATUS_LABELS[cur]}`);
+          }
         }
         next[it.id] = cur;
       }
@@ -148,7 +180,7 @@ function AccountPage() {
     prevStatusesRef.current = next;
   }, [orders]);
 
-  // Realtime-обновление статусов
+  // Realtime: обновляем список при изменениях позиций
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -166,7 +198,6 @@ function AccountPage() {
     };
   }, [user, qc]);
 
-  // Выход из аккаунта
   const logout = async () => {
     await supabase.auth.signOut();
     toast.success("Вы вышли из аккаунта");
@@ -176,7 +207,6 @@ function AccountPage() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-4xl px-4 py-6">
-        {/* Шапка кабинета */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Личный кабинет</h1>
@@ -200,7 +230,6 @@ function AccountPage() {
           </div>
         </div>
 
-        {/* Секция заказов */}
         <h2 className="text-xl font-bold mb-3">История заказов</h2>
         {ordersQuery.isLoading ? (
           <div className="text-muted-foreground">Загрузка...</div>
@@ -303,7 +332,6 @@ function AccountPage() {
             </div>
 
             <div className="p-4 space-y-4">
-              {/* Общий статус */}
               <div>
                 <div className="text-xs text-muted-foreground mb-1">Статус заказа</div>
                 <span
@@ -313,7 +341,6 @@ function AccountPage() {
                 </span>
               </div>
 
-              {/* Адрес доставки */}
               {(openOrder.shipping_name ||
                 openOrder.shipping_phone ||
                 openOrder.shipping_address) && (
@@ -337,74 +364,124 @@ function AccountPage() {
                 </div>
               )}
 
-              {/* Товары */}
               <div>
                 <div className="text-xs text-muted-foreground mb-2">
                   Товары в заказе ({openOrder.order_items?.length ?? 0})
                 </div>
                 <div className="space-y-2">
                   {openOrder.order_items?.map((it) => {
-                    const st = (it.status ?? "new") as OrderStatus;
+                    const st = normalizeStatus(it.status);
+                    const canReceive = st === "shipped";
+                    const canReturn = st === "shipped" || st === "received";
                     return (
                       <div
                         key={it.id}
-                        className="flex gap-3 rounded-xl border p-2.5"
+                        className="rounded-xl border p-3 space-y-3"
                       >
-                        <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden shrink-0">
-                          {it.image_url ? (
-                            <img
-                              src={it.image_url}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="h-full w-full flex items-center justify-center text-lg">
-                              🛍️
+                        <div className="flex gap-3">
+                          <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden shrink-0">
+                            {it.image_url ? (
+                              <img
+                                src={it.image_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center text-lg">
+                                🛍️
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm line-clamp-2">
+                              {it.title_snapshot}
                             </div>
-                          )}
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {formatPrice(it.price_kopecks)} × {it.quantity}
+                            </div>
+                            <span
+                              className={`inline-block mt-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${STATUS_BADGE[st]}`}
+                            >
+                              {STATUS_LABELS[st]}
+                            </span>
+                          </div>
+                          <div className="text-sm font-semibold shrink-0">
+                            {formatPrice(it.price_kopecks * it.quantity)}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm line-clamp-2">
-                            {it.title_snapshot}
+
+                        {/* Информация об отправке */}
+                        {(st === "shipped" || st === "received") && it.tracking_number && (
+                          <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-2.5 text-xs">
+                            <div className="flex items-center gap-1.5 text-indigo-900 font-medium">
+                              <Truck className="h-3.5 w-3.5" />
+                              {it.shipping_carrier ?? "Отправлен"}
+                            </div>
+                            <div className="mt-1 font-mono text-indigo-800 select-all break-all">
+                              {it.tracking_number}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {formatPrice(it.price_kopecks)} × {it.quantity}
+                        )}
+
+                        {/* Информация о возврате */}
+                        {st === "returned" && (
+                          <div className="rounded-lg bg-orange-50 border border-orange-100 p-2.5 text-xs space-y-1">
+                            <div className="font-medium text-orange-900">
+                              Оформлен возврат
+                            </div>
+                            {it.return_reason && (
+                              <div className="text-orange-800">
+                                Причина: {it.return_reason}
+                              </div>
+                            )}
+                            {it.return_comment && (
+                              <div className="text-orange-700">
+                                {it.return_comment}
+                              </div>
+                            )}
                           </div>
-                          <span
-                            className={`inline-block mt-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${STATUS_BADGE[st]}`}
-                          >
-                            {STATUS_LABELS[st]}
-                          </span>
+                        )}
+
+                        {/* Действия */}
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() => writeSeller(it.seller_id, it.product_id, openOrder.id)}
-                            className="ml-2 inline-flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
+                            onClick={() =>
+                              writeSeller(it.seller_id, it.product_id, openOrder.id)
+                            }
+                            className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium hover:bg-accent"
                           >
                             <MessageCircle className="h-3 w-3" /> Написать продавцу
                           </button>
-                        </div>
-                        <div className="text-sm font-semibold shrink-0 flex flex-col items-end gap-2">
-                          <span>{formatPrice(it.price_kopecks * it.quantity)}</span>
-                          {st === "delivered" && (
+                          {canReceive && (
                             <button
                               type="button"
                               disabled={confirmingId === it.id}
                               onClick={() => confirmReceived(it.id)}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-700 disabled:opacity-60"
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-3 py-1 text-[11px] font-semibold hover:bg-emerald-700 disabled:opacity-60"
                             >
                               <CheckCircle2 className="h-3 w-3" />
-                              {confirmingId === it.id ? "…" : "Подтвердить получение"}
+                              {confirmingId === it.id
+                                ? "…"
+                                : "Подтвердить получение"}
+                            </button>
+                          )}
+                          {canReturn && (
+                            <button
+                              type="button"
+                              onClick={() => setReturnItem(it)}
+                              className="inline-flex items-center gap-1 rounded-full border border-orange-300 text-orange-700 px-3 py-1 text-[11px] font-semibold hover:bg-orange-50"
+                            >
+                              <Undo2 className="h-3 w-3" /> Оформить возврат
                             </button>
                           )}
                         </div>
-
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Итого */}
               <div className="rounded-xl bg-muted/50 p-3 text-sm">
                 <div className="flex justify-between font-bold text-base">
                   <span>Итого оплачено</span>
@@ -415,6 +492,194 @@ function AccountPage() {
           </div>
         </div>
       )}
+
+      {/* Модалка формы возврата */}
+      {returnItem && (
+        <ReturnDialog
+          item={returnItem}
+          onClose={() => setReturnItem(null)}
+          onSuccess={() => {
+            setReturnItem(null);
+            qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+          }}
+          returnItemFn={returnItemFn}
+        />
+      )}
     </AppLayout>
+  );
+}
+
+// ————— Форма возврата —————
+
+type ReturnDialogProps = {
+  item: OrderItem;
+  onClose: () => void;
+  onSuccess: () => void;
+  returnItemFn: (args: {
+    data: { order_item_id: string; reason: string; comment?: string; photos?: string[] };
+  }) => Promise<unknown>;
+};
+
+function ReturnDialog({ item, onClose, onSuccess, returnItemFn }: ReturnDialogProps) {
+  const [reason, setReason] = useState<string>(RETURN_REASONS[0]);
+  const [comment, setComment] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const uploadPhotos = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    const slots = 5 - photos.length;
+    if (slots <= 0) return;
+    const list = Array.from(files).slice(0, slots);
+    setUploading(true);
+    const uploaded: string[] = [];
+    try {
+      for (const file of list) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${item.id}/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("return-photos")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (error) {
+          toast.error("Не удалось загрузить фото", { description: error.message });
+          continue;
+        }
+        const signed = await supabase.storage
+          .from("return-photos")
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (signed.data?.signedUrl) uploaded.push(signed.data.signedUrl);
+      }
+      if (uploaded.length) setPhotos((p) => [...p, ...uploaded]);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      await returnItemFn({
+        data: {
+          order_item_id: item.id,
+          reason,
+          comment: comment.trim() || undefined,
+          photos: photos.length ? photos : undefined,
+        },
+      });
+      toast.success("Заявка на возврат отправлена");
+      onSuccess();
+    } catch (err) {
+      toast.error("Не удалось оформить возврат", {
+        description: (err as Error).message,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-card rounded-t-2xl sm:rounded-2xl border shadow-lg max-h-[95vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <div>
+            <div className="font-semibold">Оформить возврат</div>
+            <div className="text-xs text-muted-foreground line-clamp-1">
+              {item.title_snapshot}
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-accent">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Причина возврата</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm bg-background"
+            >
+              {RETURN_REASONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">Комментарий</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={4}
+              maxLength={1000}
+              placeholder="Опишите подробнее (необязательно)"
+              className="w-full rounded-lg border px-3 py-2 text-sm bg-background resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-1.5 block">
+              Фото ({photos.length}/5)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {photos.map((url, i) => (
+                <div
+                  key={i}
+                  className="relative h-16 w-16 rounded-lg overflow-hidden border"
+                >
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPhotos((p) => p.filter((_, idx) => idx !== i))
+                    }
+                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < 5 && (
+                <label className="h-16 w-16 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:bg-accent">
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Upload className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => uploadPhotos(e.target.files)}
+                    disabled={uploading}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={submit}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-4 py-3 font-semibold hover:opacity-90 disabled:opacity-60"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Отправить заявку на возврат
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

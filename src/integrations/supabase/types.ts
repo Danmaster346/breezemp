@@ -130,9 +130,17 @@ export type Database = {
           price_kopecks: number
           product_id: string | null
           quantity: number
+          received_at: string | null
+          return_comment: string | null
+          return_photos: string[] | null
+          return_reason: string | null
+          returned_at: string | null
           seller_id: string
+          shipped_at: string | null
+          shipping_carrier: string | null
           status: string
           title_snapshot: string
+          tracking_number: string | null
         }
         Insert: {
           commission_kopecks: number
@@ -142,9 +150,17 @@ export type Database = {
           price_kopecks: number
           product_id?: string | null
           quantity: number
+          received_at?: string | null
+          return_comment?: string | null
+          return_photos?: string[] | null
+          return_reason?: string | null
+          returned_at?: string | null
           seller_id: string
+          shipped_at?: string | null
+          shipping_carrier?: string | null
           status?: string
           title_snapshot: string
+          tracking_number?: string | null
         }
         Update: {
           commission_kopecks?: number
@@ -154,9 +170,17 @@ export type Database = {
           price_kopecks?: number
           product_id?: string | null
           quantity?: number
+          received_at?: string | null
+          return_comment?: string | null
+          return_photos?: string[] | null
+          return_reason?: string | null
+          returned_at?: string | null
           seller_id?: string
+          shipped_at?: string | null
+          shipping_carrier?: string | null
           status?: string
           title_snapshot?: string
+          tracking_number?: string | null
         }
         Relationships: [
           {
