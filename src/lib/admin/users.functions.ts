@@ -23,6 +23,18 @@ export const listAdminUsers = createServerFn({ method: "POST" })
     const size = Math.min(data.pageSize ?? 30, 100);
     const from = (page - 1) * size;
 
+    // Если задан фильтр по роли — сначала берём id пользователей с этой ролью,
+    // затем фильтруем profiles по этому набору. Так пагинация не «пустеет».
+    let restrictIds: string[] | null = null;
+    if (data.role && data.role !== "all") {
+      const { data: roleRows } = await supabaseAdmin
+        .from("user_roles").select("user_id").eq("role", data.role);
+      restrictIds = (roleRows ?? []).map((r) => r.user_id);
+      if (restrictIds.length === 0) {
+        return { rows: [] as AdminUserRow[], total: 0, page, pageSize: size };
+      }
+    }
+
     let query = supabaseAdmin.from("profiles").select("id, full_name, phone, email, is_blocked, blocked_reason, created_at", { count: "exact" });
     if (data.q) {
       const q = data.q.trim();
@@ -30,6 +42,7 @@ export const listAdminUsers = createServerFn({ method: "POST" })
     }
     if (data.status === "blocked") query = query.eq("is_blocked", true);
     if (data.status === "active") query = query.eq("is_blocked", false);
+    if (restrictIds) query = query.in("id", restrictIds);
 
     const { data: profiles, error, count } = await query.order("created_at", { ascending: false }).range(from, from + size - 1);
     if (error) throw new Error(error.message);
@@ -45,14 +58,10 @@ export const listAdminUsers = createServerFn({ method: "POST" })
       roleMap.set(r.user_id, arr);
     });
 
-    let rows: AdminUserRow[] = (profiles ?? []).map((p) => ({
+    const rows: AdminUserRow[] = (profiles ?? []).map((p) => ({
       ...p,
       roles: roleMap.get(p.id) ?? [],
     }));
-
-    if (data.role && data.role !== "all") {
-      rows = rows.filter((r) => r.roles.includes(data.role!));
-    }
 
     return { rows, total: count ?? rows.length, page, pageSize: size };
   });

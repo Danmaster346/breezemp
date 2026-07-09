@@ -129,10 +129,13 @@ export const buyerReturnOrderItem = createServerFn({ method: "POST" })
       item.status !== "received"
     )
       throw new Error("Возврат доступен только после отправки заказа");
+    // Заявка на возврат уходит в модерацию (status='return_requested').
+    // Реальный возврат оформит администратор через resolveReturn.
     const { error } = await supabaseAdmin
       .from("order_items")
       .update({
-        status: "returned",
+        status: "return_requested",
+        return_admin_status: "pending",
         return_reason: data.reason,
         return_comment: data.comment,
         return_photos: data.photos,

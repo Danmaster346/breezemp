@@ -17,32 +17,40 @@ export function useAuth(): AuthState {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    let lastLoadedFor: string | null = null;
+
     const loadRoles = async (uid: string) => {
+      if (lastLoadedFor === uid) return;
+      lastLoadedFor = uid;
       const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", uid);
+      if (cancelled) return;
       const roles = data?.map((r) => r.role) ?? [];
       setIsSeller(roles.includes("seller"));
       setIsAdmin(roles.includes("admin"));
     };
 
+    // onAuthStateChange сразу выстрелит INITIAL_SESSION, что покроет случай при монтировании.
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadRoles(session.user.id);
-      else {
+      const u = session?.user ?? null;
+      setUser(u);
+      setLoading(false);
+      if (u) {
+        loadRoles(u.id);
+      } else {
+        lastLoadedFor = null;
         setIsSeller(false);
         setIsAdmin(false);
       }
     });
 
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) loadRoles(data.session.user.id);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return { user, isSeller, isAdmin, loading };

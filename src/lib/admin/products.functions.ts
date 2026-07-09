@@ -75,15 +75,27 @@ export const bulkModerateProducts = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Разрешённые к правке администратором поля — белый список для защиты от инъекций
+const ADMIN_PRODUCT_FIELDS = new Set([
+  "title", "description", "price_kopecks", "stock",
+  "image_url", "category_id", "is_active", "moderation_status",
+  "moderation_reason",
+]);
+
 export const updateProductAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; patch: Record<string, unknown> }) => d)
   .handler(async ({ context, data }) => {
     const { assertAdmin, supabaseAdmin, logAction } = await import("./admin-helpers.server");
     await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin.from("products").update(data.patch as never).eq("id", data.id);
+    const safe: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(data.patch)) {
+      if (ADMIN_PRODUCT_FIELDS.has(k)) safe[k] = v;
+    }
+    if (Object.keys(safe).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin.from("products").update(safe as never).eq("id", data.id);
     if (error) throw new Error(error.message);
-    await logAction(context.userId, "product.update", "product", data.id, { patch: data.patch });
+    await logAction(context.userId, "product.update", "product", data.id, { patch: safe });
     return { ok: true };
   });
 

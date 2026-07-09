@@ -106,13 +106,44 @@ export const createOrder = createServerFn({ method: "POST" })
       }
       discount = computeDiscountKopecks(promo, total);
       promoCode = promo.code;
-      await supabaseAdmin
-        .from("promo_codes")
-        .update({ used_count: promo.used_count + 1 })
-        .eq("code", promo.code);
     }
 
     const finalTotal = Math.max(0, total - discount) + shippingCost;
+
+    // Атомарно снимаем остатки — защита от race condition при одновременных заказах.
+    // Если хоть один товар кончился, откатываем ранее списанные.
+    const decremented: Array<{ id: string; qty: number }> = [];
+    try {
+      for (const it of data.items) {
+        const { data: ok, error: stockErr } = await supabaseAdmin.rpc("decrement_product_stock", {
+          _product_id: it.product_id,
+          _qty: it.quantity,
+        });
+        if (stockErr) throw new Error(stockErr.message);
+        if (!ok) {
+          const p = products.find((pp) => pp.id === it.product_id)!;
+          throw new Error(`Недостаточно товара «${p.title}» на складе`);
+        }
+        decremented.push({ id: it.product_id, qty: it.quantity });
+      }
+    } catch (stockError) {
+      for (const d of decremented) {
+        await supabaseAdmin.rpc("increment_product_stock", { _product_id: d.id, _qty: d.qty });
+      }
+      throw stockError;
+    }
+
+    // Атомарно увеличиваем used_count промокода (проверяем срок/лимит внутри RPC)
+    if (promoCode) {
+      const { data: ok, error: promoRpcErr } = await supabaseAdmin.rpc("consume_promo_code", { _code: promoCode });
+      if (promoRpcErr || !ok) {
+        // Откат остатков
+        for (const d of decremented) {
+          await supabaseAdmin.rpc("increment_product_stock", { _product_id: d.id, _qty: d.qty });
+        }
+        throw new Error("Промокод больше не действует");
+      }
+    }
 
     // Создаём заказ (через service role, минуя RLS, но с проверенными на сервере данными)
     const { data: order, error: orderErr } = await supabaseAdmin
@@ -131,7 +162,13 @@ export const createOrder = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (orderErr || !order) throw new Error(orderErr?.message ?? "Не удалось создать заказ");
+    if (orderErr || !order) {
+      // Откат остатков при ошибке создания заказа
+      for (const d of decremented) {
+        await supabaseAdmin.rpc("increment_product_stock", { _product_id: d.id, _qty: d.qty });
+      }
+      throw new Error(orderErr?.message ?? "Не удалось создать заказ");
+    }
 
     // Вставляем позиции заказа; при тестовой оплате статус сразу «На сборке»
     const initialStatus = data.paid ? "processing" : "new";
@@ -140,15 +177,13 @@ export const createOrder = createServerFn({ method: "POST" })
       .insert(
         itemsToInsert.map((i) => ({ ...i, order_id: order.id, status: initialStatus })),
       );
-    if (itemsErr) throw new Error(itemsErr.message);
-
-    // Списываем остатки со склада
-    for (const it of data.items) {
-      const p = products.find((pp) => pp.id === it.product_id)!;
-      await supabaseAdmin
-        .from("products")
-        .update({ stock: p.stock - it.quantity })
-        .eq("id", p.id);
+    if (itemsErr) {
+      // Откат: удаляем заказ и возвращаем остатки
+      await supabaseAdmin.from("orders").delete().eq("id", order.id);
+      for (const d of decremented) {
+        await supabaseAdmin.rpc("increment_product_stock", { _product_id: d.id, _qty: d.qty });
+      }
+      throw new Error(itemsErr.message);
     }
 
     // Возвращаем идентификатор нового заказа

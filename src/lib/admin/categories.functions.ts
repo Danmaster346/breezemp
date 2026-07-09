@@ -54,9 +54,11 @@ export const reorderCategories = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { assertAdmin, supabaseAdmin, logAction } = await import("./admin-helpers.server");
     await assertAdmin(context.userId);
-    for (let i = 0; i < data.orderedIds.length; i++) {
-      await supabaseAdmin.from("categories").update({ sort_order: i }).eq("id", data.orderedIds[i]);
-    }
+    await Promise.all(
+      data.orderedIds.map((id, i) =>
+        supabaseAdmin.from("categories").update({ sort_order: i }).eq("id", id),
+      ),
+    );
     await logAction(context.userId, "category.reorder", "category", null, { ids: data.orderedIds });
     return { ok: true };
   });

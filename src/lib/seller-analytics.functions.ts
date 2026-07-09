@@ -15,7 +15,7 @@ type Row = {
 };
 
 const EARNED = new Set(["delivered", "received"]);
-const EXCLUDE_FROM_SALES = new Set(["cancelled", "returned"]);
+const EXCLUDE_FROM_SALES = new Set(["cancelled", "returned", "return_requested"]);
 
 export type SellerAnalytics = ReturnType<typeof compute>;
 

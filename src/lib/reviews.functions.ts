@@ -25,7 +25,7 @@ export type ReviewRow = {
   created_at: string;
 };
 
-// Публично: отзывы товара + средний рейтинг
+// Публично: отзывы товара + средний рейтинг (только видимые)
 export const getProductReviews = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ product_id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
@@ -34,6 +34,7 @@ export const getProductReviews = createServerFn({ method: "GET" })
       .from("reviews")
       .select("id, product_id, order_item_id, user_id, rating, comment, photos, author_name, created_at")
       .eq("product_id", data.product_id)
+      .eq("is_hidden", false)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     const reviews = (rows ?? []) as ReviewRow[];

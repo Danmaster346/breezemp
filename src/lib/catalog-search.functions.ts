@@ -129,6 +129,7 @@ export const searchCatalog = createServerFn({ method: "GET" })
         "id, title, description, price_kopecks, image_url, stock, seller_id, created_at, categories(slug)",
       )
       .eq("is_active", true)
+      .eq("moderation_status", "approved")
       .limit(data.limit);
 
     if (data.q) {
@@ -252,6 +253,7 @@ export const suggestCatalog = createServerFn({ method: "GET" })
       .from("products")
       .select("id, title, price_kopecks, image_url, seller_id")
       .eq("is_active", true)
+      .eq("moderation_status", "approved")
       .or(orParts.join(","))
       .limit(8);
 
