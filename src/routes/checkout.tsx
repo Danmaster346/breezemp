@@ -74,7 +74,7 @@ function CheckoutPage() {
     e.preventDefault();
     if (!user) {
       toast.error("Нужно войти, чтобы оформить заказ");
-      navigate({ to: "/auth" });
+      navigate({ to: "/auth", search: { redirect: "/checkout" } });
       return;
     }
     if (items.length === 0) {
@@ -121,7 +121,7 @@ function CheckoutPage() {
           <div className="rounded-2xl border border-brand/20 bg-brand-soft p-4 mb-6 text-sm animate-fade-in">
             Чтобы оформить заказ, нужно{" "}
             <button
-              onClick={() => navigate({ to: "/auth" })}
+              onClick={() => navigate({ to: "/auth", search: { redirect: "/checkout" } })}
               className="text-brand font-semibold hover:underline"
             >
               войти или зарегистрироваться

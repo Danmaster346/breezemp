@@ -1,9 +1,11 @@
 // Страница корзины — премиальный e-commerce стиль с мобильной sticky-панелью
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
+import { useAuth } from "@/lib/use-auth";
+import { useSignInDialog } from "@/lib/pending-cart";
 import { formatPrice } from "@/lib/format";
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Корзина — BREEZE" }] }),
@@ -16,6 +18,21 @@ function CartPage() {
   const setQty = useCart((s) => s.setQty);
   const total = useCart((s) => s.totalKopecks());
   const qtyTotal = items.reduce((s, i) => s + i.quantity, 0);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Клик по «Оформить заказ»: гость → модалка входа, иначе → чекаут
+  const goCheckout = () => {
+    if (!user) {
+      useSignInDialog.getState().show({
+        message:
+          "Чтобы оформить заказ, войдите в аккаунт. После входа мы вернём вас к оформлению.",
+        redirectTo: "/checkout",
+      });
+      return;
+    }
+    navigate({ to: "/checkout" });
+  };
 
   return (
     <AppLayout>
@@ -129,12 +146,19 @@ function CartPage() {
                 <span className="font-semibold">Итого</span>
                 <span className="text-2xl font-extrabold tracking-tight">{formatPrice(total)}</span>
               </div>
-              <Link
-                to="/checkout"
-                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
+              {!user && (
+                <div className="mt-5 rounded-xl border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs text-foreground/80 flex items-start gap-2">
+                  <LogIn className="h-4 w-4 text-brand mt-0.5 shrink-0" />
+                  <span>Чтобы оформить заказ, войдите в аккаунт.</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={goCheckout}
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
               >
-                Оформить заказ <ArrowRight className="h-4 w-4" />
-              </Link>
+                {user ? "Оформить заказ" : "Войти и оформить"} <ArrowRight className="h-4 w-4" />
+              </button>
               <p className="mt-3 text-xs text-muted-foreground text-center">
                 Демо-оплата: реальные средства не списываются
               </p>
@@ -151,12 +175,13 @@ function CartPage() {
               <div className="text-[11px] text-muted-foreground leading-none">Итого</div>
               <div className="text-lg font-extrabold tracking-tight">{formatPrice(total)}</div>
             </div>
-            <Link
-              to="/checkout"
+            <button
+              type="button"
+              onClick={goCheckout}
               className="flex-1 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
             >
-              Оформить <ArrowRight className="h-4 w-4" />
-            </Link>
+              {user ? "Оформить" : "Войти"} <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}

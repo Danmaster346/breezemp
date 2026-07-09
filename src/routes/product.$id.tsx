@@ -14,6 +14,7 @@ import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import { useAuth } from "@/lib/use-auth";
+import { setPendingAdd, useSignInDialog } from "@/lib/pending-cart";
 import { useNavigate } from "@tanstack/react-router";
 
 
@@ -90,6 +91,16 @@ function ProductPage() {
 
   const addToCart = () => {
     if (!product) return;
+    if (!user) {
+      // Гость — сохраняем намерение и открываем модалку входа
+      setPendingAdd({ productId: product.id, qty: 1 });
+      useSignInDialog.getState().show({
+        message:
+          "Чтобы добавить товар в корзину, войдите в аккаунт или зарегистрируйтесь. После входа товар добавится автоматически.",
+        redirectTo: `/product/${product.id}`,
+      });
+      return;
+    }
     add({
       id: product.id,
       title: product.title,
