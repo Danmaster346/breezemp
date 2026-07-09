@@ -133,6 +133,7 @@ function CheckoutPage() {
         <div className="grid md:grid-cols-[1fr_380px] gap-6">
           {/* Форма */}
           <form
+            id="checkout-form"
             onSubmit={onSubmit}
             className="space-y-5"
           >
@@ -152,6 +153,7 @@ function CheckoutPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Иван Иванов"
+                    autoComplete="name"
                     className={inputCls}
                   />
                 </div>
@@ -162,6 +164,9 @@ function CheckoutPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+7 999 000 00 00"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     className={inputCls}
                   />
                 </div>
@@ -286,7 +291,7 @@ function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
+              className="hidden md:inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
             >
               {submitting ? (
                 <>
@@ -298,7 +303,7 @@ function CheckoutPage() {
                 </>
               )}
             </button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <p className="hidden md:flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5" /> Демо-режим: реальные деньги не списываются
             </p>
           </form>
@@ -354,6 +359,33 @@ function CheckoutPage() {
           </aside>
         </div>
       </div>
+
+      {/* Мобильная sticky-панель оплаты */}
+      <div className="md:hidden fixed bottom-nav inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] text-muted-foreground leading-none">К оплате</div>
+            <div className="text-lg font-extrabold tracking-tight">{formatPrice(total)}</div>
+          </div>
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={submitting || items.length === 0}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 shadow-sm transition"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Оплачиваем…
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-4 w-4" /> Оплатить
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </AppLayout>
   );
 }
+
