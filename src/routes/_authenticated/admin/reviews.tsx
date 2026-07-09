@@ -71,12 +71,12 @@ function ReviewsPage() {
                         <Star key={i} className={`h-3.5 w-3.5 ${i <= r.rating ? "fill-yellow-400 text-yellow-400" : "text-foreground/20"}`} />
                       ))}
                     </div>
-                    <span className="text-sm font-medium">{r.profiles?.full_name ?? "—"}</span>
+                    <span className="text-sm font-medium">{r.author_name ?? "—"}</span>
                     <span className="text-xs text-foreground/50">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
                     {r.is_hidden && <Badge variant="secondary" className="text-[10px]">Скрыт</Badge>}
                   </div>
                   <div className="text-xs text-foreground/60 mt-0.5">Товар: {r.products?.title ?? "—"}</div>
-                  <p className="text-sm mt-2">{r.body}</p>
+                  <p className="text-sm mt-2">{r.comment}</p>
                 </div>
                 <div className="flex gap-1 shrink-0">
                   <Button size="sm" variant="outline" onClick={() => hideM.mutate({ data: { id: r.id, hidden: !r.is_hidden } })}>
