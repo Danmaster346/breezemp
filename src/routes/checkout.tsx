@@ -153,6 +153,7 @@ function CheckoutPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Иван Иванов"
+                    autoComplete="name"
                     className={inputCls}
                   />
                 </div>
@@ -163,6 +164,9 @@ function CheckoutPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+7 999 000 00 00"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     className={inputCls}
                   />
                 </div>
