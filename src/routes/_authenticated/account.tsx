@@ -10,7 +10,6 @@ import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import {
-  buyerConfirmReceivedItem,
   buyerReturnOrderItem,
 } from "@/lib/order-status.functions";
 import {
@@ -26,7 +25,6 @@ import {
   X,
   ShoppingBag,
   MessageCircle,
-  CheckCircle2,
   Truck,
   Undo2,
   Upload,
@@ -107,12 +105,10 @@ function AccountPage() {
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
-  const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
   const returnItemFn = useServerFn(buyerReturnOrderItem);
   const navigate = useNavigate();
 
   const [openId, setOpenId] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [returnItem, setReturnItem] = useState<OrderItem | null>(null);
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
@@ -123,19 +119,6 @@ function AccountPage() {
       navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
     } catch (err) {
       toast.error((err as Error).message);
-    }
-  };
-
-  const confirmReceived = async (itemId: string) => {
-    setConfirmingId(itemId);
-    try {
-      await confirmReceivedFn({ data: { order_item_id: itemId } });
-      toast.success("Спасибо! Получение подтверждено");
-      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setConfirmingId(null);
     }
   };
 
@@ -371,8 +354,7 @@ function AccountPage() {
                 <div className="space-y-2">
                   {openOrder.order_items?.map((it) => {
                     const st = normalizeStatus(it.status);
-                    const canReceive = st === "shipped";
-                    const canReturn = st === "shipped" || st === "received";
+                    const canReturn = st === "shipped";
                     return (
                       <div
                         key={it.id}
@@ -453,19 +435,6 @@ function AccountPage() {
                           >
                             <MessageCircle className="h-3 w-3" /> Написать продавцу
                           </button>
-                          {canReceive && (
-                            <button
-                              type="button"
-                              disabled={confirmingId === it.id}
-                              onClick={() => confirmReceived(it.id)}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-3 py-1 text-[11px] font-semibold hover:bg-emerald-700 disabled:opacity-60"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              {confirmingId === it.id
-                                ? "…"
-                                : "Подтвердить получение"}
-                            </button>
-                          )}
                           {canReturn && (
                             <button
                               type="button"

@@ -18,6 +18,7 @@ import {
   BarChart3,
   MessageCircle,
   Settings,
+  Undo2,
 } from "lucide-react";
 
 // Маршрут «/seller» — обёртка с дашбордом и вкладками
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/seller")({
 const tabs = [
   { to: "/seller/products", label: "Мои товары", icon: Package },
   { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
+  { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
   { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
   { to: "/seller/balance", label: "Финансы", icon: Banknote },
   { to: "/seller/settings", label: "Настройки магазина", icon: Settings },
