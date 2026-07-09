@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ExternalLink, Truck, XCircle, Loader2, X } from "lucide-react";
+import { ExternalLink, Truck, XCircle, Loader2, X, PackageCheck, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerOrderItems } from "@/lib/order-history.functions";
