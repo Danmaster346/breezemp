@@ -65,6 +65,9 @@ export const Route = createFileRoute("/catalog")({
 });
 
 function CatalogPage() {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [mobileSortOpen, setMobileSortOpen] = useState(false);
+
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const doSearch = useServerFn(searchCatalog);
