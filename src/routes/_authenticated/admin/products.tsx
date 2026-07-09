@@ -39,7 +39,7 @@ function ProductsPage() {
     queryFn: () => list({ data: { q, status, page, pageSize: 30 } }),
   });
 
-  const rows = (data?.rows ?? []) as Array<{
+  const rows = (data?.rows ?? []) as unknown as Array<{
     id: string; title: string; price_kopecks: number; stock: number; is_active: boolean;
     moderation_status: string; moderation_reason: string | null; image_url: string | null; seller_id: string;
     categories: { name: string } | null; profiles: { full_name: string | null } | null;
