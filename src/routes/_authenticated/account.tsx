@@ -10,7 +10,6 @@ import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import {
-  buyerConfirmReceivedItem,
   buyerReturnOrderItem,
 } from "@/lib/order-status.functions";
 import {
