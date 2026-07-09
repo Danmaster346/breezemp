@@ -169,7 +169,7 @@ function CartPage() {
 
       {/* Мобильная sticky-панель оформления */}
       {items.length > 0 && (
-        <div className="md:hidden fixed bottom-16 inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
+        <div className="md:hidden fixed bottom-nav inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-3">
             <div className="min-w-0">
               <div className="text-[11px] text-muted-foreground leading-none">Итого</div>
