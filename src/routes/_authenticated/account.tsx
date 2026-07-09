@@ -454,6 +454,16 @@ function AccountPage() {
                               <Undo2 className="h-3 w-3" /> Оформить возврат
                             </button>
                           )}
+                          {canReview && (
+                            <Link
+                              to="/product/$id"
+                              params={{ id: it.product_id! }}
+                              hash="reviews"
+                              className="inline-flex items-center gap-1 rounded-full border border-amber-300 text-amber-700 px-3 py-1 text-[11px] font-semibold hover:bg-amber-50"
+                            >
+                              <Star className="h-3 w-3" /> Оставить отзыв
+                            </Link>
+                          )}
                         </div>
                       </div>
                     );
