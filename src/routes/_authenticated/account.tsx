@@ -154,6 +154,10 @@ function AccountPage() {
                 ? `${it.shipping_carrier ?? ""} · ${it.tracking_number}`
                 : undefined,
             });
+          } else if (cur === "delivered") {
+            toast.success(`Заказ доставлен: «${it.title_snapshot}»`, {
+              description: "Теперь вы можете оставить отзыв о товаре",
+            });
           } else {
             toast.info(`«${it.title_snapshot}» — ${STATUS_LABELS[cur]}`);
           }
