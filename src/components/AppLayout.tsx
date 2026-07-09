@@ -165,9 +165,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {!isSeller && effectiveMode === "buyer" && (
               <Link
                 to="/auth"
-                className="px-3 py-2 rounded-full font-medium text-foreground/60 hover:text-brand transition"
+                search={{ as: "seller", mode: "signup" } as never}
+                className="px-3 py-2 rounded-full font-medium text-brand hover:text-brand-strong transition"
               >
-                Продавать
+                Продавать на BREEZE
               </Link>
             )}
           </nav>
