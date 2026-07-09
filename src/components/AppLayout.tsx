@@ -1,12 +1,12 @@
 // Каркас приложения — Askona-style: мягкий серый фон, крупная пилюля поиска,
 // круглая бирюзовая кнопка меню, минималистичная шапка.
-// Навигация и нижнее меню перестраиваются под режим «Покупатель / Продавец».
+// Мобильная версия: sticky header со скрытием при скролле, нижняя навигация
+// на 5 пунктов с бейджами непрочитанных и корзины + safe-area.
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ShoppingCart,
   User,
   Store,
-  Search,
   Home,
   Menu,
   Phone,
@@ -15,34 +15,44 @@ import {
   BarChart3,
   Wallet,
   ArrowLeftRight,
-  ShoppingBag,
   MessageCircle,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 import logo from "@/assets/breeze-logo.png.asset.json";
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 
-// Нижнее мобильное меню — свой набор для каждого режима
-const buyerMobileNav = [
-  { to: "/catalog", label: "Каталог", icon: Menu },
-  { to: "/cart", label: "Корзина", icon: ShoppingCart },
-  { to: "/account", label: "Заказы", icon: ShoppingBag },
-  { to: "/account", label: "Кабинет", icon: User },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  badge?: "cart" | "unread";
+  exact?: boolean;
+};
 
-const sellerMobileNav = [
+// Нижнее мобильное меню — 5 пунктов, свой набор для каждого режима
+const buyerMobileNav: readonly NavItem[] = [
+  { to: "/", label: "Главная", icon: Home, exact: true },
+  { to: "/catalog", label: "Каталог", icon: Menu },
+  { to: "/cart", label: "Корзина", icon: ShoppingCart, badge: "cart" },
+  { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
+  { to: "/account", label: "Кабинет", icon: User },
+];
+
+const sellerMobileNav: readonly NavItem[] = [
   { to: "/seller/products", label: "Товары", icon: Package },
   { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
   { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
   { to: "/seller/balance", label: "Финансы", icon: Wallet },
-] as const;
+  { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
+];
 
-// Верхнее меню (desktop) — свой набор для каждого режима
+// Верхнее меню (desktop)
 const buyerTopNav = [
   { to: "/catalog", label: "Каталог" },
   { to: "/catalog", label: "Акции" },
@@ -57,8 +67,6 @@ const sellerTopNav = [
 ] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  // На сервере Zustand-persist читать localStorage не может — рендерим одинаково,
-  // чтобы избежать hydration mismatch. Реальные значения появятся после монтирования.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -69,18 +77,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
   const rawUnread = useUnreadChats();
+  const headerHidden = useHideOnScroll(6);
 
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
   const unreadChats = mounted ? rawUnread : 0;
 
-
-  // Пользователи без роли продавца всегда в режиме покупателя
   useEffect(() => {
     if (!isSeller && mode === "seller") setMode("buyer");
   }, [isSeller, mode, setMode]);
 
-  // Автоматически переключаем режим при заходе в раздел /seller/*
   useEffect(() => {
     if (isSeller && pathname.startsWith("/seller") && mode !== "seller") {
       setMode("seller");
@@ -95,8 +101,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const goSearch = (v: string) =>
     navigate({ to: "/catalog", search: { q: v || undefined } as never });
 
-
-
   const switchMode = (next: "buyer" | "seller") => {
     setMode(next);
     if (next === "seller") navigate({ to: "/seller/products" });
@@ -104,10 +108,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-foreground">
-      {/* Шапка */}
-      <header className="sticky top-0 z-40 bg-white">
-        {/* Индикатор роли */}
+    <div className="min-h-[100dvh] flex flex-col bg-white text-foreground">
+      {/* Шапка — sticky, скрывается при скролле вниз на мобильном */}
+      <header
+        className={`sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 border-b border-border/60 transition-transform duration-300 will-change-transform ${
+          headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"
+        }`}
+      >
         {user && (
           <div
             className={`w-full text-center text-[11px] font-medium py-1 ${
@@ -133,13 +140,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        {/* Верхняя полоса: логотип + иконки */}
         <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-3">
           <Link to="/" className="flex items-center shrink-0" aria-label="BREEZE">
             <img src={logo.url} alt="BREEZE" className="h-7 md:h-9 w-auto" />
           </Link>
 
-          {/* Desktop-меню */}
           <nav className="hidden md:flex items-center gap-1 ml-6 text-sm">
             {topNav.map((it, i) => (
               <Link
@@ -150,7 +155,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {it.label}
               </Link>
             ))}
-            {/* Ссылка «стать продавцом» — только для тех, у кого нет роли */}
             {!isSeller && effectiveMode === "buyer" && (
               <Link
                 to="/auth"
@@ -170,7 +174,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Phone className="h-5 w-5" />
             </a>
 
-            {/* Быстрая ссылка на кабинет продавца — только сверху для продавцов */}
             {user && isSeller && effectiveMode === "buyer" && (
               <button
                 onClick={() => switchMode("seller")}
@@ -180,11 +183,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </button>
             )}
 
-            {/* Корзина показывается только покупателям */}
             {effectiveMode === "buyer" && (
               <Link
                 to="/cart"
-                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
                 aria-label="Корзина"
               >
                 <ShoppingCart className="h-5 w-5" />
@@ -199,7 +201,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             {user && (
               <Link
                 to="/messages"
-                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
                 aria-label="Сообщения"
               >
                 <MessageCircle className="h-5 w-5" />
@@ -218,7 +220,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <User className="h-5 w-5" />
             </Link>
-
           </div>
         </div>
 
@@ -241,7 +242,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="flex-1 pb-24 md:pb-0 bg-white">{children}</main>
+      <main className="flex-1 pb-nav md:pb-0 bg-white">{children}</main>
       <SignInPromptDialog />
 
       {/* Футер (desktop) */}
@@ -284,45 +285,44 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      {/* Нижняя навигация */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-white">
-        <div className="grid" style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}>
+      {/* Нижняя навигация — мобильная, 5 пунктов, safe-area */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-white/95 backdrop-blur safe-pb">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
+        >
           {mobileNav.map((item, i) => {
             const Icon = item.icon;
-            const active = pathname === item.to || pathname.startsWith(item.to);
+            const active = item.exact
+              ? pathname === item.to
+              : pathname === item.to || pathname.startsWith(item.to + "/");
+            const badgeN =
+              item.badge === "cart" ? count : item.badge === "unread" ? unreadChats : 0;
             return (
               <Link
                 key={`${item.to}-${i}`}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition ${
-                  active ? "text-brand" : "text-foreground/70"
+                className={`flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium transition touch-target ${
+                  active ? "text-brand" : "text-foreground/70 hover:text-foreground"
                 }`}
               >
                 <div className="relative">
-                  <Icon className="h-5 w-5" strokeWidth={1.75} />
-                  {item.to === "/cart" && count > 0 && (
-                    <span className="absolute -top-1 -right-2 min-w-[16px] h-4 rounded-full bg-brand text-[9px] font-bold text-white flex items-center justify-center px-1">
-                      {count}
+                  <Icon
+                    className={`h-6 w-6 transition-transform ${active ? "scale-110" : ""}`}
+                    strokeWidth={active ? 2 : 1.75}
+                  />
+                  {badgeN > 0 && (
+                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-white flex items-center justify-center px-1 ring-2 ring-white">
+                      {badgeN > 9 ? "9+" : badgeN}
                     </span>
                   )}
                 </div>
-                <span>{item.label}</span>
+                <span className="leading-none">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
-
-      {/* Плавающая кнопка «Главная» — только не на главной */}
-      {pathname !== "/" ? (
-        <Link
-          to="/"
-          className="md:hidden fixed right-3 bottom-20 z-40 h-11 w-11 rounded-full bg-white shadow-lg border border-border flex items-center justify-center text-foreground/70 hover:text-brand transition"
-          aria-label="Главная"
-        >
-          <Home className="h-5 w-5" />
-        </Link>
-      ) : null}
     </div>
   );
 }
