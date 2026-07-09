@@ -71,7 +71,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => setMounted(true), []);
 
   const rawCount = useCart((s) => s.totalCount());
-  const { user, isSeller } = useAuth();
+  const { user, isSeller, isAdmin } = useAuth();
   const rawMode = useMode((s) => s.mode);
   const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
