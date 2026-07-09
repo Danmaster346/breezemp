@@ -17,6 +17,7 @@ import {
 } from "@/lib/order-status";
 import {
   sellerCancelOrderItem,
+  sellerMarkDeliveredItem,
   sellerShipOrderItem,
 } from "@/lib/order-status.functions";
 import { toast } from "sonner";
