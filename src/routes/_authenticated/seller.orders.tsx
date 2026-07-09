@@ -162,6 +162,7 @@ function SellerOrdersPage() {
             const status = normalizeStatus(it.status);
             const canShip = status === "processing";
             const canCancel = status === "processing";
+            const canDeliver = status === "shipped";
             return (
               <div key={it.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex justify-between items-start gap-2 flex-wrap">
