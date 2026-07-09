@@ -88,6 +88,7 @@ async function enrich(products: Array<{ id: string; seller_id: string }>) {
   }
   const ordersMap = new Map<string, number>();
   for (const o of orderItemsRes.data ?? []) {
+    if (!o.product_id) continue;
     ordersMap.set(o.product_id, (ordersMap.get(o.product_id) ?? 0) + 1);
   }
   const nameMap = new Map<string, string>();
