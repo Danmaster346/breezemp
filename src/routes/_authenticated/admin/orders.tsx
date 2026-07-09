@@ -132,7 +132,7 @@ function OrdersPage() {
 
               <div>
                 <div className="font-semibold mb-1">Покупатель</div>
-                <div>{detailQ.data.profiles?.full_name} · {detailQ.data.profiles?.phone ?? detailQ.data.profiles?.email ?? "—"}</div>
+                {(() => { const p = (detailQ.data as unknown as { profiles?: { full_name?: string | null; phone?: string | null; email?: string | null } }).profiles; return <div>{p?.full_name ?? "—"} · {p?.phone ?? p?.email ?? "—"}</div>; })()}
               </div>
 
               <div>
