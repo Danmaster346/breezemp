@@ -17,6 +17,7 @@ import {
   Banknote,
   BarChart3,
   MessageCircle,
+  Settings,
 } from "lucide-react";
 
 // Маршрут «/seller» — обёртка с дашбордом и вкладками
@@ -30,6 +31,7 @@ const tabs = [
   { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
   { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
   { to: "/seller/balance", label: "Финансы", icon: Banknote },
+  { to: "/seller/settings", label: "Настройки магазина", icon: Settings },
   { to: "/messages", label: "Сообщения", icon: MessageCircle },
 ] as const;
 
