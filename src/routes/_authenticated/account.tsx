@@ -25,7 +25,6 @@ import {
   X,
   ShoppingBag,
   MessageCircle,
-  CheckCircle2,
   Truck,
   Undo2,
   Upload,
