@@ -30,11 +30,17 @@ export const getAdminOrder = createServerFn({ method: "POST" })
     await assertAdmin(context.userId);
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("*, order_items(*), profiles!orders_buyer_id_fkey(id, full_name, phone, email)")
+      .select("*, order_items(*)")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return order;
+    if (!order) return null;
+    const { data: buyer } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, phone, email")
+      .eq("id", order.buyer_id)
+      .maybeSingle();
+    return { ...order, profiles: buyer };
   });
 
 export const forceOrderStatus = createServerFn({ method: "POST" })
