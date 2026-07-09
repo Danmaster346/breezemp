@@ -447,6 +447,145 @@ function CatalogPage() {
           </div>
         )}
       </div>
+
+      {/* Мобильный Bottom Sheet: фильтры */}
+      <BottomSheet
+        open={mobileFiltersOpen}
+        onOpenChange={setMobileFiltersOpen}
+        title="Фильтры"
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetAll();
+                setMobileFiltersOpen(false);
+              }}
+              className="flex-1 h-12 rounded-xl border border-border font-semibold text-foreground/80"
+            >
+              Сбросить
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileFiltersOpen(false)}
+              className="flex-[2] h-12 rounded-xl bg-brand text-brand-foreground font-semibold"
+            >
+              Показать {total > 0 ? total : ""}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <div>
+            <div className="text-sm font-semibold mb-2">Цена, ₽</div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="от"
+                value={minInput}
+                onChange={(e) => setMinInput(e.target.value)}
+                onBlur={applyPrice}
+                className="w-full h-12 px-3 rounded-xl border border-border bg-surface text-base"
+              />
+              <span className="text-muted-foreground">—</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="до"
+                value={maxInput}
+                onChange={(e) => setMaxInput(e.target.value)}
+                onBlur={applyPrice}
+                className="w-full h-12 px-3 rounded-xl border border-border bg-surface text-base"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold mb-2">Рейтинг</div>
+            <div className="grid grid-cols-4 gap-2">
+              {RATING_OPTIONS.map((r) => {
+                const active = (search.rating ?? 0) === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => upd({ rating: r || undefined })}
+                    className={`h-11 rounded-xl border text-sm font-medium transition ${
+                      active
+                        ? "border-brand bg-brand text-brand-foreground"
+                        : "border-border bg-white"
+                    }`}
+                  >
+                    {r === 0 ? "Любой" : `${r}★+`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Store className="h-4 w-4 text-brand" /> Продавец
+            </div>
+            <select
+              value={search.seller ?? ""}
+              onChange={(e) => upd({ seller: e.target.value || undefined })}
+              className="w-full h-12 px-3 rounded-xl border border-border bg-surface text-base"
+            >
+              <option value="">Все продавцы</option>
+              {sellersQuery.data?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.products_count})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => upd({ in_stock: search.in_stock ? undefined : true })}
+            className={`w-full h-12 inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition ${
+              search.in_stock
+                ? "border-brand bg-brand text-brand-foreground"
+                : "border-border bg-white text-foreground/80"
+            }`}
+          >
+            <PackageCheck className="h-4 w-4" /> Только в наличии
+          </button>
+        </div>
+      </BottomSheet>
+
+      {/* Мобильный Bottom Sheet: сортировка */}
+      <BottomSheet
+        open={mobileSortOpen}
+        onOpenChange={setMobileSortOpen}
+        title="Сортировка"
+      >
+        <div className="space-y-1">
+          {SORT_OPTIONS.map((o) => {
+            const active = (search.sort ?? "relevance") === o.key;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => {
+                  upd({ sort: o.key });
+                  setMobileSortOpen(false);
+                }}
+                className={`w-full h-14 px-4 rounded-xl flex items-center justify-between text-base font-medium transition ${
+                  active
+                    ? "bg-brand/10 text-brand"
+                    : "hover:bg-surface text-foreground/85"
+                }`}
+              >
+                <span>{o.label}</span>
+                {active && <span className="h-2.5 w-2.5 rounded-full bg-brand" />}
+              </button>
+            );
+          })}
+        </div>
+      </BottomSheet>
     </AppLayout>
   );
 }
