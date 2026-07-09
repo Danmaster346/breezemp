@@ -14,24 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           icon: string | null
+          icon_url: string | null
           id: string
           name: string
           slug: string
+          sort_order: number
         }
         Insert: {
           icon?: string | null
+          icon_url?: string | null
           id?: string
           name: string
           slug: string
+          sort_order?: number
         }
         Update: {
           icon?: string | null
+          icon_url?: string | null
           id?: string
           name?: string
           slug?: string
+          sort_order?: number
         }
         Relationships: []
       }
@@ -131,6 +167,8 @@ export type Database = {
           product_id: string | null
           quantity: number
           received_at: string | null
+          return_admin_reason: string | null
+          return_admin_status: string
           return_comment: string | null
           return_photos: string[] | null
           return_reason: string | null
@@ -151,6 +189,8 @@ export type Database = {
           product_id?: string | null
           quantity: number
           received_at?: string | null
+          return_admin_reason?: string | null
+          return_admin_status?: string
           return_comment?: string | null
           return_photos?: string[] | null
           return_reason?: string | null
@@ -171,6 +211,8 @@ export type Database = {
           product_id?: string | null
           quantity?: number
           received_at?: string | null
+          return_admin_reason?: string | null
+          return_admin_status?: string
           return_comment?: string | null
           return_photos?: string[] | null
           return_reason?: string | null
@@ -277,6 +319,10 @@ export type Database = {
           image_url: string | null
           image_urls: string[]
           is_active: boolean
+          moderated_at: string | null
+          moderated_by: string | null
+          moderation_reason: string | null
+          moderation_status: string
           price_kopecks: number
           seller_id: string
           stock: number
@@ -290,6 +336,10 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           price_kopecks: number
           seller_id: string
           stock?: number
@@ -303,6 +353,10 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          moderated_at?: string | null
+          moderated_by?: string | null
+          moderation_reason?: string | null
+          moderation_status?: string
           price_kopecks?: number
           seller_id?: string
           stock?: number
@@ -320,21 +374,30 @@ export type Database = {
       }
       profiles: {
         Row: {
+          blocked_reason: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
+          is_blocked: boolean
           phone: string | null
         }
         Insert: {
+          blocked_reason?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
+          is_blocked?: boolean
           phone?: string | null
         }
         Update: {
+          blocked_reason?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
+          is_blocked?: boolean
           phone?: string | null
         }
         Relationships: []
@@ -387,6 +450,7 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
+          is_hidden: boolean
           order_item_id: string
           photos: string[]
           product_id: string
@@ -399,6 +463,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean
           order_item_id: string
           photos?: string[]
           product_id: string
@@ -411,6 +476,7 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
+          is_hidden?: boolean
           order_item_id?: string
           photos?: string[]
           product_id?: string

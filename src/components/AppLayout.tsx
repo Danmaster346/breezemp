@@ -71,7 +71,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => setMounted(true), []);
 
   const rawCount = useCart((s) => s.totalCount());
-  const { user, isSeller } = useAuth();
+  const { user, isSeller, isAdmin } = useAuth();
   const rawMode = useMode((s) => s.mode);
   const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
@@ -173,6 +173,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <Phone className="h-5 w-5" />
             </a>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold bg-foreground text-white hover:bg-foreground/85 transition"
+                aria-label="Админ-панель"
+              >
+                Админ
+              </Link>
+            )}
+
+
 
             {user && isSeller && effectiveMode === "buyer" && (
               <button
