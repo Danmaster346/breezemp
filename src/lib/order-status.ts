@@ -69,6 +69,5 @@ export const RETURN_REASONS = [
 export function normalizeStatus(s: string | null | undefined): OrderStatus {
   const st = (s ?? "processing") as OrderStatus;
   if (st === "new" || st === "confirmed") return "processing";
-  if (st === "delivered") return "shipped";
   return st;
 }
