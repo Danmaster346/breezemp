@@ -435,19 +435,6 @@ function AccountPage() {
                           >
                             <MessageCircle className="h-3 w-3" /> Написать продавцу
                           </button>
-                          {canReceive && (
-                            <button
-                              type="button"
-                              disabled={confirmingId === it.id}
-                              onClick={() => confirmReceived(it.id)}
-                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-3 py-1 text-[11px] font-semibold hover:bg-emerald-700 disabled:opacity-60"
-                            >
-                              <CheckCircle2 className="h-3 w-3" />
-                              {confirmingId === it.id
-                                ? "…"
-                                : "Подтвердить получение"}
-                            </button>
-                          )}
                           {canReturn && (
                             <button
                               type="button"
