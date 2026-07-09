@@ -94,7 +94,7 @@ function AuthPage() {
 
       // Возврат туда, откуда пришли (или в кабинет по умолчанию)
       const redirectTo = search.redirect ?? "/account";
-      navigate({ to: redirectTo });
+      navigate({ to: redirectTo as "/account" });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

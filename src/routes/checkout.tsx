@@ -74,7 +74,7 @@ function CheckoutPage() {
     e.preventDefault();
     if (!user) {
       toast.error("Нужно войти, чтобы оформить заказ");
-      navigate({ to: "/auth" });
+      navigate({ to: "/auth", search: { redirect: "/checkout" } });
       return;
     }
     if (items.length === 0) {
