@@ -40,18 +40,21 @@
   --color-promo-foreground: var(--promo-foreground);
   --font-sans: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Manrope", "Inter", system-ui, sans-serif;
+
+  /* Мобильные размеры и safe-area */
+  --bottom-nav-h: 64px;
+  --sab: env(safe-area-inset-bottom);
+  --sat: env(safe-area-inset-top);
 }
 
 :root {
   --radius: 0.875rem;
-  /* Askona-inspired: чистый белый + мягкие бежево-серые плитки */
   --background: #ffffff;
   --foreground: #111827;
   --card: #ffffff;
   --card-foreground: #111827;
   --popover: #ffffff;
   --popover-foreground: #111827;
-  /* Бренд — яркая бирюза как у Askona */
   --brand: #17c3b2;
   --brand-foreground: #ffffff;
   --brand-soft: #d8f5f1;
@@ -69,10 +72,8 @@
   --border: #ececec;
   --input: #ececec;
   --ring: #17c3b2;
-  /* Askona-серый для плиток и фонов картинок */
   --surface: #f6f6f6;
   --surface-strong: #eeeeee;
-  /* Тёплые «баннерные» акценты Askona */
   --promo: #ffd83b;
   --promo-foreground: #111827;
 }
@@ -106,12 +107,48 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body { overflow-x: hidden; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-size: 16px;
+    line-height: 1.55;
+    min-height: 100dvh;
   }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; line-height: 1.2; }
+  /* iOS не зумит в форму, если размер шрифта ≥ 16px */
+  input, select, textarea { font-size: 16px; }
+  button, [role="button"] { -webkit-user-select: none; user-select: none; }
+}
+
+/* Утилиты для мобильной адаптации */
+@utility safe-pt { padding-top: env(safe-area-inset-top); }
+@utility safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+@utility touch-target { min-height: 44px; min-width: 44px; }
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+@utility snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+@utility snap-center { scroll-snap-align: center; }
+@utility snap-start { scroll-snap-align: start; }
+
+/* Отступ снизу под нижнюю мобильную навигацию + safe-area */
+@utility pb-nav {
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px);
+}
+/* Сдвиг sticky-панелей выше bottom nav */
+@utility bottom-nav {
+  bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
 }
