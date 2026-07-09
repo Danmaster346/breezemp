@@ -18,13 +18,14 @@ import {
   ShoppingBag,
   MessageCircle,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
 import logo from "@/assets/breeze-logo.png.asset.json";
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
+import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 
 // Нижнее мобильное меню — свой набор для каждого режима
 const buyerMobileNav = [
