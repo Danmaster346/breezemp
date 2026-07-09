@@ -29,6 +29,7 @@ import {
   Undo2,
   Upload,
   Loader2,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 
