@@ -83,6 +83,7 @@ type Order = {
 const STAGE_ORDER: OrderStatus[] = [
   "processing",
   "shipped",
+  "delivered",
   "received",
   "returned",
   "cancelled",
@@ -152,6 +153,10 @@ function AccountPage() {
               description: it.tracking_number
                 ? `${it.shipping_carrier ?? ""} · ${it.tracking_number}`
                 : undefined,
+            });
+          } else if (cur === "delivered") {
+            toast.success(`Заказ доставлен: «${it.title_snapshot}»`, {
+              description: "Теперь вы можете оставить отзыв о товаре",
             });
           } else {
             toast.info(`«${it.title_snapshot}» — ${STATUS_LABELS[cur]}`);
@@ -354,7 +359,7 @@ function AccountPage() {
                 <div className="space-y-2">
                   {openOrder.order_items?.map((it) => {
                     const st = normalizeStatus(it.status);
-                    const canReturn = st === "shipped";
+                    const canReturn = st === "shipped" || st === "delivered";
                     return (
                       <div
                         key={it.id}
@@ -393,7 +398,7 @@ function AccountPage() {
                         </div>
 
                         {/* Информация об отправке */}
-                        {(st === "shipped" || st === "received") && it.tracking_number && (
+                        {(st === "shipped" || st === "delivered" || st === "received") && it.tracking_number && (
                           <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-2.5 text-xs">
                             <div className="flex items-center gap-1.5 text-indigo-900 font-medium">
                               <Truck className="h-3.5 w-3.5" />
@@ -402,6 +407,9 @@ function AccountPage() {
                             <div className="mt-1 font-mono text-indigo-800 select-all break-all">
                               {it.tracking_number}
                             </div>
+                            {st === "delivered" && (
+                              <div className="mt-1 text-sky-700">Заказ доставлен</div>
+                            )}
                           </div>
                         )}
 

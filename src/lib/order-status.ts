@@ -15,7 +15,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   confirmed: "На сборке",
   processing: "На сборке",
   shipped: "Отправлен",
-  delivered: "Отправлен",
+  delivered: "Доставлен",
   received: "Получено",
   returned: "Возврат",
   cancelled: "Отменён",
@@ -27,7 +27,7 @@ export const STATUS_BADGE: Record<OrderStatus, string> = {
   confirmed: "bg-amber-100 text-amber-800",
   processing: "bg-amber-100 text-amber-800",
   shipped: "bg-indigo-100 text-indigo-800",
-  delivered: "bg-indigo-100 text-indigo-800",
+  delivered: "bg-sky-100 text-sky-800",
   received: "bg-emerald-100 text-emerald-800",
   returned: "bg-orange-100 text-orange-800",
   cancelled: "bg-rose-100 text-rose-800",
@@ -37,6 +37,7 @@ export const STATUS_BADGE: Record<OrderStatus, string> = {
 export const ALL_STATUSES: OrderStatus[] = [
   "processing",
   "shipped",
+  "delivered",
   "received",
   "returned",
   "cancelled",
@@ -68,6 +69,5 @@ export const RETURN_REASONS = [
 export function normalizeStatus(s: string | null | undefined): OrderStatus {
   const st = (s ?? "processing") as OrderStatus;
   if (st === "new" || st === "confirmed") return "processing";
-  if (st === "delivered") return "shipped";
   return st;
 }

@@ -50,6 +50,30 @@ export const sellerShipOrderItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// Продавец: отметить позицию как «Доставлен» (после «Отправлен»)
+export const sellerMarkDeliveredItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ order_item_id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: item, error: fetchErr } = await supabaseAdmin
+      .from("order_items")
+      .select("id, seller_id, status")
+      .eq("id", data.order_item_id)
+      .maybeSingle();
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (!item) throw new Error("Позиция не найдена");
+    if (item.seller_id !== context.userId) throw new Error("Нет доступа к этой позиции");
+    if (item.status !== "shipped")
+      throw new Error("Отметить как доставленный можно только со статуса «Отправлен»");
+    const { error } = await supabaseAdmin
+      .from("order_items")
+      .update({ status: "delivered" })
+      .eq("id", data.order_item_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // Продавец: отменить позицию (только до отправки)
 export const sellerCancelOrderItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

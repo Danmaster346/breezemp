@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ExternalLink, Truck, XCircle, Loader2, X } from "lucide-react";
+import { ExternalLink, Truck, XCircle, Loader2, X, PackageCheck, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerOrderItems } from "@/lib/order-history.functions";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/order-status";
 import {
   sellerCancelOrderItem,
+  sellerMarkDeliveredItem,
   sellerShipOrderItem,
 } from "@/lib/order-status.functions";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ function SellerOrdersPage() {
   const qc = useQueryClient();
   const shipFn = useServerFn(sellerShipOrderItem);
   const cancelFn = useServerFn(sellerCancelOrderItem);
+  const deliverFn = useServerFn(sellerMarkDeliveredItem);
   const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
@@ -79,6 +81,17 @@ function SellerOrdersPage() {
       qc.invalidateQueries({ queryKey: ["seller-stats"] });
     },
     onError: (e: Error) => toast.error("Не удалось отменить", { description: e.message }),
+  });
+
+  const deliverMut = useMutation({
+    mutationFn: (v: { order_item_id: string; title: string }) =>
+      deliverFn({ data: { order_item_id: v.order_item_id } }),
+    onSuccess: (_r, v) => {
+      toast.success("Заказ отмечен как доставленный", { description: v.title });
+      qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
+      qc.invalidateQueries({ queryKey: ["seller-stats"] });
+    },
+    onError: (e: Error) => toast.error("Не удалось обновить статус", { description: e.message }),
   });
 
   const all = q.data ?? [];
@@ -149,6 +162,7 @@ function SellerOrdersPage() {
             const status = normalizeStatus(it.status);
             const canShip = status === "processing";
             const canCancel = status === "processing";
+            const canDeliver = status === "shipped";
             return (
               <div key={it.id} className="rounded-2xl border bg-card p-4">
                 <div className="flex justify-between items-start gap-2 flex-wrap">
@@ -200,7 +214,7 @@ function SellerOrdersPage() {
                 </div>
 
                 {/* Инфо об отправке */}
-                {(status === "shipped" || status === "received") && it.tracking_number && (
+                {(status === "shipped" || status === "delivered" || status === "received") && it.tracking_number && (
                   <div className="mt-3 rounded-lg bg-indigo-50 border border-indigo-100 p-2.5 text-xs">
                     <div className="flex items-center gap-1.5 text-indigo-900 font-medium">
                       <Truck className="h-3.5 w-3.5" />
@@ -209,6 +223,11 @@ function SellerOrdersPage() {
                     <div className="mt-1 font-mono text-indigo-800 select-all break-all">
                       {it.tracking_number}
                     </div>
+                    {status === "delivered" && (
+                      <div className="mt-1 text-sky-700 flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Заказ доставлен
+                      </div>
+                    )}
                     {status === "received" && it.received_at && (
                       <div className="mt-1 text-emerald-700">
                         Получено покупателем · {fmt(it.received_at)}
@@ -253,7 +272,7 @@ function SellerOrdersPage() {
                   </div>
                 )}
 
-                {(canShip || canCancel) && (
+                {(canShip || canCancel || canDeliver) && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                     {canShip && (
                       <button
@@ -262,6 +281,26 @@ function SellerOrdersPage() {
                         className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
                       >
                         <Truck className="h-4 w-4" /> Отправить
+                      </button>
+                    )}
+                    {canDeliver && (
+                      <button
+                        type="button"
+                        disabled={deliverMut.isPending}
+                        onClick={() =>
+                          deliverMut.mutate({
+                            order_item_id: it.id,
+                            title: it.title_snapshot,
+                          })
+                        }
+                        className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                      >
+                        {deliverMut.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <PackageCheck className="h-4 w-4" />
+                        )}
+                        Отметить как доставленный
                       </button>
                     )}
                     {canCancel && (
@@ -281,6 +320,11 @@ function SellerOrdersPage() {
                         <XCircle className="h-4 w-4" /> Отменить
                       </button>
                     )}
+                  </div>
+                )}
+                {status === "delivered" && (
+                  <div className="mt-3 rounded-lg bg-sky-50 border border-sky-100 p-2.5 text-xs text-sky-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Заказ доставлен покупателю
                   </div>
                 )}
               </div>
