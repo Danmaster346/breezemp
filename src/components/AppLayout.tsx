@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
 import logo from "@/assets/breeze-logo.png.asset.json";
+import { SignInPromptDialog } from "@/components/SignInPromptDialog";
 
 // Нижнее мобильное меню — свой набор для каждого режима
 const buyerMobileNav = [
@@ -248,6 +249,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="flex-1 pb-24 md:pb-0 bg-white">{children}</main>
+      <SignInPromptDialog />
 
       {/* Футер (desktop) */}
       <footer className="hidden md:block bg-foreground text-white/80 mt-8">
