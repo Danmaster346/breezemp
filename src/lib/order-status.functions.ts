@@ -123,12 +123,8 @@ export const buyerReturnOrderItem = createServerFn({ method: "POST" })
     if (!item) throw new Error("Позиция не найдена");
     const buyerId = (item as unknown as { orders: { buyer_id: string } }).orders.buyer_id;
     if (buyerId !== context.userId) throw new Error("Нет доступа");
-    if (
-      item.status !== "shipped" &&
-      item.status !== "delivered" &&
-      item.status !== "received"
-    )
-      throw new Error("Возврат доступен только после отправки заказа");
+    if (item.status !== "shipped" && item.status !== "delivered")
+      throw new Error("Возврат доступен только после статуса «Отправлен»");
     // Заявка на возврат уходит в модерацию (status='return_requested').
     // Реальный возврат оформит администратор через resolveReturn.
     const { error } = await supabaseAdmin
