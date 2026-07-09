@@ -107,34 +107,41 @@ export function AppLayout({ children }: { children: ReactNode }) {
     else navigate({ to: "/account" });
   };
 
+  const sellerModeUi = effectiveMode === "seller";
+
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-white text-foreground">
+    <div className={`min-h-[100dvh] flex flex-col text-foreground transition-colors ${sellerModeUi ? "bg-brand-soft/40" : "bg-white"}`}>
       {/* Шапка — sticky, скрывается при скролле вниз на мобильном */}
       <header
-        className={`sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 border-b border-border/60 transition-transform duration-300 will-change-transform ${
-          headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"
-        }`}
+        className={`sticky top-0 z-40 backdrop-blur border-b transition-transform duration-300 will-change-transform ${
+          sellerModeUi
+            ? "bg-white/95 supports-[backdrop-filter]:bg-white/85 border-brand/30"
+            : "bg-white/95 supports-[backdrop-filter]:bg-white/85 border-border/60"
+        } ${headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"}`}
       >
         {user && (
           <div
-            className={`w-full text-center text-[11px] font-medium py-1 ${
-              effectiveMode === "seller"
+            className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-1.5 px-3 ${
+              sellerModeUi
                 ? "bg-brand text-brand-foreground"
-                : "bg-surface text-foreground/70"
+                : "bg-foreground text-white"
             }`}
           >
-            {effectiveMode === "seller" ? "Режим продавца" : "Режим покупателя"}
+            {sellerModeUi ? <Store className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+            <span className="uppercase tracking-wider">
+              {sellerModeUi ? "Кабинет продавца" : "Режим покупателя"}
+            </span>
             {isSeller && (
               <button
-                onClick={() => switchMode(effectiveMode === "seller" ? "buyer" : "seller")}
-                className={`ml-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition ${
-                  effectiveMode === "seller"
-                    ? "bg-white/15 text-white hover:bg-white/25"
-                    : "bg-brand/10 text-brand hover:bg-brand/20"
+                onClick={() => switchMode(sellerModeUi ? "buyer" : "seller")}
+                className={`ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                  sellerModeUi
+                    ? "bg-white/20 text-white hover:bg-white/30"
+                    : "bg-white/20 text-white hover:bg-white/30"
                 }`}
               >
                 <ArrowLeftRight className="h-3 w-3" />
-                {effectiveMode === "seller" ? "В покупатели" : "В продавцы"}
+                {sellerModeUi ? "Стать покупателем" : "Стать продавцом"}
               </button>
             )}
           </div>
