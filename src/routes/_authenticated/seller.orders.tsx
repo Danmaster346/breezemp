@@ -214,7 +214,7 @@ function SellerOrdersPage() {
                 </div>
 
                 {/* Инфо об отправке */}
-                {(status === "shipped" || status === "received") && it.tracking_number && (
+                {(status === "shipped" || status === "delivered" || status === "received") && it.tracking_number && (
                   <div className="mt-3 rounded-lg bg-indigo-50 border border-indigo-100 p-2.5 text-xs">
                     <div className="flex items-center gap-1.5 text-indigo-900 font-medium">
                       <Truck className="h-3.5 w-3.5" />
@@ -223,6 +223,11 @@ function SellerOrdersPage() {
                     <div className="mt-1 font-mono text-indigo-800 select-all break-all">
                       {it.tracking_number}
                     </div>
+                    {status === "delivered" && (
+                      <div className="mt-1 text-sky-700 flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Заказ доставлен
+                      </div>
+                    )}
                     {status === "received" && it.received_at && (
                       <div className="mt-1 text-emerald-700">
                         Получено покупателем · {fmt(it.received_at)}
