@@ -13,7 +13,7 @@ export const listAdminProducts = createServerFn({ method: "POST" })
 
     let q = supabaseAdmin
       .from("products")
-      .select("id, title, price_kopecks, stock, is_active, moderation_status, moderation_reason, image_url, seller_id, category_id, created_at, categories(name), profiles!products_seller_id_fkey(full_name)", { count: "exact" });
+      .select("id, title, price_kopecks, stock, is_active, moderation_status, moderation_reason, image_url, seller_id, category_id, created_at, categories(name)", { count: "exact" });
     if (data.q) q = q.ilike("title", `%${data.q.trim()}%`);
     if (data.status && data.status !== "all") q = q.eq("moderation_status", data.status);
     if (data.categoryId) q = q.eq("category_id", data.categoryId);
@@ -21,7 +21,14 @@ export const listAdminProducts = createServerFn({ method: "POST" })
 
     const { data: rows, error, count } = await q.order("created_at", { ascending: false }).range(from, from + size - 1);
     if (error) throw new Error(error.message);
-    return { rows: rows ?? [], total: count ?? 0, page, pageSize: size };
+    // Fetch seller names separately (нет FK-связи в постгресте)
+    const sellerIds = [...new Set((rows ?? []).map((r) => r.seller_id))];
+    const { data: sellers } = sellerIds.length
+      ? await supabaseAdmin.from("profiles").select("id, full_name").in("id", sellerIds)
+      : { data: [] };
+    const nameMap = new Map((sellers ?? []).map((s) => [s.id, s.full_name]));
+    const withSeller = (rows ?? []).map((r) => ({ ...r, profiles: { full_name: nameMap.get(r.seller_id) ?? null } }));
+    return { rows: withSeller, total: count ?? 0, page, pageSize: size };
   });
 
 export const moderateProduct = createServerFn({ method: "POST" })
