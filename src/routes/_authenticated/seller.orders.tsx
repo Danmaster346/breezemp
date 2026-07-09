@@ -60,6 +60,7 @@ function SellerOrdersPage() {
   const qc = useQueryClient();
   const shipFn = useServerFn(sellerShipOrderItem);
   const cancelFn = useServerFn(sellerCancelOrderItem);
+  const deliverFn = useServerFn(sellerMarkDeliveredItem);
   const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
