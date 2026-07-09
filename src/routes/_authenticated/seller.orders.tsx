@@ -83,6 +83,17 @@ function SellerOrdersPage() {
     onError: (e: Error) => toast.error("Не удалось отменить", { description: e.message }),
   });
 
+  const deliverMut = useMutation({
+    mutationFn: (v: { order_item_id: string; title: string }) =>
+      deliverFn({ data: { order_item_id: v.order_item_id } }),
+    onSuccess: (_r, v) => {
+      toast.success("Заказ отмечен как доставленный", { description: v.title });
+      qc.invalidateQueries({ queryKey: ["seller-orders", user?.id] });
+      qc.invalidateQueries({ queryKey: ["seller-stats"] });
+    },
+    onError: (e: Error) => toast.error("Не удалось обновить статус", { description: e.message }),
+  });
+
   const all = q.data ?? [];
   const counts: Record<string, number> = { all: all.length };
   for (const it of all) {
