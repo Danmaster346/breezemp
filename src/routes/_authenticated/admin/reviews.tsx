@@ -31,9 +31,9 @@ function ReviewsPage() {
   const hideM = useMutation({ mutationFn: setHidden, onSuccess: () => { toast.success("Обновлено"); qc.invalidateQueries({ queryKey: ["admin-reviews"] }); }, onError: (e: Error) => toast.error(e.message) });
   const delM = useMutation({ mutationFn: del, onSuccess: () => { toast.success("Удалено"); qc.invalidateQueries({ queryKey: ["admin-reviews"] }); }, onError: (e: Error) => toast.error(e.message) });
 
-  const rows = (data?.rows ?? []) as Array<{
-    id: string; rating: number; body: string; is_hidden: boolean; created_at: string;
-    products: { title: string } | null; profiles: { full_name: string | null } | null;
+  const rows = (data?.rows ?? []) as unknown as Array<{
+    id: string; rating: number; comment: string | null; author_name: string | null;
+    is_hidden: boolean; created_at: string; products: { title: string } | null;
   }>;
 
   return (
