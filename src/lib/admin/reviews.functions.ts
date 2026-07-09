@@ -12,8 +12,8 @@ export const listAdminReviews = createServerFn({ method: "POST" })
     const from = (page - 1) * size;
     let q = supabaseAdmin
       .from("reviews")
-      .select("*, products(title), profiles!reviews_user_id_fkey(full_name)", { count: "exact" });
-    if (data.q) q = q.ilike("body", `%${data.q.trim()}%`);
+      .select("*, products(title)", { count: "exact" });
+    if (data.q) q = q.ilike("comment", `%${data.q.trim()}%`);
     if (data.hidden === "visible") q = q.eq("is_hidden", false);
     if (data.hidden === "hidden") q = q.eq("is_hidden", true);
     const { data: rows, error, count } = await q.order("created_at", { ascending: false }).range(from, from + size - 1);
