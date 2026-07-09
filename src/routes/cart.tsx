@@ -146,12 +146,19 @@ function CartPage() {
                 <span className="font-semibold">Итого</span>
                 <span className="text-2xl font-extrabold tracking-tight">{formatPrice(total)}</span>
               </div>
-              <Link
-                to="/checkout"
-                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
+              {!user && (
+                <div className="mt-5 rounded-xl border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs text-foreground/80 flex items-start gap-2">
+                  <LogIn className="h-4 w-4 text-brand mt-0.5 shrink-0" />
+                  <span>Чтобы оформить заказ, войдите в аккаунт.</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={goCheckout}
+                className="mt-3 w-full flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
               >
-                Оформить заказ <ArrowRight className="h-4 w-4" />
-              </Link>
+                {user ? "Оформить заказ" : "Войти и оформить"} <ArrowRight className="h-4 w-4" />
+              </button>
               <p className="mt-3 text-xs text-muted-foreground text-center">
                 Демо-оплата: реальные средства не списываются
               </p>
