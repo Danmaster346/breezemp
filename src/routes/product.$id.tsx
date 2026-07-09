@@ -14,6 +14,7 @@ import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import { useAuth } from "@/lib/use-auth";
+import { setPendingAdd, useSignInDialog } from "@/lib/pending-cart";
 import { useNavigate } from "@tanstack/react-router";
 
 
