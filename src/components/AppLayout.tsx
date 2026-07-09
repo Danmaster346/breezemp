@@ -285,7 +285,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <div>
             <div className="text-white font-semibold mb-3">Продавцам</div>
             <ul className="space-y-1.5 text-white/70">
-              <li><Link to="/auth" className="hover:text-brand transition">Начать продавать</Link></li>
+              <li><Link to="/auth" search={{ as: "seller", mode: "signup" } as never} className="hover:text-brand transition">Начать продавать</Link></li>
               <li><Link to="/seller/products" className="hover:text-brand transition">Мои товары</Link></li>
               <li><Link to="/seller/analytics" className="hover:text-brand transition">Аналитика</Link></li>
               <li><Link to="/seller/balance" className="hover:text-brand transition">Баланс</Link></li>
