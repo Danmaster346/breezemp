@@ -68,7 +68,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
   const rawUnread = useUnreadChats();
 
   const count = mounted ? rawCount : 0;
