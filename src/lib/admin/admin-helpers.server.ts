@@ -27,7 +27,7 @@ export async function logAction(
     action,
     entity_type: entityType,
     entity_id: entityId,
-    details,
+    details: details as never,
   });
 }
 
