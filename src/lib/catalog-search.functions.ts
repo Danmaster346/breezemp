@@ -70,7 +70,7 @@ async function enrich(products: Array<{ id: string; seller_id: string }>) {
         : Promise.resolve({ data: [] as { product_id: string; rating: number }[], error: null }),
       ids.length
         ? supabaseAdmin.from("order_items").select("product_id").in("product_id", ids)
-        : Promise.resolve({ data: [] as { product_id: string }[], error: null }),
+        : Promise.resolve({ data: [] as { product_id: string | null }[], error: null }),
       sellerIds.length
         ? supabaseAdmin.from("profiles").select("id, full_name").in("id", sellerIds)
         : Promise.resolve({ data: [] as { id: string; full_name: string | null }[], error: null }),
