@@ -158,7 +158,7 @@ function ProductPage() {
           <div className="py-20 text-center text-muted-foreground">Товар не найден</div>
         ) : (
           <div className="grid md:grid-cols-2 gap-6 md:gap-10 animate-fade-in">
-            {/* Галерея */}
+            {/* Галерея — swipe с snap на мобильном, миниатюры-точки */}
             {(() => {
               const gallery: string[] =
                 (product as { image_urls?: string[] }).image_urls?.length
@@ -169,40 +169,84 @@ function ProductPage() {
               const current = gallery[activeImg] ?? gallery[0];
               return (
                 <div>
-                  <div className="aspect-square rounded-2xl bg-white border border-border overflow-hidden">
-                    {current ? (
-                      <img
-                        src={current}
-                        alt={product.title}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-8xl opacity-30">
-                        🛍️
+                  {/* Мобильная галерея — горизонтальный snap-скролл */}
+                  <div className="md:hidden -mx-4">
+                    <div
+                      className="flex snap-x-mandatory overflow-x-auto no-scrollbar"
+                      onScroll={(e) => {
+                        const el = e.currentTarget;
+                        const idx = Math.round(el.scrollLeft / el.clientWidth);
+                        if (idx !== activeImg) setActiveImg(idx);
+                      }}
+                    >
+                      {gallery.length === 0 ? (
+                        <div className="w-full shrink-0 aspect-square bg-surface flex items-center justify-center text-8xl opacity-30">
+                          🛍️
+                        </div>
+                      ) : (
+                        gallery.map((url, i) => (
+                          <div key={i} className="w-full shrink-0 snap-center aspect-square bg-white">
+                            <img
+                              src={url}
+                              alt={product.title}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {gallery.length > 1 && (
+                      <div className="mt-3 flex justify-center gap-1.5">
+                        {gallery.map((_, i) => (
+                          <span
+                            key={i}
+                            className={`h-1.5 rounded-full transition-all ${
+                              i === activeImg ? "w-6 bg-brand" : "w-1.5 bg-border"
+                            }`}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
-                  {gallery.length > 1 && (
-                    <div className="mt-3 grid grid-cols-5 gap-2">
-                      {gallery.map((url, i) => (
-                        <button
-                          key={url}
-                          type="button"
-                          onClick={() => setActiveImg(i)}
-                          className={`aspect-square rounded-xl overflow-hidden border-2 transition ${
-                            i === activeImg
-                              ? "border-brand shadow-sm"
-                              : "border-transparent hover:border-border"
-                          }`}
-                        >
-                          <img src={url} alt="" className="h-full w-full object-cover" />
-                        </button>
-                      ))}
+
+                  {/* Desktop-галерея */}
+                  <div className="hidden md:block">
+                    <div className="aspect-square rounded-2xl bg-white border border-border overflow-hidden">
+                      {current ? (
+                        <img
+                          src={current}
+                          alt={product.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-8xl opacity-30">
+                          🛍️
+                        </div>
+                      )}
                     </div>
-                  )}
+                    {gallery.length > 1 && (
+                      <div className="mt-3 grid grid-cols-5 gap-2">
+                        {gallery.map((url, i) => (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() => setActiveImg(i)}
+                            className={`aspect-square rounded-xl overflow-hidden border-2 transition ${
+                              i === activeImg
+                                ? "border-brand shadow-sm"
+                                : "border-transparent hover:border-border"
+                            }`}
+                          >
+                            <img src={url} alt="" className="h-full w-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })()}
+
 
             {/* Информация */}
             <div>
