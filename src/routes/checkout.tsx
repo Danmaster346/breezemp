@@ -291,7 +291,7 @@ function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
+              className="hidden md:inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
             >
               {submitting ? (
                 <>
@@ -303,7 +303,7 @@ function CheckoutPage() {
                 </>
               )}
             </button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <p className="hidden md:flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5" /> Демо-режим: реальные деньги не списываются
             </p>
           </form>
