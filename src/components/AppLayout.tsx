@@ -18,13 +18,14 @@ import {
   ShoppingBag,
   MessageCircle,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode, type FormEvent } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
 import logo from "@/assets/breeze-logo.png.asset.json";
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
+import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 
 // Нижнее мобильное меню — свой набор для каждого режима
 const buyerMobileNav = [
@@ -67,7 +68,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const setMode = useMode((s) => s.setMode);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
   const rawUnread = useUnreadChats();
 
   const count = mounted ? rawCount : 0;
@@ -92,10 +92,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const mobileNav = effectiveMode === "seller" ? sellerMobileNav : buyerMobileNav;
   const accountHref = effectiveMode === "seller" ? "/seller/products" : "/account";
 
-  const submitSearch = (e: FormEvent) => {
-    e.preventDefault();
-    navigate({ to: "/catalog", search: { q: q || undefined } as never });
-  };
+  const goSearch = (v: string) =>
+    navigate({ to: "/catalog", search: { q: v || undefined } as never });
+
+
 
   const switchMode = (next: "buyer" | "seller") => {
     setMode(next);
@@ -225,7 +225,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         {/* Полоса поиска — только в режиме покупателя */}
         {effectiveMode === "buyer" && (
           <div className="mx-auto max-w-7xl px-4 pb-3">
-            <form onSubmit={submitSearch} className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5">
               <Link
                 to="/catalog"
                 className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-full bg-brand text-brand-foreground shadow-sm hover:bg-brand-strong transition"
@@ -233,17 +233,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
               >
                 <Menu className="h-5 w-5" />
               </Link>
-              <div className="flex-1 flex items-center h-12 rounded-full bg-surface pl-4 pr-2 focus-within:ring-2 focus-within:ring-brand/30 transition">
-                <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  type="search"
-                  placeholder="Поиск"
-                  className="flex-1 bg-transparent px-3 text-base outline-none placeholder:text-muted-foreground/80 min-w-0"
-                />
+              <div className="flex-1 min-w-0">
+                <CatalogSearchBar value="" onSubmit={goSearch} placeholder="Поиск" />
               </div>
-            </form>
+            </div>
           </div>
         )}
       </header>
