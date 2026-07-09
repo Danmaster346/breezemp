@@ -133,6 +133,7 @@ function CheckoutPage() {
         <div className="grid md:grid-cols-[1fr_380px] gap-6">
           {/* Форма */}
           <form
+            id="checkout-form"
             onSubmit={onSubmit}
             className="space-y-5"
           >
