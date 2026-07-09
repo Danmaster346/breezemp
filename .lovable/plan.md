@@ -1,88 +1,75 @@
-# Мобильный редизайн приложения
+# Админ-панель BREEZE
 
-Задача — довести UX смартфонов до уровня Wildberries/Avito, не трогая бизнес-логику. Работа только во фронтенде и стилях.
+Полноценная админка для управления маркетплейсом с доступом только для роли `admin`.
 
-## 1. Базовые токены и типографика
+## 1. База данных (миграция)
 
-- В `src/styles.css`: базовый `font-size: 16px` для body, `line-height: 1.5`, безопасные отступы (`env(safe-area-inset-*)`) для нижней панели.
-- Утилита `.touch` → `min-h-11 min-w-11` (44px). Пройти по иконочным кнопкам (шапка, чат, галерея, корзина) и заменить `h-8 w-8` → `h-11 w-11` на мобилках.
-- Ввести брейкпоинт-паттерн: контент в `px-4 py-4` на мобильных, `md:px-6 md:py-8` — на десктопе.
-- Формы: `text-base` (16px) на инпутах, чтобы iOS не зумил при фокусе; `inputMode`/`autoComplete` там где ввод адреса, телефона, промокода.
+Новые таблицы и колонки:
+- `products.moderation_status` — enum: `pending`, `approved`, `rejected`, `blocked`; `moderation_reason`, `moderated_at`, `moderated_by`
+- `profiles.is_blocked` (bool), `profiles.blocked_reason`, `profiles.email`, `profiles.phone` (для поиска)
+- `order_items` — добавить поле `return_admin_status` (`none`, `approved`, `rejected`)
+- Таблица `admin_logs` — id, admin_id, action (text), entity_type, entity_id, details (jsonb), created_at
+- Таблица `categories` — уже есть, добавим `sort_order`, `icon_url`
+- `promo_codes` — уже есть, добавим `usage_count`
+- RLS: полный доступ для роли `admin` через `has_role(auth.uid(),'admin')`; select политики для админа на все таблицы
 
-## 2. Шапка и навигация
+## 2. Server functions (`src/lib/admin/*.functions.ts`)
 
-- `AppLayout.tsx`: шапка становится `sticky top-0` с эффектом «прячется при скролле вниз, появляется при скролле вверх» через хук `useHideOnScroll` (слушает `window.scrollY`, порог 8px).
-- Bottom Navigation:
-  - Ровно 5 пунктов: Главная, Каталог, Сообщения, Корзина, Профиль (для продавца — Кабинет вместо Профиля через `mode-store`).
-  - Иконки 24px + подпись 11px, активный — цветом brand + жирнее.
-  - Бейджи: непрочитанные сообщения (`useUnreadChats`) и количество товаров в корзине (`cart-store`).
-  - Учет safe-area (`pb-[env(safe-area-inset-bottom)]`), общая высота ~64px + safe area.
-- Контент получает `pb-20 md:pb-0`, чтобы не заезжал под нижнюю панель.
+Все с middleware `requireSupabaseAuth` + внутренняя проверка `has_role(admin)`:
+- `admin-dashboard.functions.ts` — статистика (пользователи, заказы, комиссии, возвраты) с разбивкой по периодам; графики (динамика заказов, топ категорий/продавцов)
+- `admin-users.functions.ts` — list с пагинацией/фильтрами/поиском, updateRole, toggleBlock, getUserOrders, getUserProducts
+- `admin-products.functions.ts` — list, approve/reject (с reason), block/unblock, update, delete, bulk actions
+- `admin-orders.functions.ts` — list, get by id, forceUpdateStatus
+- `admin-returns.functions.ts` — list, approve/reject, requestMoreInfo (отправляет системное сообщение в чат)
+- `admin-reviews.functions.ts` — list, delete, hide/show
+- `admin-categories.functions.ts` — CRUD + reorder
+- `admin-promo.functions.ts` — CRUD + активация, usage stats
+- `admin-logs.functions.ts` — list с фильтрами
 
-## 3. Универсальный Bottom Sheet
+Каждое опасное действие логируется в `admin_logs`.
 
-- Новый компонент `src/components/BottomSheet.tsx` поверх Radix Dialog (уже стоит) с адаптацией: на `md+` — обычная модалка по центру, на мобильных — панель снизу, скругление сверху, ручка-«грип», свайп-вниз для закрытия, скролл внутри.
-- Прогнать по местам:
-  - Диалог входа (`SignInPromptDialog`).
-  - Фильтры каталога (`catalog.tsx` — сейчас боковая панель).
-  - Выбор доставки/адреса в чекауте.
-  - Быстрые действия по заказу продавца.
-  - Быстрый просмотр товара (см. п.4).
+## 3. Роутинг (`src/routes/_authenticated/admin/`)
 
-## 4. Каталог и карточки
+Pathless layout с проверкой роли — редирект на `/` если не админ.
+- `admin/route.tsx` — layout с sidebar (Dashboard, Users, Products, Orders, Returns, Reviews, Categories, Promo, Logs)
+- `admin/index.tsx` — Dashboard (карточки статистики, графики recharts)
+- `admin/users.tsx` — таблица + фильтры + модалка деталей
+- `admin/products.tsx` — таблица + bulk actions + модерация
+- `admin/orders.tsx` — таблица + деталь
+- `admin/returns.tsx` — список возвратов
+- `admin/reviews.tsx` — модерация
+- `admin/categories.tsx` — CRUD с drag order
+- `admin/promo.tsx` — CRUD
+- `admin/logs.tsx` — audit log
 
-- `ProductCard.tsx`: убедиться что 2 колонки на мобильных выглядят ровно (aspect-square изображение, `line-clamp-2` название, цена крупнее, кнопка «В корзину» — full-width на мобилке).
-- Сетка каталога: `grid-cols-2 gap-3 md:grid-cols-3 md:gap-6 lg:grid-cols-4`.
-- Фильтры (`catalog.tsx`): на мобильном — sticky-панель с кнопкой «Фильтры (N)» и «Сортировка», обе открывают Bottom Sheet. Чипы активных фильтров — горизонтально скроллятся.
-- Quick view: длинный тап или кнопка «Быстрый просмотр» — открывает Bottom Sheet с фото, ценой, кнопками «В корзину» и «Открыть карточку», без ухода со страницы.
+## 4. UI компоненты
 
-## 5. Карточка товара
+- `src/components/admin/AdminLayout.tsx` — sidebar + top bar с уведомлениями
+- `src/components/admin/DataTable.tsx` — переиспользуемая таблица с сортировкой, пагинацией, bulk select
+- `src/components/admin/StatCard.tsx`, `Chart.tsx` (recharts уже стоит)
+- `src/components/admin/ConfirmDialog.tsx` — модалка подтверждения
 
-- `product.$id.tsx`: галерея — свайпабельная (горизонтальный snap-scroll, `overflow-x-auto snap-x snap-mandatory`), точки-индикаторы, пинч-зум через открытие полноэкранного вьюера в Bottom Sheet.
-- Sticky-панель снизу на мобилках: цена + «В корзину» / «Купить», прячется если элемент карточки уже даёт эту же кнопку в вьюпорте.
-- Отзывы и характеристики — сворачиваемые аккордеоны на мобилке.
+Мобильно: таблицы превращаются в карточки через media query.
 
-## 6. Корзина и чекаут
+## 5. Интеграция
 
-- `cart.tsx`: строки товаров — карточки, минус/плюс кол-ва — крупные кнопки 44px, свайп-влево для удаления (простая реализация — кнопка «Удалить» появляется под свайпом или иконка мусорки крупнее).
-- `checkout.tsx`: одноколоночный поток на мобилках, шаги — «Доставка → Адрес → Оплата», сводка сворачивается в верхнюю плашку «Итого 12 300 ₽ ▾».
-- Sticky-футер: кнопка «Оплатить» + мини-сумма, безопасная зона снизу, disabled пока форма невалидна.
-- Ввод: поля адреса используют `autoComplete="street-address"`, город — `address-level2`, индекс — `postal-code`, телефон — `tel` + `inputMode="tel"`.
-
-## 7. Кабинет продавца
-
-- `seller.tsx`: боковое меню → на мобильных горизонтальный скролл-таб (Заказы, Товары, Аналитика, Баланс, Настройки), иконки + подписи.
-- `seller.orders.tsx`, `seller.products.tsx`, `seller.balance.tsx`: таблицы заворачиваем в паттерн «desktop-таблица / mobile-карточки»:
-  - `hidden md:block` для таблицы,
-  - `md:hidden space-y-3` для колоды карточек с теми же данными и действиями.
-- Действия по заказу (сменить статус, отменить, возврат) — открывают Bottom Sheet, а не крошечное меню.
-
-## 8. Списки: pull-to-refresh
-
-- Мини-хук `usePullToRefresh` (touchstart/touchmove/touchend, срабатывает при `scrollTop === 0`) и `PullToRefresh` обертка.
-- Применить в: каталог, `messages.tsx`, `account.tsx` (мои заказы), `seller.orders.tsx`.
-- Индикатор — крутящаяся иконка сверху, тактильно понятная.
-
-## 9. Полировка и проверка overflow
-
-- Аудит: все горизонтальные скроллы — `overflow-x-auto` только там где надо; на `body` — `overflow-x: hidden`.
-- Заменить длинные заголовки на `truncate`/`line-clamp`, тексты цен и статусов — `whitespace-nowrap`.
-- Проверить чат (`messages.$chatId`): поле ввода липнет к низу с учетом safe-area, сообщения не уходят под нижнюю панель, при открытой клавиатуре список остается видимым (`100dvh` вместо `100vh`).
-- Обновить `AppLayout` контейнер: `min-h-[100dvh]`.
+- Ссылка «Админ-панель» в `AppLayout` header/меню — видна только админам (через `roles.functions.ts`)
+- Toast-уведомления через `sonner`
+- Пагинация server-side, поиск с debounce
 
 ## Технические детали
 
-- Компоненты:
-  - `src/components/BottomSheet.tsx` (Radix Dialog + variants).
-  - `src/components/BottomNav.tsx` (переработать, если существует; иначе создать и подключить в `AppLayout`).
-  - `src/components/PullToRefresh.tsx` + `src/hooks/use-pull-to-refresh.ts`.
-  - `src/hooks/use-hide-on-scroll.ts`.
-- Стили: расширить `src/styles.css` — safe-area утилиты, класс `.no-scrollbar`, `.snap-x-mandatory`, брейкпоинты не трогаем (используем стандартные Tailwind sm/md).
-- Правило: никакой правки серверных функций, БД, роутинга — только UI/поведение.
-- Проверка: пройтись по ключевым маршрутам в мобильном viewport, убедиться что нет горизонтального скролла и элементы не перекрываются нижней панелью.
+- Библиотеки уже есть: `recharts`, `sonner`, shadcn/ui, `@tanstack/react-query`
+- Все server functions возвращают DTO, проверка прав через `has_role` RPC
+- Bulk actions — server function принимает массив id
+- Audit log пишется триггером `admin_log_action(action, entity_type, entity_id, details)` внутри каждой мутации
 
-## Что НЕ трогаем
+## Порядок реализации
 
-- Логику заказов, оплаты, чата, статусов, RLS.
-- Дизайн-систему цветов (палитра BREEZE остается).
-- Роуты и структуру данных.
+1. Миграция БД (таблицы, колонки, RLS, admin_logs)
+2. Server functions (все модули)
+3. Admin layout + защита роута
+4. Dashboard
+5. Users, Products, Orders (основные)
+6. Returns, Reviews, Categories, Promo, Logs
+7. Интеграция в шапку + мобильная адаптация
