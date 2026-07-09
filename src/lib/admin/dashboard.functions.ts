@@ -44,7 +44,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" })
       supabaseAdmin.from("orders").select("id,total_kopecks,commission_kopecks").gte("created_at", periods.month),
       supabaseAdmin.from("order_items").select("id").in("status", ["return_requested", "returned"]),
       supabaseAdmin.from("orders").select("created_at,total_kopecks,commission_kopecks").gte("created_at", periods.month).order("created_at"),
-      supabaseAdmin.from("order_items").select("price_kopecks,quantity,products(category_id, categories(name))").gte("orders.created_at" as never, periods.month),
+      supabaseAdmin.from("order_items").select("price_kopecks,quantity,products(category_id, categories(name))"),
       supabaseAdmin.from("order_items").select("seller_id,price_kopecks,quantity"),
       supabaseAdmin.from("products").select("id").eq("moderation_status", "pending"),
       supabaseAdmin.from("order_items").select("id").eq("status", "return_requested"),
