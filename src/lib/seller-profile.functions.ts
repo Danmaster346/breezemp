@@ -1,8 +1,8 @@
-// Публичная карточка продавца: имя магазина, агрегаты (рейтинг, товары, отзывы)
-// и список активных товаров. Данные читаем через supabaseAdmin, но отдаём только
-// безопасные поля (без телефона и служебной информации из profiles).
+// Публичная карточка продавца: имя магазина, оформление (логотип, описание, контакты),
+// агрегаты (рейтинг, товары, отзывы, доля успешно доставленных) и активные товары.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { computeShopStats, computeAutoBadges } from "./seller-settings.functions";
 
 export type SellerPublicProduct = {
   id: string;
@@ -12,27 +12,43 @@ export type SellerPublicProduct = {
   stock: number;
 };
 
+export type SellerContacts = {
+  phone: string;
+  email: string;
+  whatsapp: string;
+  telegram: string;
+  instagram: string;
+  vk: string;
+  other_social: string;
+};
+
 export type SellerPublicProfile = {
   id: string;
   name: string;
+  logoUrl: string | null;
+  shortDescription: string;
+  fullDescription: string;
+  contacts: SellerContacts;
+  badges: string[];
   productsCount: number;
   reviewsCount: number;
   avgRating: number;
+  deliveredRate: number;
   products: SellerPublicProduct[];
 };
+
+const SIGNED_TTL = 60 * 60 * 24 * 365;
 
 export const getSellerProfile = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }): Promise<SellerPublicProfile | null> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: profile, error: profileErr } = await supabaseAdmin
-      .from("profiles")
-      .select("id, full_name")
-      .eq("id", data.id)
-      .maybeSingle();
-    if (profileErr) throw new Error(profileErr.message);
-    if (!profile) return null;
+    const [{ data: profile }, { data: settings }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, full_name").eq("id", data.id).maybeSingle(),
+      supabaseAdmin.from("seller_profiles").select("*").eq("user_id", data.id).maybeSingle(),
+    ]);
+    if (!profile && !settings) return null;
 
     const { data: products, error: productsErr } = await supabaseAdmin
       .from("products")
@@ -42,28 +58,61 @@ export const getSellerProfile = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (productsErr) throw new Error(productsErr.message);
 
-    const productIds = (products ?? []).map((p) => p.id);
-    let avgRating = 0;
-    let reviewsCount = 0;
-    if (productIds.length > 0) {
-      const { data: reviews, error: reviewsErr } = await supabaseAdmin
-        .from("reviews")
-        .select("rating")
-        .in("product_id", productIds);
-      if (reviewsErr) throw new Error(reviewsErr.message);
-      reviewsCount = reviews?.length ?? 0;
-      if (reviewsCount > 0) {
-        avgRating =
-          (reviews ?? []).reduce((s, r) => s + r.rating, 0) / reviewsCount;
-      }
+    const stats = await computeShopStats(data.id);
+
+    let logoUrl: string | null = null;
+    const s = settings as null | {
+      shop_name: string | null;
+      logo_path: string | null;
+      short_description: string | null;
+      full_description: string | null;
+      phone: string | null;
+      email: string | null;
+      whatsapp: string | null;
+      telegram: string | null;
+      instagram: string | null;
+      vk: string | null;
+      other_social: string | null;
+      badges: string[] | null;
+    };
+    if (s?.logo_path) {
+      const { data: signed } = await supabaseAdmin.storage
+        .from("store-logos")
+        .createSignedUrl(s.logo_path, SIGNED_TTL);
+      logoUrl = signed?.signedUrl ?? null;
     }
 
+    const badges = Array.from(
+      new Set([
+        ...(s?.badges ?? []),
+        ...computeAutoBadges({
+          ordersCount: stats.ordersCount,
+          avgRating: stats.avgRating,
+          deliveredRate: stats.deliveredRate,
+        }),
+      ]),
+    );
+
     return {
-      id: profile.id,
-      name: profile.full_name?.trim() || "Магазин",
-      productsCount: products?.length ?? 0,
-      reviewsCount,
-      avgRating,
+      id: data.id,
+      name: (s?.shop_name?.trim() || profile?.full_name?.trim() || "Магазин"),
+      logoUrl,
+      shortDescription: s?.short_description ?? "",
+      fullDescription: s?.full_description ?? "",
+      contacts: {
+        phone: s?.phone ?? "",
+        email: s?.email ?? "",
+        whatsapp: s?.whatsapp ?? "",
+        telegram: s?.telegram ?? "",
+        instagram: s?.instagram ?? "",
+        vk: s?.vk ?? "",
+        other_social: s?.other_social ?? "",
+      },
+      badges,
+      productsCount: stats.productsCount,
+      reviewsCount: stats.reviewsCount,
+      avgRating: stats.avgRating,
+      deliveredRate: stats.deliveredRate,
       products: (products ?? []) as SellerPublicProduct[],
     };
   });
