@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
+import { BottomSheet } from "@/components/BottomSheet";
 import { formatPrice } from "@/lib/format";
 import {
   searchCatalog,
@@ -21,6 +22,7 @@ import {
   PackageCheck,
   Store,
   RotateCcw,
+  ArrowUpDown,
 } from "lucide-react";
 
 const SORT_OPTIONS = [
