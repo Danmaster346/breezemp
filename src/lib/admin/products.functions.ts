@@ -74,7 +74,7 @@ export const updateProductAdmin = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { assertAdmin, supabaseAdmin, logAction } = await import("./admin-helpers.server");
     await assertAdmin(context.userId);
-    const { error } = await supabaseAdmin.from("products").update(data.patch).eq("id", data.id);
+    const { error } = await supabaseAdmin.from("products").update(data.patch as never).eq("id", data.id);
     if (error) throw new Error(error.message);
     await logAction(context.userId, "product.update", "product", data.id, { patch: data.patch });
     return { ok: true };
