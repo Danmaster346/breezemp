@@ -92,10 +92,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const mobileNav = effectiveMode === "seller" ? sellerMobileNav : buyerMobileNav;
   const accountHref = effectiveMode === "seller" ? "/seller/products" : "/account";
 
-  const submitSearch = (e: FormEvent) => {
-    e.preventDefault();
-    navigate({ to: "/catalog", search: { q: q || undefined } as never });
-  };
+  const goSearch = (v: string) =>
+    navigate({ to: "/catalog", search: { q: v || undefined } as never });
+
+
 
   const switchMode = (next: "buyer" | "seller") => {
     setMode(next);
