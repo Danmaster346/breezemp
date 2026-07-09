@@ -28,7 +28,7 @@ export const listAdminUsers = createServerFn({ method: "POST" })
     let restrictIds: string[] | null = null;
     if (data.role && data.role !== "all") {
       const { data: roleRows } = await supabaseAdmin
-        .from("user_roles").select("user_id").eq("role", data.role);
+        .from("user_roles").select("user_id").eq("role", data.role as "admin" | "buyer" | "seller");
       restrictIds = (roleRows ?? []).map((r) => r.user_id);
       if (restrictIds.length === 0) {
         return { rows: [] as AdminUserRow[], total: 0, page, pageSize: size };
