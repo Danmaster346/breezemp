@@ -175,12 +175,13 @@ function CartPage() {
               <div className="text-[11px] text-muted-foreground leading-none">Итого</div>
               <div className="text-lg font-extrabold tracking-tight">{formatPrice(total)}</div>
             </div>
-            <Link
-              to="/checkout"
+            <button
+              type="button"
+              onClick={goCheckout}
               className="flex-1 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
             >
-              Оформить <ArrowRight className="h-4 w-4" />
-            </Link>
+              {user ? "Оформить" : "Войти"} <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
