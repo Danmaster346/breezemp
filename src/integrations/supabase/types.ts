@@ -435,6 +435,60 @@ export type Database = {
           },
         ]
       }
+      seller_profiles: {
+        Row: {
+          badges: string[]
+          created_at: string
+          email: string | null
+          full_description: string | null
+          instagram: string | null
+          logo_path: string | null
+          other_social: string | null
+          phone: string | null
+          shop_name: string | null
+          short_description: string | null
+          telegram: string | null
+          updated_at: string
+          user_id: string
+          vk: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          badges?: string[]
+          created_at?: string
+          email?: string | null
+          full_description?: string | null
+          instagram?: string | null
+          logo_path?: string | null
+          other_social?: string | null
+          phone?: string | null
+          shop_name?: string | null
+          short_description?: string | null
+          telegram?: string | null
+          updated_at?: string
+          user_id: string
+          vk?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          badges?: string[]
+          created_at?: string
+          email?: string | null
+          full_description?: string | null
+          instagram?: string | null
+          logo_path?: string | null
+          other_social?: string | null
+          phone?: string | null
+          shop_name?: string | null
+          short_description?: string | null
+          telegram?: string | null
+          updated_at?: string
+          user_id?: string
+          vk?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
