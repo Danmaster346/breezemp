@@ -354,8 +354,7 @@ function AccountPage() {
                 <div className="space-y-2">
                   {openOrder.order_items?.map((it) => {
                     const st = normalizeStatus(it.status);
-                    const canReceive = st === "shipped";
-                    const canReturn = st === "shipped" || st === "received";
+                    const canReturn = st === "shipped";
                     return (
                       <div
                         key={it.id}
