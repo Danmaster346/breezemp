@@ -137,7 +137,7 @@ function CatalogPage() {
         <div className="mb-4">
           <CatalogSearchBar
             value={search.q ?? ""}
-            onSubmit={(v) => upd({ q: v || undefined })}
+            onSubmit={(v: string) => upd({ q: v || undefined })}
           />
         </div>
 
