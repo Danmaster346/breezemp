@@ -1,9 +1,11 @@
 // Страница корзины — премиальный e-commerce стиль с мобильной sticky-панелью
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
+import { useAuth } from "@/lib/use-auth";
+import { useSignInDialog } from "@/lib/pending-cart";
 import { formatPrice } from "@/lib/format";
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
+import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({ meta: [{ title: "Корзина — BREEZE" }] }),
@@ -16,6 +18,21 @@ function CartPage() {
   const setQty = useCart((s) => s.setQty);
   const total = useCart((s) => s.totalKopecks());
   const qtyTotal = items.reduce((s, i) => s + i.quantity, 0);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Клик по «Оформить заказ»: гость → модалка входа, иначе → чекаут
+  const goCheckout = () => {
+    if (!user) {
+      useSignInDialog.getState().show({
+        message:
+          "Чтобы оформить заказ, войдите в аккаунт. После входа мы вернём вас к оформлению.",
+        redirectTo: "/checkout",
+      });
+      return;
+    }
+    navigate({ to: "/checkout" });
+  };
 
   return (
     <AppLayout>
