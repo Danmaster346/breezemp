@@ -83,6 +83,7 @@ type Order = {
 const STAGE_ORDER: OrderStatus[] = [
   "processing",
   "shipped",
+  "delivered",
   "received",
   "returned",
   "cancelled",
