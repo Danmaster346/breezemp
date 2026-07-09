@@ -150,11 +150,10 @@ export const updateSellerSettings = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
 
-    // Также поддерживаем имя в profiles.full_name (используется в старых местах)
-    await supabaseAdmin
-      .from("profiles")
-      .update({ full_name: payload.shop_name })
-      .eq("id", context.userId);
+    // Имя магазина хранится ТОЛЬКО в seller_profiles.shop_name.
+    // profiles.full_name — это личное имя покупателя; его перезаписывать нельзя,
+    // иначе испортятся отзывы и данные доставки.
+
 
     const logoUrl = await signLogo(row?.logo_path ?? null);
     return toSettings(row as Record<string, unknown> | null, logoUrl);

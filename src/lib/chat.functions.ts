@@ -218,6 +218,16 @@ export const sendChatMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+
+    // Явная проверка, что отправитель — участник чата (не полагаемся только на RLS)
+    const { data: chat, error: chatErr } = await supabase
+      .from("chats")
+      .select("id, buyer_id, seller_id")
+      .eq("id", data.chat_id)
+      .single();
+    if (chatErr || !chat) throw new Error("Чат не найден");
+    if (chat.buyer_id !== userId && chat.seller_id !== userId) throw new Error("Нет доступа к чату");
+
     const body = data.body?.trim() || null;
     const { error } = await supabase.from("chat_messages").insert({
       chat_id: data.chat_id,

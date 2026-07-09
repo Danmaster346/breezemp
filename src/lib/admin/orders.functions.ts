@@ -43,12 +43,18 @@ export const getAdminOrder = createServerFn({ method: "POST" })
     return { ...order, profiles: buyer };
   });
 
+const ADMIN_ORDER_STATUSES = new Set([
+  "new", "confirmed", "processing", "shipped", "delivered",
+  "received", "cancelled", "returned", "return_requested",
+]);
+
 export const forceOrderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { orderId: string; status: string; reason?: string }) => d)
   .handler(async ({ context, data }) => {
     const { assertAdmin, supabaseAdmin, logAction } = await import("./admin-helpers.server");
     await assertAdmin(context.userId);
+    if (!ADMIN_ORDER_STATUSES.has(data.status)) throw new Error("Недопустимый статус");
     const { error } = await supabaseAdmin.from("orders").update({ status: data.status }).eq("id", data.orderId);
     if (error) throw new Error(error.message);
     await supabaseAdmin.from("order_items").update({ status: data.status }).eq("order_id", data.orderId);
