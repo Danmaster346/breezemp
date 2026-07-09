@@ -173,8 +173,45 @@ function CatalogPage() {
           ))}
         </div>
 
-        {/* Панель фильтров */}
-        <div className="rounded-2xl border border-border bg-white p-3 md:p-4 mb-4 shadow-sm">
+        {/* Мобильная панель: 2 кнопки — фильтры и сортировка */}
+        <div className="md:hidden flex items-center gap-2 mb-3">
+          <button
+            type="button"
+            onClick={() => setMobileFiltersOpen(true)}
+            className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition ${
+              hasFilters
+                ? "border-brand bg-brand/10 text-brand"
+                : "border-border bg-white text-foreground/80"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Фильтры
+            {hasFilters && (
+              <span className="ml-1 min-w-[20px] h-5 px-1.5 rounded-full bg-brand text-brand-foreground text-[11px] font-bold grid place-items-center">
+                {[
+                  search.category,
+                  search.min,
+                  search.max,
+                  search.rating,
+                  search.seller,
+                  search.in_stock,
+                ].filter(Boolean).length}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileSortOpen(true)}
+            className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white text-sm font-semibold text-foreground/80"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            {SORT_OPTIONS.find((s) => s.key === (search.sort ?? "relevance"))?.label ?? "Сортировка"}
+          </button>
+        </div>
+
+        {/* Панель фильтров (desktop) */}
+        <div className="hidden md:block rounded-2xl border border-border bg-white p-3 md:p-4 mb-4 shadow-sm">
+
           <div className="flex flex-wrap items-center gap-2">
             <div className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-foreground/80 mr-1">
               <SlidersHorizontal className="h-4 w-4" /> Фильтры
