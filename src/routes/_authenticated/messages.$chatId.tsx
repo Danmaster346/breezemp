@@ -55,7 +55,7 @@ function ChatThread() {
   // Прокрутка к последнему сообщению
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages.length]);
+  }, [messages.length, outbox.length]);
 
   // Реалтайм: перезагружаем при новых сообщениях в этом чате
   useEffect(() => {
