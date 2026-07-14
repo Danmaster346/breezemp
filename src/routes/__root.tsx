@@ -75,26 +75,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "BreezeMarket — маркетплейс с товарами от продавцов" },
+      { title: "Kupiks — маркетплейс товаров от проверенных продавцов" },
       {
         name: "description",
         content:
-          "BreezeMarket — простой многовендорный маркетплейс: каталог товаров, корзина и оформление заказа за минуту.",
+          "Kupiks — современный маркетплейс: тысячи товаров, честные цены и быстрая доставка по всей России.",
       },
-      { property: "og:title", content: "BreezeMarket — маркетплейс с товарами от продавцов" },
-      {
-        property: "og:description",
-        content:
-          "Каталог, корзина, кабинет продавца — простой маркетплейс на русском.",
-      },
+      { property: "og:title", content: "Kupiks — маркетплейс товаров от проверенных продавцов" },
+      { property: "og:description", content: "Тысячи товаров, честные цены и быстрая доставка по всей России." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "BreezeMarket — маркетплейс с товарами от продавцов" },
-      { name: "description", content: "True marketplace" },
-      { property: "og:description", content: "True marketplace" },
-      { name: "twitter:description", content: "True marketplace" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/qvUjVsi9wdVKHUenJLw7xtrNNpa2/social-images/social-1783082467731-1000020662.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/qvUjVsi9wdVKHUenJLw7xtrNNpa2/social-images/social-1783082467731-1000020662.webp" },
+      { name: "twitter:title", content: "Kupiks — маркетплейс товаров от проверенных продавцов" },
+      { name: "twitter:description", content: "Тысячи товаров, честные цены и быстрая доставка." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -103,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap",
       },
     ],
   }),
