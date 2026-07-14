@@ -71,20 +71,29 @@ function ChatThread() {
     if (!file || !user) return;
     if (file.size > 5 * 1024 * 1024) return toast.error("Фото больше 5 МБ");
     setUploading(true);
+    console.log("[chat.upload] start", { name: file.name, size: file.size, type: file.type });
     try {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
       const up = await supabase.storage
         .from("chat-photos")
         .upload(path, file, { contentType: file.type });
-      if (up.error) throw up.error;
+      if (up.error) {
+        console.error("[chat.upload] upload failed", up.error);
+        throw up.error;
+      }
       const signed = await supabase.storage
         .from("chat-photos")
         .createSignedUrl(path, 3600);
-      if (signed.error || !signed.data) throw signed.error ?? new Error("Не удалось получить ссылку");
+      if (signed.error || !signed.data) {
+        console.error("[chat.upload] sign url failed", signed.error);
+        throw signed.error ?? new Error("Не удалось получить ссылку");
+      }
       setPending({ path, url: signed.data.signedUrl });
+      console.log("[chat.upload] ok", { path });
     } catch (err) {
-      toast.error((err as Error).message);
+      console.error("[chat.upload] error", err);
+      toast.error(`Загрузка фото: ${(err as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -94,17 +103,33 @@ function ChatThread() {
     e.preventDefault();
     const body = text.trim();
     if (!body && !pending) return;
+    if (!user) {
+      toast.error("Нужно войти в аккаунт");
+      return;
+    }
     setSending(true);
+    const payload = {
+      chat_id: chatId,
+      body: body || null,
+      image_path: pending?.path ?? null,
+    };
+    console.log("[chat.send] client → server", payload);
     try {
-      await sendFn({
-        data: { chat_id: chatId, body: body || null, image_path: pending?.path ?? null },
-      });
+      const res = await sendFn({ data: payload });
+      console.log("[chat.send] server response", res);
       setText("");
       setPending(null);
       qc.invalidateQueries({ queryKey: ["chat", chatId] });
-      qc.invalidateQueries({ queryKey: ["chats", user?.id] });
+      qc.invalidateQueries({ queryKey: ["chats", user.id] });
     } catch (err) {
-      toast.error((err as Error).message);
+      const e = err as Error & { cause?: unknown };
+      console.error("[chat.send] failed", {
+        message: e.message,
+        name: e.name,
+        cause: e.cause,
+        stack: e.stack,
+      });
+      toast.error(e.message || "Не удалось отправить сообщение");
     } finally {
       setSending(false);
     }
