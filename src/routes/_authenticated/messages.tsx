@@ -13,7 +13,21 @@ export const Route = createFileRoute("/_authenticated/messages")({
   component: MessagesList,
 });
 
-type ChatItem = Awaited<ReturnType<typeof listChats>>[number];
+type ChatItem = {
+  id: string;
+  role: "buyer" | "seller";
+  other: { id: string; full_name: string };
+  product: { id: string; title: string; image_url: string | null } | null;
+  order_id: string | null;
+  last_message: {
+    body: string | null;
+    has_image: boolean;
+    created_at: string;
+    from_me: boolean;
+  } | null;
+  last_message_at: string;
+  unread: number;
+};
 
 function fmt(dt: string) {
   const d = new Date(dt);
