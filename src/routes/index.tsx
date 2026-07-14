@@ -10,11 +10,11 @@ import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from "lucide-reac
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "BreezeMarket — тысячи товаров от продавцов со всей страны" },
+      { title: "Kupiks — маркетплейс товаров от проверенных продавцов" },
       {
         name: "description",
         content:
-          "Товары для дома, отдыха и стиля. Свободный маркетплейс с честной комиссией и доставкой по всей России.",
+          "Тысячи товаров для дома, отдыха и стиля. Честные цены, быстрая доставка по всей России.",
       },
     ],
   }),
@@ -77,43 +77,78 @@ function HomePage() {
 
   return (
     <AppLayout>
-      {/* Промо-баннер в стиле Askona */}
+      {/* Промо-баннер Kupiks */}
       <section className="mx-auto max-w-7xl px-4 pt-2">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#e8f5f0] via-[#f0f7e8] to-[#fef5d3] min-h-[220px] md:min-h-[360px] p-6 md:p-12 flex flex-col justify-between">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fff1ec] via-[#ffe0d4] to-[#ffd0be] min-h-[220px] md:min-h-[340px] p-6 md:p-12 flex flex-col justify-between">
           <div className="relative z-10 max-w-md">
             <div className="inline-flex items-center rounded-full bg-white/90 backdrop-blur px-3 py-1 text-xs font-bold text-foreground/80 mb-4 shadow-sm">
               Только сейчас
             </div>
-            <h1 className="font-extrabold tracking-tight text-foreground leading-[0.95]">
-              <span className="block text-6xl md:text-8xl text-brand-strong drop-shadow-sm">
+            <h1 className="font-display font-extrabold tracking-tight text-foreground leading-[0.95]">
+              <span className="block text-6xl md:text-8xl text-brand drop-shadow-sm">
                 −15%
               </span>
               <span className="block text-xl md:text-3xl mt-2">
-                на новинки маркетплейса
+                на первые заказы в Kupiks
               </span>
             </h1>
             <p className="mt-3 text-sm md:text-base text-foreground/70 max-w-xs">
-              Промокод <span className="font-bold text-foreground">LETO</span> для первых заказов.
+              Промокод <span className="font-bold text-foreground">KUPIKS</span> для новых покупателей.
             </p>
             <Link
               to="/catalog"
-              className="inline-flex mt-5 items-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-brand-foreground hover:bg-brand-strong shadow-md transition"
+              className="inline-flex mt-5 items-center gap-2 rounded-full bg-foreground px-6 py-3 font-semibold text-white hover:bg-foreground/90 shadow-md transition"
             >
               За покупками <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          {/* Декоративный акцент */}
           <div className="absolute -right-16 -bottom-16 h-64 w-64 md:h-96 md:w-96 rounded-full bg-white/40 blur-2xl" />
-          <div className="absolute right-8 top-8 hidden md:flex h-32 w-32 rounded-full bg-white/70 backdrop-blur items-center justify-center text-6xl shadow-sm">
+          <div className="absolute right-8 top-8 hidden md:flex h-32 w-32 rounded-full bg-white/80 backdrop-blur items-center justify-center text-6xl shadow-sm">
             🛍️
           </div>
         </div>
       </section>
 
-      {/* Категории — круглые «плитки» Askona */}
+      {/* Витрина товаров — сразу после баннера */}
       <section className="mx-auto max-w-7xl px-4 pt-8 md:pt-12">
         <div className="flex items-baseline justify-between mb-5">
-          <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
+          <h2 className="font-display text-xl md:text-2xl font-extrabold tracking-tight">
+            Популярное сейчас
+          </h2>
+          <Link
+            to="/catalog"
+            className="text-sm font-semibold text-brand hover:text-brand-strong"
+          >
+            Все товары →
+          </Link>
+        </div>
+        {productsQuery.isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <div className="aspect-square rounded-2xl bg-surface animate-pulse" />
+                <div className="h-4 w-20 rounded bg-surface animate-pulse" />
+                <div className="h-3 w-full rounded bg-surface animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : productsQuery.data && productsQuery.data.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
+            {productsQuery.data.map((p) => (
+              <ProductCard key={p.id} {...p} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-surface p-10 text-center text-muted-foreground">
+            Пока нет товаров. Станьте первым продавцом!
+          </div>
+        )}
+      </section>
+
+      {/* Категории */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-14">
+        <div className="flex items-baseline justify-between mb-5">
+          <h2 className="font-display text-xl md:text-2xl font-extrabold tracking-tight">
             Категории
           </h2>
           <Link
@@ -153,8 +188,8 @@ function HomePage() {
         )}
       </section>
 
-      {/* Плитки-«Подборщики» — Askona-style: заголовок вверху, изображение в углу */}
-      <section className="mx-auto max-w-7xl px-4 pt-8 md:pt-12">
+      {/* Подборки */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           {PICKS.map((pick, i) => (
             <Link
@@ -178,8 +213,8 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Преимущества Askona-style */}
-      <section className="mx-auto max-w-7xl px-4 pt-8 md:pt-12">
+      {/* Преимущества */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-14 pb-10 md:pb-14">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
             { icon: RotateCcw, title: "Лёгкий обмен", hint: "в течение 14 дней" },
@@ -204,42 +239,6 @@ function HomePage() {
             );
           })}
         </div>
-      </section>
-
-      {/* Витрина новинок */}
-      <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-14 pb-10 md:pb-14">
-        <div className="flex items-baseline justify-between mb-5">
-          <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
-            Новинки
-          </h2>
-          <Link
-            to="/catalog"
-            className="text-sm font-semibold text-brand hover:text-brand-strong"
-          >
-            Все товары →
-          </Link>
-        </div>
-        {productsQuery.isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="aspect-square rounded-2xl bg-surface animate-pulse" />
-                <div className="h-4 w-20 rounded bg-surface animate-pulse" />
-                <div className="h-3 w-full rounded bg-surface animate-pulse" />
-              </div>
-            ))}
-          </div>
-        ) : productsQuery.data && productsQuery.data.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
-            {productsQuery.data.map((p) => (
-              <ProductCard key={p.id} {...p} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-surface p-10 text-center text-muted-foreground">
-            Пока нет товаров. Станьте первым продавцом!
-          </div>
-        )}
       </section>
     </AppLayout>
   );
