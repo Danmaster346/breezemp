@@ -319,6 +319,31 @@ function AccountPage() {
                     <div className="text-sm text-amber-800 mt-0.5">
                       Подтвердите получение, чтобы продавец получил выплату и вы могли оставить отзыв.
                     </div>
+                    <div className="mt-3 space-y-2">
+                      {toConfirm.slice(0, 3).map((it) => (
+                        <div
+                          key={it.id}
+                          className="flex flex-col gap-2 rounded-xl bg-white/80 p-2.5 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="min-w-0 text-sm font-medium text-foreground line-clamp-1">
+                            {it.title_snapshot}
+                          </div>
+                          <button
+                            type="button"
+                            disabled={confirmingId === it.id}
+                            onClick={() => confirmReceived(it.id)}
+                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                          >
+                            {confirmingId === it.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4" />
+                            )}
+                            Подтвердить получение
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
