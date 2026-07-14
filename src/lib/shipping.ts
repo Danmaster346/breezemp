@@ -16,13 +16,13 @@ export interface ShippingOption {
 export const SHIPPING_OPTIONS: ShippingOption[] = [
   {
     id: "pickup",
-    label: "Самовывоз / ПВЗ",
-    description: "Забрать из ближайшего пункта выдачи",
+    label: "Доставка по Иваново — бесплатно",
+    description: "Курьер бесплатно привезёт по адресу в пределах города Иваново",
     eta: "1–2 дня",
     baseKopecks: 0,
     needsAddress: true,
-    addressLabel: "Адрес пункта выдачи",
-    addressPlaceholder: "Город, адрес ПВЗ",
+    addressLabel: "Адрес доставки в Иваново",
+    addressPlaceholder: "Улица, дом, квартира",
   },
   {
     id: "cdek",
