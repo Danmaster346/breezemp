@@ -110,6 +110,28 @@ function ChatThread() {
     }
   };
 
+  const trySend = async (item: OutboxItem) => {
+    setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sending", error: undefined } : o)));
+    const payload = { chat_id: chatId, body: item.body, image_path: item.image_path };
+    console.log("[chat.send] client → server", { local_id: item.local_id, ...payload });
+    try {
+      const res = await sendFn({ data: payload });
+      console.log("[chat.send] server response", res);
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sent" } : o)));
+      qc.invalidateQueries({ queryKey: ["chat", chatId] });
+      if (user) qc.invalidateQueries({ queryKey: ["chats", user.id] });
+      // Убираем «отправлено» из outbox после того, как оно точно есть в q.data
+      setTimeout(() => {
+        setOutbox((prev) => prev.filter((o) => o.local_id !== item.local_id));
+      }, 1500);
+    } catch (err) {
+      const e = err as Error & { cause?: unknown };
+      console.error("[chat.send] failed", { message: e.message, name: e.name, cause: e.cause, stack: e.stack });
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: e.message || "Ошибка сети" } : o)));
+      toast.error(e.message || "Не удалось отправить сообщение");
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = text.trim();
@@ -118,29 +140,20 @@ function ChatThread() {
       toast.error("Нужно войти в аккаунт");
       return;
     }
-    setSending(true);
-    const payload = {
-      chat_id: chatId,
+    const item: OutboxItem = {
+      local_id: crypto.randomUUID(),
       body: body || null,
       image_path: pending?.path ?? null,
+      image_url: pending?.url ?? null,
+      status: "sending",
+      created_at: new Date().toISOString(),
     };
-    console.log("[chat.send] client → server", payload);
+    setOutbox((prev) => [...prev, item]);
+    setText("");
+    setPending(null);
+    setSending(true);
     try {
-      const res = await sendFn({ data: payload });
-      console.log("[chat.send] server response", res);
-      setText("");
-      setPending(null);
-      qc.invalidateQueries({ queryKey: ["chat", chatId] });
-      qc.invalidateQueries({ queryKey: ["chats", user.id] });
-    } catch (err) {
-      const e = err as Error & { cause?: unknown };
-      console.error("[chat.send] failed", {
-        message: e.message,
-        name: e.name,
-        cause: e.cause,
-        stack: e.stack,
-      });
-      toast.error(e.message || "Не удалось отправить сообщение");
+      await trySend(item);
     } finally {
       setSending(false);
     }
