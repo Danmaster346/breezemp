@@ -104,22 +104,46 @@ export const buyerConfirmReceivedItem = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ order_item_id: uuid }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const tag = `[order.confirm item=${data.order_item_id} user=${context.userId}]`;
     const { data: item, error: fetchErr } = await supabaseAdmin
       .from("order_items")
-      .select("id, status, orders!inner(buyer_id)")
+      .select("id, order_id, status")
       .eq("id", data.order_item_id)
       .maybeSingle();
-    if (fetchErr) throw new Error(fetchErr.message);
+    if (fetchErr) {
+      console.error(`${tag} item lookup failed`, fetchErr);
+      throw new Error(fetchErr.message);
+    }
     if (!item) throw new Error("Позиция не найдена");
-    const buyerId = (item as unknown as { orders: { buyer_id: string } }).orders.buyer_id;
-    if (buyerId !== context.userId) throw new Error("Нет доступа");
-    if (item.status !== "shipped" && item.status !== "delivered")
-      throw new Error("Подтвердить можно только отправленный заказ");
-    const { error } = await supabaseAdmin
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, buyer_id")
+      .eq("id", item.order_id)
+      .maybeSingle();
+    if (orderErr) {
+      console.error(`${tag} order lookup failed`, orderErr);
+      throw new Error(orderErr.message);
+    }
+    if (!order || order.buyer_id !== context.userId) throw new Error("Нет доступа к этому заказу");
+    if (item.status !== "delivered") {
+      throw new Error("Подтвердить получение можно только после статуса «Доставлен»");
+    }
+
+    const receivedAt = new Date().toISOString();
+    const { data: updated, error } = await supabaseAdmin
       .from("order_items")
-      .update({ status: "received", received_at: new Date().toISOString() })
-      .eq("id", data.order_item_id);
-    if (error) throw new Error(error.message);
+      .update({ status: "received", received_at: receivedAt })
+      .eq("id", data.order_item_id)
+      .eq("status", "delivered")
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      console.error(`${tag} update failed`, error);
+      throw new Error(error.message);
+    }
+    if (!updated) throw new Error("Статус уже изменился. Обновите заказы и попробуйте ещё раз.");
+    console.log(`${tag} ok`);
     return { ok: true };
   });
 
