@@ -41,6 +41,7 @@ function ChatThread() {
   const [pending, setPending] = useState<{ path: string; url: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [outbox, setOutbox] = useState<OutboxItem[]>([]);
 
   const q = useQuery({
     queryKey: ["chat", chatId],
