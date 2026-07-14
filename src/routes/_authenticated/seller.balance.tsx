@@ -2,9 +2,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Banknote, Wallet, TrendingUp, ArrowDownToLine, X, CheckCircle2, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { requestPayout } from "@/lib/payouts.functions";
@@ -37,6 +38,21 @@ function BalancePage() {
   const pending = salesQuery.data?.pending ?? 0;
   const soldItems = salesQuery.data?.items ?? [];
   const payouts = salesQuery.data?.payouts ?? [];
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`seller-finance-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "order_items", filter: `seller_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["seller-sales-total", user.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, qc]);
 
   // Введённая сумма → копейки. Пустое поле = 0.
   const amountRub = Number(amountInput.replace(",", "."));

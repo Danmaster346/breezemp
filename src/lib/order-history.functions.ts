@@ -14,6 +14,7 @@ type SellerOrderItem = {
   status: string;
   orders: {
     id: string;
+    buyer_id?: string;
     created_at: string;
     shipping_name: string | null;
     shipping_phone: string | null;
@@ -48,7 +49,7 @@ export const getSellerOrderItems = createServerFn({ method: "GET" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("order_items")
-      .select("*, orders(id, created_at, shipping_name, shipping_phone, shipping_address)")
+      .select("*, orders(id, buyer_id, created_at, shipping_name, shipping_phone, shipping_address)")
       .eq("seller_id", context.userId)
       .order("id", { ascending: false });
 
@@ -142,8 +143,9 @@ export const getSellerDashboardStats = createServerFn({ method: "GET" })
       (r) => r.status !== "delivered" && r.status !== "received" && r.status !== "returned" && r.status !== "cancelled",
     );
     const activeOrderIds = new Set(activeItems.map((r) => r.order_id));
-    const totalSales = rows.reduce((s, r) => s + r.price_kopecks * r.quantity, 0);
-    const totalPayout = rows.reduce(
+    const validRows = rows.filter((r) => !["cancelled", "returned", "return_requested"].includes(r.status));
+    const totalSales = validRows.reduce((s, r) => s + r.price_kopecks * r.quantity, 0);
+    const totalPayout = rows.filter((r) => r.status === "received").reduce(
       (s, r) => s + (r.price_kopecks * r.quantity - r.commission_kopecks),
       0,
     );
