@@ -9,7 +9,17 @@ import { useAuth } from "@/lib/use-auth";
 import { getChatThread, sendChatMessage } from "@/lib/chat.functions";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
-import { ArrowLeft, Image as ImageIcon, Loader2, Send, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCheck, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
+
+type OutboxItem = {
+  local_id: string;
+  body: string | null;
+  image_path: string | null;
+  image_url: string | null;
+  status: "sending" | "sent" | "error";
+  error?: string;
+  created_at: string;
+};
 
 export const Route = createFileRoute("/_authenticated/messages/$chatId")({
   head: () => ({ meta: [{ title: "Чат — BREEZE" }] }),
@@ -31,6 +41,7 @@ function ChatThread() {
   const [pending, setPending] = useState<{ path: string; url: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [outbox, setOutbox] = useState<OutboxItem[]>([]);
 
   const q = useQuery({
     queryKey: ["chat", chatId],
@@ -44,7 +55,7 @@ function ChatThread() {
   // Прокрутка к последнему сообщению
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages.length]);
+  }, [messages.length, outbox.length]);
 
   // Реалтайм: перезагружаем при новых сообщениях в этом чате
   useEffect(() => {
@@ -99,6 +110,28 @@ function ChatThread() {
     }
   };
 
+  const trySend = async (item: OutboxItem) => {
+    setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sending", error: undefined } : o)));
+    const payload = { chat_id: chatId, body: item.body, image_path: item.image_path };
+    console.log("[chat.send] client → server", { local_id: item.local_id, ...payload });
+    try {
+      const res = await sendFn({ data: payload });
+      console.log("[chat.send] server response", res);
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sent" } : o)));
+      qc.invalidateQueries({ queryKey: ["chat", chatId] });
+      if (user) qc.invalidateQueries({ queryKey: ["chats", user.id] });
+      // Убираем «отправлено» из outbox после того, как оно точно есть в q.data
+      setTimeout(() => {
+        setOutbox((prev) => prev.filter((o) => o.local_id !== item.local_id));
+      }, 1500);
+    } catch (err) {
+      const e = err as Error & { cause?: unknown };
+      console.error("[chat.send] failed", { message: e.message, name: e.name, cause: e.cause, stack: e.stack });
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: e.message || "Ошибка сети" } : o)));
+      toast.error(e.message || "Не удалось отправить сообщение");
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = text.trim();
@@ -107,29 +140,20 @@ function ChatThread() {
       toast.error("Нужно войти в аккаунт");
       return;
     }
-    setSending(true);
-    const payload = {
-      chat_id: chatId,
+    const item: OutboxItem = {
+      local_id: crypto.randomUUID(),
       body: body || null,
       image_path: pending?.path ?? null,
+      image_url: pending?.url ?? null,
+      status: "sending",
+      created_at: new Date().toISOString(),
     };
-    console.log("[chat.send] client → server", payload);
+    setOutbox((prev) => [...prev, item]);
+    setText("");
+    setPending(null);
+    setSending(true);
     try {
-      const res = await sendFn({ data: payload });
-      console.log("[chat.send] server response", res);
-      setText("");
-      setPending(null);
-      qc.invalidateQueries({ queryKey: ["chat", chatId] });
-      qc.invalidateQueries({ queryKey: ["chats", user.id] });
-    } catch (err) {
-      const e = err as Error & { cause?: unknown };
-      console.error("[chat.send] failed", {
-        message: e.message,
-        name: e.name,
-        cause: e.cause,
-        stack: e.stack,
-      });
-      toast.error(e.message || "Не удалось отправить сообщение");
+      await trySend(item);
     } finally {
       setSending(false);
     }
@@ -217,6 +241,58 @@ function ChatThread() {
                 </div>
               ))
             )}
+            {outbox.map((o) => (
+              <div key={o.local_id} className="flex justify-end">
+                <div
+                  className={`max-w-[80%] rounded-2xl rounded-br-md px-3 py-2 text-sm shadow-sm ${
+                    o.status === "error"
+                      ? "bg-destructive/10 text-foreground border border-destructive/40"
+                      : "bg-brand text-brand-foreground opacity-90"
+                  }`}
+                >
+                  {o.image_url && (
+                    <img src={o.image_url} alt="" className="rounded-lg mb-1 max-h-64 object-cover" />
+                  )}
+                  {o.body && <div className="whitespace-pre-wrap break-words">{o.body}</div>}
+                  <div className={`text-[10px] mt-1 flex items-center gap-1 justify-end ${o.status === "error" ? "text-destructive" : "text-white/80"}`}>
+                    {fmtTime(o.created_at)}
+                    {o.status === "sending" && (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span>отправляется</span>
+                      </>
+                    )}
+                    {o.status === "sent" && (
+                      <>
+                        <CheckCheck className="h-3 w-3" />
+                        <span>отправлено</span>
+                      </>
+                    )}
+                    {o.status === "error" && (
+                      <>
+                        <AlertCircle className="h-3 w-3" />
+                        <span className="truncate max-w-[140px]" title={o.error}>{o.error ?? "ошибка"}</span>
+                        <button
+                          type="button"
+                          onClick={() => void trySend(o)}
+                          className="ml-1 inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-white hover:bg-destructive/90"
+                        >
+                          <RotateCw className="h-3 w-3" /> Повторить
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOutbox((prev) => prev.filter((x) => x.local_id !== o.local_id))}
+                          className="ml-1 inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-foreground/70 hover:bg-muted/80"
+                          aria-label="Удалить"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Композер */}
