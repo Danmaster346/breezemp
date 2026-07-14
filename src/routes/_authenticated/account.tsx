@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import {
+  buyerConfirmReceivedItem,
   buyerReturnOrderItem,
 } from "@/lib/order-status.functions";
 import {
@@ -30,6 +31,9 @@ import {
   Upload,
   Loader2,
   Star,
+  CheckCircle2,
+  Clock,
+  PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,10 +112,27 @@ function AccountPage() {
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
   const returnItemFn = useServerFn(buyerReturnOrderItem);
+  const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
   const navigate = useNavigate();
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [returnItem, setReturnItem] = useState<OrderItem | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const confirmReceived = async (itemId: string) => {
+    setConfirmingId(itemId);
+    try {
+      await confirmReceivedFn({ data: { order_item_id: itemId } });
+      toast.success("Спасибо! Получение подтверждено", {
+        description: "Продавец получит выплату за этот товар.",
+      });
+      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    } catch (err) {
+      toast.error("Не удалось подтвердить", { description: (err as Error).message });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
     try {
@@ -219,7 +240,96 @@ function AccountPage() {
           </div>
         </div>
 
+        {/* Обзорные карточки покупателя */}
+        {(() => {
+          const allItems = orders.flatMap((o) => o.order_items ?? []);
+          const active = orders.filter((o) => {
+            const s = aggregateStatus(o.order_items ?? []);
+            return s === "processing" || s === "shipped";
+          }).length;
+          const toConfirm = allItems.filter(
+            (it) => normalizeStatus(it.status) === "delivered",
+          );
+          const completed = allItems.filter(
+            (it) => normalizeStatus(it.status) === "received",
+          ).length;
+          const overview = [
+            {
+              label: "Активные заказы",
+              value: active,
+              hint: "в пути или на сборке",
+              icon: Truck,
+              accent: "from-sky-500/15 to-sky-500/5 text-sky-700",
+            },
+            {
+              label: "Ждут подтверждения",
+              value: toConfirm.length,
+              hint: "получили — нажмите «Подтвердить»",
+              icon: PackageCheck,
+              accent: "from-amber-500/15 to-amber-500/5 text-amber-700",
+            },
+            {
+              label: "Получено",
+              value: completed,
+              hint: "успешно завершено",
+              icon: CheckCircle2,
+              accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-700",
+            },
+          ];
+          return (
+            <>
+              {orders.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+                  {overview.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                      <div
+                        key={c.label}
+                        className={`rounded-2xl border bg-gradient-to-br ${c.accent} p-3 sm:p-4`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-[11px] sm:text-xs font-medium text-muted-foreground">
+                              {c.label}
+                            </div>
+                            <div className="mt-1 text-2xl sm:text-3xl font-extrabold text-foreground">
+                              {c.value}
+                            </div>
+                            <div className="hidden sm:block text-xs text-muted-foreground mt-1">
+                              {c.hint}
+                            </div>
+                          </div>
+                          <div className="rounded-xl bg-white/70 p-1.5 sm:p-2 shrink-0">
+                            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {toConfirm.length > 0 && (
+                <div className="mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 flex items-start gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-amber-700 shrink-0">
+                    <PackageCheck className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-amber-900">
+                      {toConfirm.length}{" "}
+                      {toConfirm.length === 1 ? "товар доставлен" : "товаров доставлено"}
+                    </div>
+                    <div className="text-sm text-amber-800 mt-0.5">
+                      Подтвердите получение, чтобы продавец получил выплату и вы могли оставить отзыв.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         <h2 className="text-xl font-bold mb-3">История заказов</h2>
+
         {ordersQuery.isLoading ? (
           <div className="text-muted-foreground">Загрузка...</div>
         ) : ordersQuery.isError ? (
@@ -361,6 +471,7 @@ function AccountPage() {
                   {openOrder.order_items?.map((it) => {
                     const st = normalizeStatus(it.status);
                     const canReturn = st === "shipped" || st === "delivered";
+                    const canConfirm = st === "delivered";
                     const canReview = (st === "delivered" || st === "received") && !!it.product_id;
                     return (
                       <div
@@ -445,6 +556,21 @@ function AccountPage() {
                           >
                             <MessageCircle className="h-3 w-3" /> Написать продавцу
                           </button>
+                          {canConfirm && (
+                            <button
+                              type="button"
+                              disabled={confirmingId === it.id}
+                              onClick={() => confirmReceived(it.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white px-3 py-1 text-[11px] font-semibold hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              {confirmingId === it.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3 w-3" />
+                              )}
+                              Подтвердить получение
+                            </button>
+                          )}
                           {canReturn && (
                             <button
                               type="button"

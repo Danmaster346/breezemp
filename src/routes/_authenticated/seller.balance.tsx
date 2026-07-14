@@ -78,14 +78,14 @@ function BalancePage() {
     {
       label: "В ожидании",
       value: formatPrice(pending),
-      hint: "поступит после доставки",
+      hint: "поступит после подтверждения",
       icon: Clock,
       accent: "from-amber-500/15 to-amber-500/5 text-amber-700",
     },
     {
-      label: "Заработано (после доставки)",
+      label: "Заработано",
       value: formatPrice(totalPayout),
-      hint: "минус комиссия 10%",
+      hint: "покупатель подтвердил получение",
       icon: Wallet,
       accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-700",
     },
@@ -112,8 +112,12 @@ function BalancePage() {
               {formatPrice(available)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Деньги переходят сюда после того, как заказ получает статус «Доставлен».
-              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>.
+              Средства становятся доступными после того, как покупатель подтвердит получение товара («выкуп»).
+              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>
+              {salesQuery.data?.awaitingConfirm ? (
+                <> · ждут подтверждения: <span className="font-semibold text-amber-700">{formatPrice(salesQuery.data.awaitingConfirm)}</span></>
+              ) : null}
+              .
             </p>
           </div>
           <button
