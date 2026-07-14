@@ -78,14 +78,14 @@ function BalancePage() {
     {
       label: "В ожидании",
       value: formatPrice(pending),
-      hint: "поступит после доставки",
+      hint: "поступит после подтверждения",
       icon: Clock,
       accent: "from-amber-500/15 to-amber-500/5 text-amber-700",
     },
     {
-      label: "Заработано (после доставки)",
+      label: "Заработано",
       value: formatPrice(totalPayout),
-      hint: "минус комиссия 10%",
+      hint: "покупатель подтвердил получение",
       icon: Wallet,
       accent: "from-emerald-500/15 to-emerald-500/5 text-emerald-700",
     },
