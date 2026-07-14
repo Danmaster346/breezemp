@@ -18,15 +18,16 @@ export const requestPayout = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Учитываем только доставленные позиции (delivered/received);
-    // pending-суммы (new/confirmed/processing/shipped) в баланс не идут.
-    const { data: items, error: itemsErr } = await supabase
+    // К выводу доступны только позиции, по которым покупатель подтвердил получение.
+    // Доставленные, но не подтверждённые товары остаются «в ожидании».
+    const { data: items, error: itemsErr } = await supabaseAdmin
       .from("order_items")
       .select("price_kopecks, quantity, commission_kopecks, status")
       .eq("seller_id", userId)
-      .in("status", ["delivered", "received"]);
+      .eq("status", "received");
     if (itemsErr) throw new Error(itemsErr.message);
 
     const totalPayout = (items ?? []).reduce(
@@ -35,10 +36,11 @@ export const requestPayout = createServerFn({ method: "POST" })
     );
 
 
-    const { data: payouts, error: payErr } = await supabase
+    const { data: payouts, error: payErr } = await supabaseAdmin
       .from("payouts")
       .select("amount_kopecks")
-      .eq("seller_id", userId);
+      .eq("seller_id", userId)
+      .neq("status", "rejected");
     if (payErr) throw new Error(payErr.message);
 
     const withdrawn = (payouts ?? []).reduce((s, p) => s + p.amount_kopecks, 0);
@@ -48,8 +50,6 @@ export const requestPayout = createServerFn({ method: "POST" })
       throw new Error("Requested amount exceeds available balance");
     }
 
-    // Insert via service role (RLS blocks direct client inserts)
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("payouts")
       .insert({ seller_id: userId, amount_kopecks: data.amount_kopecks });
