@@ -38,8 +38,8 @@
   --color-surface-strong: var(--surface-strong);
   --color-promo: var(--promo);
   --color-promo-foreground: var(--promo-foreground);
-  --font-sans: "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Manrope", "Inter", system-ui, sans-serif;
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Unbounded", "Manrope", system-ui, sans-serif;
 
   /* Мобильные размеры и safe-area */
   --bottom-nav-h: 64px;
@@ -48,34 +48,34 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 1rem;
   --background: #ffffff;
-  --foreground: #111827;
+  --foreground: #0b1220;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #0b1220;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --brand: #17c3b2;
+  --popover-foreground: #0b1220;
+  --brand: #ff5a3c;
   --brand-foreground: #ffffff;
-  --brand-soft: #d8f5f1;
-  --brand-strong: #0fa595;
-  --primary: #17c3b2;
+  --brand-soft: #ffe8e1;
+  --brand-strong: #e63e20;
+  --primary: #ff5a3c;
   --primary-foreground: #ffffff;
   --secondary: #f4f5f7;
-  --secondary-foreground: #111827;
+  --secondary-foreground: #0b1220;
   --muted: #f4f5f7;
   --muted-foreground: #6b7280;
-  --accent: #d8f5f1;
-  --accent-foreground: #0c6a5f;
+  --accent: #ffe8e1;
+  --accent-foreground: #8a2a15;
   --destructive: #e5484d;
   --destructive-foreground: #ffffff;
   --border: #ececec;
   --input: #ececec;
-  --ring: #17c3b2;
-  --surface: #f6f6f6;
-  --surface-strong: #eeeeee;
+  --ring: #ff5a3c;
+  --surface: #f6f6f8;
+  --surface-strong: #eceef2;
   --promo: #ffd83b;
-  --promo-foreground: #111827;
+  --promo-foreground: #0b1220;
 }
 
 .dark {
