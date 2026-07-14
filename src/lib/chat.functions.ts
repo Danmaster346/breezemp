@@ -1,19 +1,28 @@
 // Серверные функции для чата между покупателем и продавцом.
-// RLS уже фильтрует данные — используем клиент от лица пользователя.
+// Все операции проходят через сервер: сначала проверяем участника, затем пишем в БД.
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const SIGNED_URL_TTL = 60 * 60; // 1 час
+type ChatRecord = {
+  id: string;
+  buyer_id: string;
+  seller_id: string;
+  product_id: string | null;
+  order_id: string | null;
+  last_message_at: string;
+};
 
-async function signImagePath(
-  supabase: { storage: { from: (b: string) => { createSignedUrl: (p: string, t: number) => Promise<{ data: { signedUrl: string } | null; error: unknown }> } } },
-  path: string | null,
-): Promise<string | null> {
-  if (!path) return null;
-  const { data } = await supabase.storage.from("chat-photos").createSignedUrl(path, SIGNED_URL_TTL);
-  return data?.signedUrl ?? null;
-}
+type ProfileRecord = { id: string; full_name: string | null };
+type ProductRecord = { id: string; title: string; image_url: string | null };
+type LastMessageRecord = {
+  chat_id: string;
+  body: string | null;
+  image_path: string | null;
+  created_at: string;
+  sender_id: string;
+};
+type UnreadRecord = { chat_id: string };
 
 // Создание/поиск чата покупателем с продавцом (можно привязать к товару/заказу)
 export const getOrCreateChat = createServerFn({ method: "POST" })
@@ -28,11 +37,42 @@ export const getOrCreateChat = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     if (data.seller_id === userId) throw new Error("Нельзя написать самому себе");
 
+    if (data.product_id) {
+      const { data: product, error: productErr } = await supabaseAdmin
+        .from("products")
+        .select("id, seller_id")
+        .eq("id", data.product_id)
+        .maybeSingle();
+      if (productErr || !product) throw new Error("Товар не найден");
+      if (product.seller_id !== data.seller_id) throw new Error("Неверный продавец товара");
+    }
+
+    if (data.order_id) {
+      const { data: order, error: orderErr } = await supabaseAdmin
+        .from("orders")
+        .select("id, buyer_id")
+        .eq("id", data.order_id)
+        .maybeSingle();
+      if (orderErr || !order) throw new Error("Заказ не найден");
+      if (order.buyer_id !== userId) {
+        throw new Error("Нет доступа к заказу");
+      }
+      let itemQuery = supabaseAdmin
+        .from("order_items")
+        .select("id")
+        .eq("order_id", data.order_id)
+        .eq("seller_id", data.seller_id);
+      if (data.product_id) itemQuery = itemQuery.eq("product_id", data.product_id);
+      const { data: orderItem, error: orderItemErr } = await itemQuery.limit(1).maybeSingle();
+      if (orderItemErr || !orderItem) throw new Error("Продавец не найден в этом заказе");
+    }
+
     // Ищем существующий чат (buyer, seller, product)
-    let query = supabase
+    let query = supabaseAdmin
       .from("chats")
       .select("id")
       .eq("buyer_id", userId)
@@ -43,7 +83,7 @@ export const getOrCreateChat = createServerFn({ method: "POST" })
     const { data: existing } = await query.maybeSingle();
     if (existing) return { id: existing.id };
 
-    const { data: created, error } = await supabase
+    const { data: created, error } = await supabaseAdmin
       .from("chats")
       .insert({
         buyer_id: userId,
@@ -61,40 +101,42 @@ export const getOrCreateChat = createServerFn({ method: "POST" })
 export const listChats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data: chats, error } = await supabase
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: chats, error } = await supabaseAdmin
       .from("chats")
       .select("id, buyer_id, seller_id, product_id, order_id, last_message_at")
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
       .order("last_message_at", { ascending: false })
       .limit(100);
     if (error) throw new Error(error.message);
-    if (!chats || chats.length === 0) return [];
+    const chatRows = (chats ?? []) as ChatRecord[];
+    if (chatRows.length === 0) return [];
 
     // Собираем связки: контрагенты, товары, последние сообщения, непрочитанные
-    const otherIds = Array.from(
-      new Set(chats.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
+    const otherIds: string[] = Array.from(
+      new Set(chatRows.map((c) => (c.buyer_id === userId ? c.seller_id : c.buyer_id))),
     );
-    const productIds = Array.from(
-      new Set(chats.map((c) => c.product_id).filter(Boolean) as string[]),
+    const productIds: string[] = Array.from(
+      new Set(chatRows.map((c) => c.product_id).filter((id): id is string => Boolean(id))),
     );
-    const chatIds = chats.map((c) => c.id);
+    const chatIds: string[] = chatRows.map((c) => c.id);
 
     const [{ data: profiles }, { data: products }, { data: lastMsgs }, { data: unread }] =
       await Promise.all([
-        supabase.from("profiles").select("id, full_name").in("id", otherIds),
+        supabaseAdmin.from("profiles").select("id, full_name").in("id", otherIds),
         productIds.length
-          ? supabase
+          ? supabaseAdmin
               .from("products")
               .select("id, title, image_url")
               .in("id", productIds)
           : Promise.resolve({ data: [] as { id: string; title: string; image_url: string | null }[] }),
-        supabase
+        supabaseAdmin
           .from("chat_messages")
           .select("chat_id, body, image_path, created_at, sender_id")
           .in("chat_id", chatIds)
           .order("created_at", { ascending: false }),
-        supabase
+        supabaseAdmin
           .from("chat_messages")
           .select("chat_id")
           .in("chat_id", chatIds)
@@ -102,18 +144,18 @@ export const listChats = createServerFn({ method: "GET" })
           .is("read_at", null),
       ]);
 
-    const profMap = new Map((profiles ?? []).map((p) => [p.id, p]));
-    const prodMap = new Map((products ?? []).map((p) => [p.id, p]));
+    const profMap = new Map(((profiles ?? []) as ProfileRecord[]).map((p) => [p.id, p]));
+    const prodMap = new Map(((products ?? []) as ProductRecord[]).map((p) => [p.id, p]));
     const lastMap = new Map<string, { body: string | null; image_path: string | null; created_at: string; sender_id: string }>();
-    for (const m of lastMsgs ?? []) {
+    for (const m of (lastMsgs ?? []) as LastMessageRecord[]) {
       if (!lastMap.has(m.chat_id)) lastMap.set(m.chat_id, m);
     }
     const unreadMap = new Map<string, number>();
-    for (const m of unread ?? []) {
+    for (const m of (unread ?? []) as UnreadRecord[]) {
       unreadMap.set(m.chat_id, (unreadMap.get(m.chat_id) ?? 0) + 1);
     }
 
-    return chats.map((c) => {
+    return chatRows.map((c) => {
       const otherId = c.buyer_id === userId ? c.seller_id : c.buyer_id;
       const prof = profMap.get(otherId);
       const prod = c.product_id ? prodMap.get(c.product_id) : null;
@@ -143,8 +185,9 @@ export const getChatThread = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ chat_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: chat, error: chatErr } = await supabase
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: chat, error: chatErr } = await supabaseAdmin
       .from("chats")
       .select("id, buyer_id, seller_id, product_id, order_id")
       .eq("id", data.chat_id)
@@ -154,15 +197,15 @@ export const getChatThread = createServerFn({ method: "POST" })
 
     const otherId = chat.buyer_id === userId ? chat.seller_id : chat.buyer_id;
     const [{ data: other }, product, { data: msgs }] = await Promise.all([
-      supabase.from("profiles").select("id, full_name").eq("id", otherId).maybeSingle(),
+      supabaseAdmin.from("profiles").select("id, full_name").eq("id", otherId).maybeSingle(),
       chat.product_id
-        ? supabase
+        ? supabaseAdmin
             .from("products")
             .select("id, title, image_url, price_kopecks")
             .eq("id", chat.product_id)
             .maybeSingle()
         : Promise.resolve({ data: null as null | { id: string; title: string; image_url: string | null; price_kopecks: number } }),
-      supabase
+      supabaseAdmin
         .from("chat_messages")
         .select("id, sender_id, body, image_path, created_at, read_at")
         .eq("chat_id", chat.id)
@@ -171,7 +214,7 @@ export const getChatThread = createServerFn({ method: "POST" })
     ]);
 
     // Помечаем чужие сообщения прочитанными
-    await supabase
+    await supabaseAdmin
       .from("chat_messages")
       .update({ read_at: new Date().toISOString() })
       .eq("chat_id", chat.id)
@@ -179,14 +222,23 @@ export const getChatThread = createServerFn({ method: "POST" })
       .is("read_at", null);
 
     const messages = await Promise.all(
-      (msgs ?? []).map(async (m) => ({
-        id: m.id,
-        sender_id: m.sender_id,
-        body: m.body,
-        image_url: await signImagePath(supabase, m.image_path),
-        created_at: m.created_at,
-        from_me: m.sender_id === userId,
-      })),
+      (msgs ?? []).map(async (m) => {
+        let imageUrl: string | null = null;
+        if (m.image_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("chat-photos")
+            .createSignedUrl(m.image_path, 60 * 60);
+          imageUrl = signed?.signedUrl ?? null;
+        }
+        return {
+          id: m.id,
+          sender_id: m.sender_id,
+          body: m.body,
+          image_url: imageUrl,
+          created_at: m.created_at,
+          from_me: m.sender_id === userId,
+        };
+      }),
     );
 
     return {
@@ -217,7 +269,8 @@ export const sendChatMessage = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const tag = `[chat.send chat=${data.chat_id} user=${userId}]`;
     console.log(`${tag} start`, {
       has_body: !!data.body,
@@ -227,7 +280,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     });
 
     // Явная проверка, что отправитель — участник чата (не полагаемся только на RLS)
-    const { data: chat, error: chatErr } = await supabase
+    const { data: chat, error: chatErr } = await supabaseAdmin
       .from("chats")
       .select("id, buyer_id, seller_id")
       .eq("id", data.chat_id)
@@ -242,7 +295,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     }
 
     const body = data.body?.trim() || null;
-    const { error } = await supabase.from("chat_messages").insert({
+    const { error } = await supabaseAdmin.from("chat_messages").insert({
       chat_id: data.chat_id,
       sender_id: userId,
       body,
@@ -259,7 +312,7 @@ export const sendChatMessage = createServerFn({ method: "POST" })
         `Не удалось отправить: ${error.message}${error.hint ? ` (${error.hint})` : ""}`,
       );
     }
-    const { error: bumpErr } = await supabase
+    const { error: bumpErr } = await supabaseAdmin
       .from("chats")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", data.chat_id);
@@ -272,12 +325,19 @@ export const sendChatMessage = createServerFn({ method: "POST" })
 export const getUnreadChatCount = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { count } = await supabase
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: chats } = await supabaseAdmin
+      .from("chats")
+      .select("id")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
+    const chatIds = (chats ?? []).map((c) => c.id);
+    if (chatIds.length === 0) return { count: 0 };
+    const { count } = await supabaseAdmin
       .from("chat_messages")
-      .select("id, chats!inner(buyer_id, seller_id)", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
+      .in("chat_id", chatIds)
       .neq("sender_id", userId)
-      .is("read_at", null)
-      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "chats" });
+      .is("read_at", null);
     return { count: count ?? 0 };
   });
