@@ -4,8 +4,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const SIGNED_URL_TTL = 60 * 60; // 1 час
-
 type ChatRecord = {
   id: string;
   buyer_id: string;
@@ -25,15 +23,6 @@ type LastMessageRecord = {
   sender_id: string;
 };
 type UnreadRecord = { chat_id: string };
-
-async function signImagePath(
-  supabase: { storage: { from: (b: string) => { createSignedUrl: (p: string, t: number) => Promise<{ data: { signedUrl: string } | null; error: unknown }> } } },
-  path: string | null,
-): Promise<string | null> {
-  if (!path) return null;
-  const { data } = await supabase.storage.from("chat-photos").createSignedUrl(path, SIGNED_URL_TTL);
-  return data?.signedUrl ?? null;
-}
 
 // Создание/поиск чата покупателем с продавцом (можно привязать к товару/заказу)
 export const getOrCreateChat = createServerFn({ method: "POST" })
@@ -233,14 +222,23 @@ export const getChatThread = createServerFn({ method: "POST" })
       .is("read_at", null);
 
     const messages = await Promise.all(
-      (msgs ?? []).map(async (m) => ({
-        id: m.id,
-        sender_id: m.sender_id,
-        body: m.body,
-        image_url: await signImagePath(supabaseAdmin, m.image_path),
-        created_at: m.created_at,
-        from_me: m.sender_id === userId,
-      })),
+      (msgs ?? []).map(async (m) => {
+        let imageUrl: string | null = null;
+        if (m.image_path) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("chat-photos")
+            .createSignedUrl(m.image_path, 60 * 60);
+          imageUrl = signed?.signedUrl ?? null;
+        }
+        return {
+          id: m.id,
+          sender_id: m.sender_id,
+          body: m.body,
+          image_url: imageUrl,
+          created_at: m.created_at,
+          from_me: m.sender_id === userId,
+        };
+      }),
     );
 
     return {
