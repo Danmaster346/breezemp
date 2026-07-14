@@ -112,10 +112,27 @@ function AccountPage() {
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
   const openChat = useServerFn(getOrCreateChat);
   const returnItemFn = useServerFn(buyerReturnOrderItem);
+  const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
   const navigate = useNavigate();
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [returnItem, setReturnItem] = useState<OrderItem | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const confirmReceived = async (itemId: string) => {
+    setConfirmingId(itemId);
+    try {
+      await confirmReceivedFn({ data: { order_item_id: itemId } });
+      toast.success("Спасибо! Получение подтверждено", {
+        description: "Продавец получит выплату за этот товар.",
+      });
+      qc.invalidateQueries({ queryKey: ["my-orders", user?.id] });
+    } catch (err) {
+      toast.error("Не удалось подтвердить", { description: (err as Error).message });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
     try {
