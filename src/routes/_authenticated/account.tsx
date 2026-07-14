@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
 import { getOrCreateChat } from "@/lib/chat.functions";
 import {
+  buyerConfirmReceivedItem,
   buyerReturnOrderItem,
 } from "@/lib/order-status.functions";
 import {
@@ -30,6 +31,9 @@ import {
   Upload,
   Loader2,
   Star,
+  CheckCircle2,
+  Clock,
+  PackageCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
