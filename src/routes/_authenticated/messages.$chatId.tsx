@@ -9,7 +9,17 @@ import { useAuth } from "@/lib/use-auth";
 import { getChatThread, sendChatMessage } from "@/lib/chat.functions";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
-import { ArrowLeft, Image as ImageIcon, Loader2, Send, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, CheckCheck, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
+
+type OutboxItem = {
+  local_id: string;
+  body: string | null;
+  image_path: string | null;
+  image_url: string | null;
+  status: "sending" | "sent" | "error";
+  error?: string;
+  created_at: string;
+};
 
 export const Route = createFileRoute("/_authenticated/messages/$chatId")({
   head: () => ({ meta: [{ title: "Чат — BREEZE" }] }),
