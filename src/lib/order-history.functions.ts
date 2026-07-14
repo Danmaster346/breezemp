@@ -81,15 +81,17 @@ export const getSellerFinance = createServerFn({ method: "GET" })
     const payoutRows = (payouts ?? []) as SellerPayout[];
 
     // Итоги считаем по статусам:
-    // - «pending» пока заказ не доставлен (new/confirmed/processing/shipped);
-    // - «earned» после доставки (delivered/received) — только это доступно к выводу;
-    // - «returned»/«cancelled» полностью исключаем.
-    const PENDING = new Set(["new", "confirmed", "processing", "shipped"]);
-    const EARNED = new Set(["delivered", "received"]);
+    // - «pending» — пока покупатель не подтвердил получение
+    //   (new/confirmed/processing/shipped/delivered);
+    // - «earned» — только после подтверждения получения покупателем ("выкуп" → received);
+    // - «returned»/«cancelled»/«return_requested» полностью исключаем из финансов.
+    const PENDING = new Set(["new", "confirmed", "processing", "shipped", "delivered"]);
+    const EARNED = new Set(["received"]);
 
     let totalSales = 0;
     let earned = 0;
     let pending = 0;
+    let awaitingConfirm = 0; // сумма к выплате по позициям в статусе delivered
     for (const r of sales) {
       const line = r.price_kopecks * r.quantity;
       const payout = line - r.commission_kopecks;
@@ -97,6 +99,7 @@ export const getSellerFinance = createServerFn({ method: "GET" })
       if (PENDING.has(s)) {
         totalSales += line;
         pending += payout;
+        if (s === "delivered") awaitingConfirm += payout;
       } else if (EARNED.has(s)) {
         totalSales += line;
         earned += payout;
@@ -108,8 +111,9 @@ export const getSellerFinance = createServerFn({ method: "GET" })
       items: sales,
       payouts: payoutRows,
       totalSales,
-      totalPayout: earned, // всего заработано (после доставки)
-      pending,             // ожидает доставки
+      totalPayout: earned,   // всего заработано (после подтверждения покупателем)
+      pending,               // ожидает подтверждения / в пути / на сборке
+      awaitingConfirm,       // ждёт подтверждения получения покупателем
       withdrawn,
       available: Math.max(0, earned - withdrawn),
     };
