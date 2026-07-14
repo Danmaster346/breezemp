@@ -112,8 +112,12 @@ function BalancePage() {
               {formatPrice(available)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
-              Деньги переходят сюда после того, как заказ получает статус «Доставлен».
-              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>.
+              Средства становятся доступными после того, как покупатель подтвердит получение товара («выкуп»).
+              В ожидании: <span className="font-semibold text-foreground">{formatPrice(pending)}</span>
+              {salesQuery.data?.awaitingConfirm ? (
+                <> · ждут подтверждения: <span className="font-semibold text-amber-700">{formatPrice(salesQuery.data.awaitingConfirm)}</span></>
+              ) : null}
+              .
             </p>
           </div>
           <button
