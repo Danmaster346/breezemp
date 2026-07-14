@@ -23,7 +23,7 @@ import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
 import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
-import logo from "@/assets/breeze-logo.png.asset.json";
+
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 
@@ -148,8 +148,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
 
         <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-3">
-          <Link to="/" className="flex items-center shrink-0" aria-label="BREEZE">
-            <img src={logo.url} alt="BREEZE" className="h-7 md:h-9 w-auto" />
+          <Link to="/" className="flex items-center shrink-0" aria-label="Kupiks">
+            <span className="font-display text-2xl md:text-[26px] font-extrabold tracking-tight text-foreground">
+              kupiks<span className="text-brand">.</span>
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1 ml-6 text-sm">
@@ -168,7 +170,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 search={{ as: "seller", mode: "signup" } as never}
                 className="px-3 py-2 rounded-full font-medium text-brand hover:text-brand-strong transition"
               >
-                Продавать на BREEZE
+                Продавать на Kupiks
               </Link>
             )}
           </nav>
@@ -269,7 +271,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <footer className="hidden md:block bg-foreground text-white/80 mt-8">
         <div className="mx-auto max-w-7xl px-4 py-10 grid grid-cols-4 gap-8 text-sm">
           <div>
-            <img src={logo.url} alt="BREEZE" className="h-8 w-auto bg-white p-1.5 rounded-lg" />
+            <div className="font-display text-2xl font-extrabold text-white">
+              kupiks<span className="text-brand">.</span>
+            </div>
             <p className="mt-3 text-white/60 text-xs leading-relaxed">
               Маркетплейс товаров для дома, отдыха и стиля.
             </p>
@@ -292,7 +296,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </ul>
           </div>
           <div>
-            <div className="text-white font-semibold mb-3">BREEZE</div>
+            <div className="text-white font-semibold mb-3">Kupiks</div>
             <ul className="space-y-1.5 text-white/70">
               <li>О маркетплейсе</li>
               <li>Помощь</li>
@@ -301,7 +305,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="border-t border-white/10 py-4 text-center text-xs text-white/50">
-          © {new Date().getFullYear()} BREEZE Marketplace
+          © {new Date().getFullYear()} Kupiks Marketplace
         </div>
       </footer>
 
