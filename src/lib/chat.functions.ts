@@ -97,6 +97,75 @@ export const getOrCreateChat = createServerFn({ method: "POST" })
     return { id: created.id };
   });
 
+// Создание/поиск чата по конкретной позиции заказа.
+// Работает и для покупателя, и для продавца: сервер сам определяет участников заказа.
+export const getOrCreateOrderChat = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ order_item_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const tag = `[chat.open.order item=${data.order_item_id} user=${userId}]`;
+
+    const { data: item, error: itemErr } = await supabaseAdmin
+      .from("order_items")
+      .select("id, order_id, seller_id, product_id")
+      .eq("id", data.order_item_id)
+      .maybeSingle();
+    if (itemErr) {
+      console.error(`${tag} item lookup failed`, itemErr);
+      throw new Error(itemErr.message);
+    }
+    if (!item) throw new Error("Позиция заказа не найдена");
+
+    const { data: order, error: orderErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, buyer_id")
+      .eq("id", item.order_id)
+      .maybeSingle();
+    if (orderErr) {
+      console.error(`${tag} order lookup failed`, orderErr);
+      throw new Error(orderErr.message);
+    }
+    if (!order) throw new Error("Заказ не найден");
+    if (order.buyer_id !== userId && item.seller_id !== userId) {
+      throw new Error("Нет доступа к чату по этому заказу");
+    }
+    if (order.buyer_id === item.seller_id) {
+      throw new Error("Покупатель и продавец совпадают — чат с самим собой недоступен");
+    }
+
+    const { data: existing, error: existingErr } = await supabaseAdmin
+      .from("chats")
+      .select("id")
+      .eq("buyer_id", order.buyer_id)
+      .eq("seller_id", item.seller_id)
+      .eq("order_id", order.id)
+      .maybeSingle();
+    if (existingErr) {
+      console.error(`${tag} existing lookup failed`, existingErr);
+      throw new Error(existingErr.message);
+    }
+    if (existing) return { id: existing.id };
+
+    const { data: created, error } = await supabaseAdmin
+      .from("chats")
+      .insert({
+        buyer_id: order.buyer_id,
+        seller_id: item.seller_id,
+        product_id: item.product_id,
+        order_id: order.id,
+      })
+      .select("id")
+      .single();
+    if (error || !created) {
+      console.error(`${tag} create failed`, error);
+      throw new Error(error?.message ?? "Не удалось открыть чат по заказу");
+    }
+    console.log(`${tag} ok`, { chat_id: created.id });
+    return { id: created.id };
+  });
+
 // Список чатов текущего пользователя (и как покупателя, и как продавца)
 export const listChats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -8,7 +8,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
-import { getOrCreateChat } from "@/lib/chat.functions";
+import { getOrCreateOrderChat } from "@/lib/chat.functions";
 import {
   buyerConfirmReceivedItem,
   buyerReturnOrderItem,
@@ -110,7 +110,7 @@ function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
-  const openChat = useServerFn(getOrCreateChat);
+  const openOrderChat = useServerFn(getOrCreateOrderChat);
   const returnItemFn = useServerFn(buyerReturnOrderItem);
   const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
   const navigate = useNavigate();
@@ -134,14 +134,12 @@ function AccountPage() {
     }
   };
 
-  const writeSeller = async (sellerId: string, productId: string | null, orderId: string) => {
+  const writeSeller = async (item: OrderItem) => {
     try {
-      const res = await openChat({
-        data: { seller_id: sellerId, product_id: productId, order_id: orderId },
-      });
+      const res = await openOrderChat({ data: { order_item_id: item.id } });
       navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error("Не удалось открыть чат", { description: (err as Error).message });
     }
   };
 
@@ -549,9 +547,7 @@ function AccountPage() {
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() =>
-                              writeSeller(it.seller_id, it.product_id, openOrder.id)
-                            }
+                            onClick={() => writeSeller(it)}
                             className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium hover:bg-accent"
                           >
                             <MessageCircle className="h-3 w-3" /> Написать продавцу

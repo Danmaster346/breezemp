@@ -1,9 +1,9 @@
 // Заказы продавца: WB-подобный процесс — отправка с трек-номером + отмена
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ExternalLink, Truck, XCircle, Loader2, X, PackageCheck, CheckCircle2 } from "lucide-react";
+import { ExternalLink, Truck, XCircle, Loader2, X, PackageCheck, CheckCircle2, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerOrderItems } from "@/lib/order-history.functions";
@@ -20,6 +20,7 @@ import {
   sellerMarkDeliveredItem,
   sellerShipOrderItem,
 } from "@/lib/order-status.functions";
+import { getOrCreateOrderChat } from "@/lib/chat.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/seller/orders")({
@@ -48,6 +49,7 @@ type SellerItem = {
   return_photos: string[] | null;
   orders: {
     id: string;
+      buyer_id?: string;
     created_at: string;
     shipping_name: string | null;
     shipping_phone: string | null;
@@ -58,9 +60,11 @@ type SellerItem = {
 function SellerOrdersPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const shipFn = useServerFn(sellerShipOrderItem);
   const cancelFn = useServerFn(sellerCancelOrderItem);
   const deliverFn = useServerFn(sellerMarkDeliveredItem);
+  const openOrderChat = useServerFn(getOrCreateOrderChat);
   const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
@@ -104,6 +108,15 @@ function SellerOrdersPage() {
     statusFilter === "all"
       ? all
       : all.filter((it) => normalizeStatus(it.status) === statusFilter);
+
+  const writeBuyer = async (item: SellerItem) => {
+    try {
+      const res = await openOrderChat({ data: { order_item_id: item.id } });
+      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+    } catch (err) {
+      toast.error("Не удалось открыть чат", { description: (err as Error).message });
+    }
+  };
 
   return (
     <div>
@@ -322,6 +335,15 @@ function SellerOrdersPage() {
                     )}
                   </div>
                 )}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                  <button
+                    type="button"
+                    onClick={() => writeBuyer(it)}
+                    className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold hover:bg-accent"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Написать покупателю
+                  </button>
+                </div>
                 {status === "delivered" && (
                   <div className="mt-3 rounded-lg bg-sky-50 border border-sky-100 p-2.5 text-xs text-sky-900 flex items-center gap-1.5">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Заказ доставлен покупателю
