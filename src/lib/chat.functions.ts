@@ -135,13 +135,15 @@ export const getOrCreateOrderChat = createServerFn({ method: "POST" })
       throw new Error("Покупатель и продавец совпадают — чат с самим собой недоступен");
     }
 
-    const { data: existing, error: existingErr } = await supabaseAdmin
+    let existingQuery = supabaseAdmin
       .from("chats")
       .select("id")
       .eq("buyer_id", order.buyer_id)
-      .eq("seller_id", item.seller_id)
-      .eq("order_id", order.id)
-      .maybeSingle();
+      .eq("seller_id", item.seller_id);
+    existingQuery = item.product_id
+      ? existingQuery.eq("product_id", item.product_id)
+      : existingQuery.is("product_id", null);
+    const { data: existing, error: existingErr } = await existingQuery.maybeSingle();
     if (existingErr) {
       console.error(`${tag} existing lookup failed`, existingErr);
       throw new Error(existingErr.message);
