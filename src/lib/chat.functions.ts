@@ -218,6 +218,13 @@ export const sendChatMessage = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const tag = `[chat.send chat=${data.chat_id} user=${userId}]`;
+    console.log(`${tag} start`, {
+      has_body: !!data.body,
+      body_len: data.body?.length ?? 0,
+      has_image: !!data.image_path,
+      image_path: data.image_path ?? null,
+    });
 
     // Явная проверка, что отправитель — участник чата (не полагаемся только на RLS)
     const { data: chat, error: chatErr } = await supabase
@@ -225,8 +232,14 @@ export const sendChatMessage = createServerFn({ method: "POST" })
       .select("id, buyer_id, seller_id")
       .eq("id", data.chat_id)
       .single();
-    if (chatErr || !chat) throw new Error("Чат не найден");
-    if (chat.buyer_id !== userId && chat.seller_id !== userId) throw new Error("Нет доступа к чату");
+    if (chatErr || !chat) {
+      console.error(`${tag} chat lookup failed`, chatErr);
+      throw new Error(`Чат не найден: ${chatErr?.message ?? "нет доступа"}`);
+    }
+    if (chat.buyer_id !== userId && chat.seller_id !== userId) {
+      console.error(`${tag} access denied`, { buyer: chat.buyer_id, seller: chat.seller_id });
+      throw new Error("Нет доступа к чату");
+    }
 
     const body = data.body?.trim() || null;
     const { error } = await supabase.from("chat_messages").insert({
@@ -235,12 +248,23 @@ export const sendChatMessage = createServerFn({ method: "POST" })
       body,
       image_path: data.image_path ?? null,
     });
-    if (error) throw new Error(error.message);
-    // Поднимаем чат наверх списка
-    await supabase
+    if (error) {
+      console.error(`${tag} insert failed`, {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      throw new Error(
+        `Не удалось отправить: ${error.message}${error.hint ? ` (${error.hint})` : ""}`,
+      );
+    }
+    const { error: bumpErr } = await supabase
       .from("chats")
       .update({ last_message_at: new Date().toISOString() })
       .eq("id", data.chat_id);
+    if (bumpErr) console.warn(`${tag} bump last_message_at failed`, bumpErr);
+    console.log(`${tag} ok`);
     return { ok: true };
   });
 
