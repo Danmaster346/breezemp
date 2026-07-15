@@ -136,41 +136,50 @@ function CatalogPage() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 py-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4">Каталог товаров</h1>
+        {/* Hero-header каталога */}
+        <div className="mb-5">
+          <div className="flex items-end justify-between gap-3 mb-3">
+            <div>
+              <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
+                Каталог
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {productsQuery.isLoading
+                  ? "Ищем товары…"
+                  : total > 0
+                    ? `${total.toLocaleString("ru-RU")} ${plural(total, ["товар", "товара", "товаров"])} найдено`
+                    : "Пока ничего не найдено"}
+              </p>
+            </div>
+          </div>
 
-        {/* Поиск с автодополнением */}
-        <div className="mb-4">
+          {/* Поиск с автодополнением */}
           <CatalogSearchBar
             value={search.q ?? ""}
             onSubmit={(v: string) => upd({ q: v || undefined })}
           />
         </div>
 
-        {/* Категории */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4">
-          <button
-            onClick={() => upd({ category: undefined })}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-              !search.category
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary hover:bg-accent"
-            }`}
-          >
-            Все
-          </button>
-          {catsQuery.data?.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => upd({ category: c.slug })}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                search.category === c.slug
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-accent"
-              }`}
-            >
-              {c.icon} {c.name}
-            </button>
-          ))}
+        {/* Категории — круглые плитки Askona-style */}
+        <div className="mb-5 -mx-4 px-4">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2">
+            <CategoryTile
+              active={!search.category}
+              onClick={() => upd({ category: undefined })}
+              label="Все"
+              emoji="✨"
+            />
+            {catsQuery.data?.map((c) => (
+              <CategoryTile
+                key={c.id}
+                active={search.category === c.slug}
+                onClick={() => upd({ category: c.slug })}
+                label={c.name}
+                emoji={c.icon ?? "📦"}
+                imageUrl={c.icon_url}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Мобильная панель: 2 кнопки — фильтры и сортировка */}
@@ -373,14 +382,29 @@ function CatalogPage() {
           )}
         </div>
 
-        {/* Счётчик */}
-        <div className="mb-3 text-sm text-muted-foreground">
-          {productsQuery.isLoading
-            ? "Ищем товары…"
-            : total > 0
-              ? `Найдено товаров: ${total}`
-              : "Ничего не найдено"}
+        {/* Быстрая сортировка (chips) */}
+        <div className="mb-4 -mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {SORT_OPTIONS.map((s) => {
+              const active = (search.sort ?? "relevance") === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => upd({ sort: s.key })}
+                  className={`shrink-0 h-9 px-4 rounded-full text-sm font-semibold transition border ${
+                    active
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-white text-foreground/75 border-border hover:border-foreground/40"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
 
         {/* Сетка */}
         {productsQuery.isLoading ? (
@@ -605,3 +629,60 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
     </span>
   );
 }
+
+function plural(n: number, forms: [string, string, string]) {
+  const abs = Math.abs(n) % 100;
+  const n1 = abs % 10;
+  if (abs > 10 && abs < 20) return forms[2];
+  if (n1 > 1 && n1 < 5) return forms[1];
+  if (n1 === 1) return forms[0];
+  return forms[2];
+}
+
+function CategoryTile({
+  active,
+  onClick,
+  label,
+  emoji,
+  imageUrl,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  emoji: string;
+  imageUrl?: string | null;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 flex flex-col items-center gap-2 group w-[76px] md:w-[92px]"
+    >
+      <div
+        className={`grid place-items-center rounded-2xl transition-all duration-200 h-[68px] w-[68px] md:h-[80px] md:w-[80px] ${
+          active
+            ? "bg-brand text-brand-foreground shadow-[0_8px_20px_-8px_var(--brand)]"
+            : "bg-surface text-foreground/80 group-hover:bg-surface-strong"
+        }`}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-10 w-10 md:h-12 md:w-12 object-contain"
+          />
+        ) : (
+          <span className="text-2xl md:text-3xl">{emoji}</span>
+        )}
+      </div>
+      <span
+        className={`text-[11px] md:text-xs leading-tight text-center line-clamp-2 transition ${
+          active ? "text-brand font-semibold" : "text-foreground/75"
+        }`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+

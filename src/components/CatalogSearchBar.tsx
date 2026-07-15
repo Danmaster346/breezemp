@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, Clock, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { suggestCatalog } from "@/lib/catalog-search.functions";
 
@@ -15,16 +15,41 @@ type Props = {
   compact?: boolean;
 };
 
+const RECENT_KEY = "kupiks:recent-searches";
+const POPULAR = ["Диван", "Кресло", "Стол", "Матрас", "Лампа", "Полка"];
+
+function loadRecent(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as string[]).slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+}
+function saveRecent(q: string) {
+  if (typeof window === "undefined" || !q) return;
+  try {
+    const cur = loadRecent().filter((s) => s.toLowerCase() !== q.toLowerCase());
+    localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...cur].slice(0, 6)));
+  } catch {
+    /* noop */
+  }
+}
+
 export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Props) {
   const [q, setQ] = useState(value);
   const [debounced, setDebounced] = useState(value);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  const [recent, setRecent] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const suggest = useServerFn(suggestCatalog);
 
   useEffect(() => setQ(value), [value]);
+  useEffect(() => setRecent(loadRecent()), []);
+
 
   // debounce ввода
   useEffect(() => {
@@ -52,7 +77,15 @@ export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Prop
   const submit = (v: string) => {
     setOpen(false);
     setHighlight(-1);
+    if (v) {
+      saveRecent(v);
+      setRecent(loadRecent());
+    }
     onSubmit(v);
+  };
+  const clearRecent = () => {
+    try { localStorage.removeItem(RECENT_KEY); } catch { /* noop */ }
+    setRecent([]);
   };
 
   return (
@@ -114,6 +147,62 @@ export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Prop
           Найти
         </button>
       </form>
+
+      {open && debounced.length < 2 && (recent.length > 0 || POPULAR.length > 0) && (
+        <div className="absolute z-50 left-0 right-0 mt-2 rounded-2xl border border-border bg-white shadow-xl overflow-hidden p-3 space-y-3">
+          {recent.length > 0 && (
+            <div>
+              <div className="px-1 pb-2 flex items-center justify-between">
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <Clock className="h-3.5 w-3.5" /> Недавние
+                </div>
+                <button
+                  type="button"
+                  onClick={clearRecent}
+                  className="text-xs text-muted-foreground hover:text-destructive transition"
+                >
+                  Очистить
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recent.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      setQ(r);
+                      submit(r);
+                    }}
+                    className="h-8 px-3 rounded-full bg-surface text-sm text-foreground/85 hover:bg-brand hover:text-brand-foreground transition"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="px-1 pb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <TrendingUp className="h-3.5 w-3.5" /> Часто ищут
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => {
+                    setQ(r);
+                    submit(r);
+                  }}
+                  className="h-8 px-3 rounded-full bg-brand-soft text-brand text-sm font-medium hover:bg-brand hover:text-brand-foreground transition"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {open && debounced.length >= 2 && (
         <div className="absolute z-50 left-0 right-0 mt-2 rounded-2xl border border-border bg-white shadow-xl overflow-hidden">
