@@ -148,6 +148,62 @@ export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Prop
         </button>
       </form>
 
+      {open && debounced.length < 2 && (recent.length > 0 || POPULAR.length > 0) && (
+        <div className="absolute z-50 left-0 right-0 mt-2 rounded-2xl border border-border bg-white shadow-xl overflow-hidden p-3 space-y-3">
+          {recent.length > 0 && (
+            <div>
+              <div className="px-1 pb-2 flex items-center justify-between">
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <Clock className="h-3.5 w-3.5" /> Недавние
+                </div>
+                <button
+                  type="button"
+                  onClick={clearRecent}
+                  className="text-xs text-muted-foreground hover:text-destructive transition"
+                >
+                  Очистить
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recent.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => {
+                      setQ(r);
+                      submit(r);
+                    }}
+                    className="h-8 px-3 rounded-full bg-surface text-sm text-foreground/85 hover:bg-brand hover:text-brand-foreground transition"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <div className="px-1 pb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <TrendingUp className="h-3.5 w-3.5" /> Часто ищут
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => {
+                    setQ(r);
+                    submit(r);
+                  }}
+                  className="h-8 px-3 rounded-full bg-brand-soft text-brand text-sm font-medium hover:bg-brand hover:text-brand-foreground transition"
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {open && debounced.length >= 2 && (
         <div className="absolute z-50 left-0 right-0 mt-2 rounded-2xl border border-border bg-white shadow-xl overflow-hidden">
           {suggestions.isLoading ? (
