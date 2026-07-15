@@ -382,14 +382,29 @@ function CatalogPage() {
           )}
         </div>
 
-        {/* Счётчик */}
-        <div className="mb-3 text-sm text-muted-foreground">
-          {productsQuery.isLoading
-            ? "Ищем товары…"
-            : total > 0
-              ? `Найдено товаров: ${total}`
-              : "Ничего не найдено"}
+        {/* Быстрая сортировка (chips) */}
+        <div className="mb-4 -mx-4 px-4">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {SORT_OPTIONS.map((s) => {
+              const active = (search.sort ?? "relevance") === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => upd({ sort: s.key })}
+                  className={`shrink-0 h-9 px-4 rounded-full text-sm font-semibold transition border ${
+                    active
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-white text-foreground/75 border-border hover:border-foreground/40"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
 
         {/* Сетка */}
         {productsQuery.isLoading ? (
