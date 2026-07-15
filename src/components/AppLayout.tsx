@@ -16,6 +16,7 @@ import {
   Wallet,
   ArrowLeftRight,
   MessageCircle,
+  Heart,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
