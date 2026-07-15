@@ -135,6 +135,7 @@ function CatalogPage() {
           seller_id: search.seller || undefined,
           in_stock: search.in_stock || undefined,
           sort: (search.sort ?? "relevance") as SortKey,
+          limit: 240,
         },
       }),
     placeholderData: (prev) => prev,
