@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, Clock, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { suggestCatalog } from "@/lib/catalog-search.functions";
 
@@ -15,16 +15,41 @@ type Props = {
   compact?: boolean;
 };
 
+const RECENT_KEY = "kupiks:recent-searches";
+const POPULAR = ["Диван", "Кресло", "Стол", "Матрас", "Лампа", "Полка"];
+
+function loadRecent(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? (JSON.parse(raw) as string[]).slice(0, 6) : [];
+  } catch {
+    return [];
+  }
+}
+function saveRecent(q: string) {
+  if (typeof window === "undefined" || !q) return;
+  try {
+    const cur = loadRecent().filter((s) => s.toLowerCase() !== q.toLowerCase());
+    localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...cur].slice(0, 6)));
+  } catch {
+    /* noop */
+  }
+}
+
 export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Props) {
   const [q, setQ] = useState(value);
   const [debounced, setDebounced] = useState(value);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(-1);
+  const [recent, setRecent] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const suggest = useServerFn(suggestCatalog);
 
   useEffect(() => setQ(value), [value]);
+  useEffect(() => setRecent(loadRecent()), []);
+
 
   // debounce ввода
   useEffect(() => {
