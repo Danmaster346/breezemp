@@ -111,8 +111,19 @@ function CatalogPage() {
     queryFn: () => loadSellers(),
   });
 
+  // Ключ без page — датасет один, страницы нарезаются на клиенте
+  const queryKey = {
+    q: search.q,
+    category: search.category,
+    min: search.min,
+    max: search.max,
+    rating: search.rating,
+    seller: search.seller,
+    in_stock: search.in_stock,
+    sort: search.sort,
+  };
   const productsQuery = useQuery({
-    queryKey: ["catalog", search],
+    queryKey: ["catalog", queryKey],
     queryFn: () =>
       doSearch({
         data: {
@@ -126,10 +137,46 @@ function CatalogPage() {
           sort: (search.sort ?? "relevance") as SortKey,
         },
       }),
+    placeholderData: (prev) => prev,
   });
 
-  const items = productsQuery.data?.items ?? [];
+  const allItems = productsQuery.data?.items ?? [];
   const total = productsQuery.data?.total ?? 0;
+  const page = search.page ?? 1;
+  const visibleCount = Math.min(page * PAGE_SIZE, allItems.length);
+  const items = allItems.slice(0, visibleCount);
+  const hasMore = visibleCount < allItems.length;
+
+  // Infinite scroll — подгружаем следующую страницу при появлении сентинела
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!hasMore || productsQuery.isLoading) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          navigate({
+            search: (prev: SearchParams) => ({ ...prev, page: (prev.page ?? 1) + 1 }),
+            replace: true,
+          });
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, productsQuery.isLoading, navigate, page]);
+
+  const loadMore = useCallback(
+    () =>
+      navigate({
+        search: (prev: SearchParams) => ({ ...prev, page: (prev.page ?? 1) + 1 }),
+        replace: true,
+      }),
+    [navigate],
+  );
+
   const hasFilters = Boolean(
     search.q ||
       search.category ||
