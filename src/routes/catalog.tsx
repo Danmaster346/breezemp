@@ -136,41 +136,50 @@ function CatalogPage() {
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 py-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4">Каталог товаров</h1>
+        {/* Hero-header каталога */}
+        <div className="mb-5">
+          <div className="flex items-end justify-between gap-3 mb-3">
+            <div>
+              <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
+                Каталог
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {productsQuery.isLoading
+                  ? "Ищем товары…"
+                  : total > 0
+                    ? `${total.toLocaleString("ru-RU")} ${plural(total, ["товар", "товара", "товаров"])} найдено`
+                    : "Пока ничего не найдено"}
+              </p>
+            </div>
+          </div>
 
-        {/* Поиск с автодополнением */}
-        <div className="mb-4">
+          {/* Поиск с автодополнением */}
           <CatalogSearchBar
             value={search.q ?? ""}
             onSubmit={(v: string) => upd({ q: v || undefined })}
           />
         </div>
 
-        {/* Категории */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 -mx-4 px-4">
-          <button
-            onClick={() => upd({ category: undefined })}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-              !search.category
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary hover:bg-accent"
-            }`}
-          >
-            Все
-          </button>
-          {catsQuery.data?.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => upd({ category: c.slug })}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                search.category === c.slug
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-accent"
-              }`}
-            >
-              {c.icon} {c.name}
-            </button>
-          ))}
+        {/* Категории — круглые плитки Askona-style */}
+        <div className="mb-5 -mx-4 px-4">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar pb-2">
+            <CategoryTile
+              active={!search.category}
+              onClick={() => upd({ category: undefined })}
+              label="Все"
+              emoji="✨"
+            />
+            {catsQuery.data?.map((c) => (
+              <CategoryTile
+                key={c.id}
+                active={search.category === c.slug}
+                onClick={() => upd({ category: c.slug })}
+                label={c.name}
+                emoji={c.icon ?? "📦"}
+                imageUrl={c.icon_url}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Мобильная панель: 2 кнопки — фильтры и сортировка */}
