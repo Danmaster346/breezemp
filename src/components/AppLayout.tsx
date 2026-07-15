@@ -296,6 +296,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <li><Link to="/catalog" className="hover:text-brand transition">Каталог</Link></li>
               <li><Link to="/cart" className="hover:text-brand transition">Корзина</Link></li>
               <li><Link to="/account" className="hover:text-brand transition">Мои заказы</Link></li>
+              <li><Link to="/favorites" className="hover:text-brand transition">Избранное</Link></li>
             </ul>
           </div>
           <div>
