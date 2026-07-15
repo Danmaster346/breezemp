@@ -47,8 +47,11 @@ const searchSchema = z.object({
   seller: z.string().optional(),
   in_stock: z.coerce.boolean().optional(),
   sort: z.enum(SORT_KEYS).optional().default("relevance"),
+  page: z.coerce.number().int().min(1).optional().default(1),
 });
 type SearchParams = z.infer<typeof searchSchema>;
+
+const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
