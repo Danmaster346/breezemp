@@ -629,3 +629,60 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
     </span>
   );
 }
+
+function plural(n: number, forms: [string, string, string]) {
+  const abs = Math.abs(n) % 100;
+  const n1 = abs % 10;
+  if (abs > 10 && abs < 20) return forms[2];
+  if (n1 > 1 && n1 < 5) return forms[1];
+  if (n1 === 1) return forms[0];
+  return forms[2];
+}
+
+function CategoryTile({
+  active,
+  onClick,
+  label,
+  emoji,
+  imageUrl,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  emoji: string;
+  imageUrl?: string | null;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 flex flex-col items-center gap-2 group w-[76px] md:w-[92px]"
+    >
+      <div
+        className={`grid place-items-center rounded-2xl transition-all duration-200 h-[68px] w-[68px] md:h-[80px] md:w-[80px] ${
+          active
+            ? "bg-brand text-brand-foreground shadow-[0_8px_20px_-8px_var(--brand)]"
+            : "bg-surface text-foreground/80 group-hover:bg-surface-strong"
+        }`}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            className="h-10 w-10 md:h-12 md:w-12 object-contain"
+          />
+        ) : (
+          <span className="text-2xl md:text-3xl">{emoji}</span>
+        )}
+      </div>
+      <span
+        className={`text-[11px] md:text-xs leading-tight text-center line-clamp-2 transition ${
+          active ? "text-brand font-semibold" : "text-foreground/75"
+        }`}
+      >
+        {label}
+      </span>
+    </button>
+  );
+}
+
