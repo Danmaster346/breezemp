@@ -160,6 +160,7 @@ function CatalogPage() {
           navigate({
             search: (prev: SearchParams) => ({ ...prev, page: (prev.page ?? 1) + 1 }),
             replace: true,
+            resetScroll: false,
           });
         }
       },
