@@ -77,7 +77,15 @@ export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Prop
   const submit = (v: string) => {
     setOpen(false);
     setHighlight(-1);
+    if (v) {
+      saveRecent(v);
+      setRecent(loadRecent());
+    }
     onSubmit(v);
+  };
+  const clearRecent = () => {
+    try { localStorage.removeItem(RECENT_KEY); } catch { /* noop */ }
+    setRecent([]);
   };
 
   return (
