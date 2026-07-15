@@ -507,7 +507,45 @@ function CatalogPage() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {/* Infinite scroll sentinel + fallback-кнопка */}
+        {!productsQuery.isLoading && items.length > 0 && hasMore && (
+          <>
+            <div ref={sentinelRef} aria-hidden className="h-1 w-full" />
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 w-full">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-white overflow-hidden animate-pulse"
+                  >
+                    <div className="aspect-square bg-surface-strong" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3 w-3/4 bg-surface-strong rounded" />
+                      <div className="h-4 w-1/2 bg-surface-strong rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={loadMore}
+                className="inline-flex items-center gap-2 rounded-full bg-white border border-border px-6 py-3 text-sm font-semibold text-foreground/80 hover:border-brand hover:text-brand transition shadow-sm"
+              >
+                Показать ещё
+              </button>
+            </div>
+          </>
+        )}
+
+        {!productsQuery.isLoading && items.length > 0 && !hasMore && total > PAGE_SIZE && (
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            Показаны все {total.toLocaleString("ru-RU")} {plural(total, ["товар", "товара", "товаров"])}
+          </div>
+        )}
+
+        {!productsQuery.isLoading && items.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border bg-white p-10 md:p-16 text-center animate-fade-in">
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-brand">
               <Search className="h-6 w-6" />
