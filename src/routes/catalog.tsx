@@ -188,7 +188,7 @@ function CatalogPage() {
   );
 
   const resetAll = () =>
-    navigate({ search: { sort: search.sort } as SearchParams });
+    navigate({ search: { sort: search.sort, page: 1 } as SearchParams });
 
   return (
     <AppLayout>
