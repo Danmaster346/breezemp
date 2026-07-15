@@ -16,6 +16,7 @@ import {
   Wallet,
   ArrowLeftRight,
   MessageCircle,
+  Heart,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
@@ -205,6 +206,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
               </button>
             )}
 
+            {effectiveMode === "buyer" && user && (
+              <Link
+                to="/favorites"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                aria-label="Избранное"
+              >
+                <Heart className="h-5 w-5" />
+              </Link>
+            )}
+
             {effectiveMode === "buyer" && (
               <Link
                 to="/cart"
@@ -219,6 +230,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 )}
               </Link>
             )}
+
 
             {user && (
               <Link
@@ -284,6 +296,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <li><Link to="/catalog" className="hover:text-brand transition">Каталог</Link></li>
               <li><Link to="/cart" className="hover:text-brand transition">Корзина</Link></li>
               <li><Link to="/account" className="hover:text-brand transition">Мои заказы</Link></li>
+              <li><Link to="/favorites" className="hover:text-brand transition">Избранное</Link></li>
             </ul>
           </div>
           <div>

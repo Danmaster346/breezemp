@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   Clock,
   PackageCheck,
+  Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -220,7 +221,13 @@ function AccountPage() {
             <h1 className="text-2xl md:text-3xl font-bold">Личный кабинет</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/favorites"
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-accent"
+            >
+              <Heart className="h-4 w-4 text-brand" /> Избранное
+            </Link>
             {isSeller && (
               <Link
                 to="/seller/products"
@@ -237,6 +244,7 @@ function AccountPage() {
             </button>
           </div>
         </div>
+
 
         {/* Обзорные карточки покупателя */}
         {(() => {

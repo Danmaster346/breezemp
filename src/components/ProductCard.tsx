@@ -1,6 +1,8 @@
-// Карточка товара — Askona-style: мягкий серый фон под фото, минимализм
+// Карточка товара — Askona-style + кнопка «В избранное»
 import { Link } from "@tanstack/react-router";
+import { Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
+import { useFavoriteHandler, useIsFavorite } from "@/lib/favorites.client";
 
 export type ProductCardProps = {
   id: string;
@@ -12,6 +14,8 @@ export type ProductCardProps = {
 
 export function ProductCard(p: ProductCardProps) {
   const out = p.stock === 0;
+  const favored = useIsFavorite(p.id);
+  const { toggle, isPending } = useFavoriteHandler(p.id);
   return (
     <Link
       to="/product/$id"
@@ -30,6 +34,21 @@ export function ProductCard(p: ProductCardProps) {
         ) : (
           <div className="h-full w-full flex items-center justify-center text-5xl opacity-30">🛍️</div>
         )}
+        {/* Кнопка избранного */}
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={isPending}
+          aria-label={favored ? "Убрать из избранного" : "В избранное"}
+          aria-pressed={favored}
+          className={`absolute top-2 right-2 h-9 w-9 grid place-items-center rounded-full backdrop-blur-md border transition-all shadow-sm ${
+            favored
+              ? "bg-brand text-brand-foreground border-brand"
+              : "bg-white/85 text-foreground/70 border-white/70 hover:bg-white hover:text-brand"
+          } ${isPending ? "opacity-70" : ""}`}
+        >
+          <Heart className={`h-4 w-4 ${favored ? "fill-current" : ""}`} />
+        </button>
         {out && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-destructive shadow-sm">
@@ -50,3 +69,4 @@ export function ProductCard(p: ProductCardProps) {
     </Link>
   );
 }
+
