@@ -77,7 +77,14 @@ function CatalogPage() {
   const loadSellers = useServerFn(listCatalogSellers);
 
   const upd = (patch: Partial<SearchParams>) =>
-    navigate({ search: (prev: SearchParams) => ({ ...prev, ...patch }) });
+    navigate({
+      search: (prev: SearchParams) => ({
+        ...prev,
+        ...patch,
+        // Любое изменение фильтров сбрасывает страницу; сам page можно менять явно
+        page: "page" in patch ? patch.page : 1,
+      }),
+    });
 
   // Локальные значения цены — применяем по blur/Enter
   const [minInput, setMinInput] = useState(search.min?.toString() ?? "");
