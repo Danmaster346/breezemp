@@ -122,9 +122,16 @@ function ReviewFormModal({
   const [rating, setRating] = useState(initial?.rating ?? 0);
   const [comment, setComment] = useState(initial?.comment ?? "");
   const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const create = useServerFn(createReview);
   const update = useServerFn(updateReview);
+
+  useEffect(() => {
+    return () => {
+      pendingFiles.forEach((p) => URL.revokeObjectURL(p.preview));
+    };
+  }, [pendingFiles]);
 
   const mutation = useMutation({
     mutationFn: async () => {
