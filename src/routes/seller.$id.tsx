@@ -90,7 +90,7 @@ function SellerPage() {
       <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 pb-28 md:pb-10">
         <Link
           to="/catalog"
-          search={{ q: "", category: "", minPrice: undefined, maxPrice: undefined, minRating: undefined, inStock: undefined, sort: "relevance", page: 1 } as never}
+          search={{}}
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-brand transition mb-4"
         >
           <ArrowLeft className="h-4 w-4" /> В каталог
