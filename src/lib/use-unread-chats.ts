@@ -1,7 +1,7 @@
 // Хук счётчика непрочитанных сообщений в чатах (с реалтайм-обновлением)
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { getUnreadChatCount } from "@/lib/chat.functions";
@@ -11,6 +11,7 @@ export function useUnreadChats() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetchUnread = useServerFn(getUnreadChatCount);
+  const channelSuffix = useMemo(() => Math.random().toString(36).slice(2), []);
 
   const q = useQuery({
     queryKey: ["unread-chats", user?.id],
@@ -21,31 +22,38 @@ export function useUnreadChats() {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel(`unread-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (payload) => {
-          const row = payload.new as { sender_id: string; body: string | null };
-          if (row.sender_id === user.id) return;
-          qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
-          qc.invalidateQueries({ queryKey: ["chats", user.id] });
-          toast.message("Новое сообщение", {
-            description: row.body ? row.body.slice(0, 80) : "Фото",
-          });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chat_messages" },
-        () => qc.invalidateQueries({ queryKey: ["unread-chats", user.id] }),
-      )
-      .subscribe();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      // У хука несколько потребителей (шапка, сайдбары, mobile nav). Уникальный topic
+      // не даёт Realtime переиспользовать уже подписанный канал и ронять кабинет.
+      ch = supabase
+        .channel(`unread-${user.id}-${channelSuffix}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages" },
+          (payload) => {
+            const row = payload.new as { sender_id: string; body: string | null };
+            if (row.sender_id === user.id) return;
+            qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
+            qc.invalidateQueries({ queryKey: ["chats", user.id] });
+            toast.message("Новое сообщение", {
+              description: row.body ? row.body.slice(0, 80) : "Фото",
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "chat_messages" },
+          () => qc.invalidateQueries({ queryKey: ["unread-chats", user.id] }),
+        )
+        .subscribe();
+    } catch (error) {
+      console.warn("[unread-chats] realtime disabled", error);
+    }
     return () => {
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
-  }, [user, qc]);
+  }, [user, qc, channelSuffix]);
 
   return q.data ?? 0;
 }
