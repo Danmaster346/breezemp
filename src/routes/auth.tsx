@@ -87,6 +87,10 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && !agreedPrivacy) {
+      toast.error("Подтвердите согласие с Политикой конфиденциальности");
+      return;
+    }
     setBusy(true);
     try {
       let userId: string | undefined;
