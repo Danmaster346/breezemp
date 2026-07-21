@@ -128,6 +128,9 @@ export const createReview = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const fail = (code: string, message: string): never => {
+      throw new Error(`[${code}] ${message}`);
+    };
 
     // Rate limit: не более 5 отзывов в час и 20 в сутки на пользователя
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -139,7 +142,7 @@ export const createReview = createServerFn({ method: "POST" })
       .gte("created_at", hourAgo);
     if (rlErr) throw new Error(rlErr.message);
     if ((hourCount ?? 0) >= 5) {
-      throw new Error("Слишком много отзывов за последний час. Попробуйте позже.");
+      fail("RATE_HOUR", "Слишком много отзывов за последний час. Попробуйте позже.");
     }
     const { count: dayCount } = await supabaseAdmin
       .from("reviews")
@@ -147,7 +150,7 @@ export const createReview = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .gte("created_at", dayAgo);
     if ((dayCount ?? 0) >= 20) {
-      throw new Error("Достигнут дневной лимит отзывов. Попробуйте завтра.");
+      fail("RATE_DAY", "Достигнут дневной лимит отзывов. Попробуйте завтра.");
     }
 
     // Проверяем, что позиция принадлежит покупателю и в допустимом статусе
@@ -157,12 +160,14 @@ export const createReview = createServerFn({ method: "POST" })
       .eq("id", data.order_item_id)
       .maybeSingle();
     if (itemErr) throw new Error(itemErr.message);
-    if (!item) throw new Error("Позиция заказа не найдена");
+    if (!item) fail("NOT_PURCHASED", "Отзыв доступен только для купленного товара");
     const orders = (item as unknown as { orders: { buyer_id: string } }).orders;
-    if (orders.buyer_id !== context.userId) throw new Error("Нет доступа");
-    if (item.product_id !== data.product_id) throw new Error("Товар не совпадает");
-    if (!["delivered", "received"].includes(item.status)) {
-      throw new Error("Отзыв можно оставить только после получения товара");
+    if (orders.buyer_id !== context.userId)
+      fail("NOT_PURCHASED", "Отзыв доступен только для купленного товара");
+    if (item!.product_id !== data.product_id)
+      fail("NOT_PURCHASED", "Отзыв доступен только для купленного товара");
+    if (!["delivered", "received"].includes(item!.status)) {
+      fail("TOO_EARLY", "Отзыв можно оставить только после получения товара");
     }
 
     // Запрет самоотзыва: продавец не может оценивать собственный товар
@@ -172,9 +177,9 @@ export const createReview = createServerFn({ method: "POST" })
       .eq("id", data.product_id)
       .maybeSingle();
     if (prodErr) throw new Error(prodErr.message);
-    if (!product) throw new Error("Товар не найден");
-    if (product.seller_id === context.userId) {
-      throw new Error("Нельзя оставить отзыв на собственный товар");
+    if (!product) fail("NOT_PURCHASED", "Товар не найден");
+    if (product!.seller_id === context.userId) {
+      fail("SELF_REVIEW", "Нельзя оставить отзыв на собственный товар");
     }
 
     // Получаем имя покупателя из профиля
@@ -202,8 +207,9 @@ export const createReview = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (insErr) {
-      if (insErr.code === "23505") throw new Error("Вы уже оставили отзыв на этот товар");
+      if (insErr.code === "23505")
+        fail("DUPLICATE", "Вы уже оставили отзыв на этот товар");
       throw new Error(insErr.message);
     }
-    return { id: inserted.id };
+    return { id: inserted!.id };
   });
