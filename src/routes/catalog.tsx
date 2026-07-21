@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { BottomSheet } from "@/components/BottomSheet";
@@ -193,9 +194,19 @@ function CatalogPage() {
   const resetAll = () =>
     navigate({ search: { sort: search.sort, page: 1 } as SearchParams });
 
+  const activeCat = catsQuery.data?.find((c) => c.slug === search.category);
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-7xl px-4 py-6">
+        <Breadcrumbs
+          items={
+            activeCat
+              ? [{ label: "Каталог", to: "/catalog" }, { label: activeCat.name }]
+              : [{ label: "Каталог" }]
+          }
+          className="mb-4"
+        />
         {/* Hero-header каталога */}
         <div className="mb-5">
           <div className="flex items-end justify-between gap-3 mb-3">

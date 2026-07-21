@@ -1,22 +1,21 @@
-// Каркас приложения — Askona-style: мягкий серый фон, крупная пилюля поиска,
-// круглая бирюзовая кнопка меню, минималистичная шапка.
-// Мобильная версия: sticky header со скрытием при скролле, нижняя навигация
-// на 5 пунктов с бейджами непрочитанных и корзины + safe-area.
+// Каркас Kupiks с двумя темами:
+//   • buyer → янтарь-мандарин (по умолчанию)
+//   • seller → чистый нуар (класс .mode-seller на <html>)
+// Меню категорий, сегмент-переключатель ролей, мобильная bottom-nav.
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   ShoppingCart,
   User,
   Store,
   Home,
-  Menu,
-  Phone,
   Package,
   ClipboardList,
   BarChart3,
   Wallet,
-  ArrowLeftRight,
   MessageCircle,
   Heart,
+  LayoutGrid,
+  ShoppingBag,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
@@ -27,6 +26,7 @@ import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
+import { CategoryMenu, CategorySheetButton } from "@/components/CategoryMenu";
 
 type NavItem = {
   to: string;
@@ -36,10 +36,9 @@ type NavItem = {
   exact?: boolean;
 };
 
-// Нижнее мобильное меню — 5 пунктов, свой набор для каждого режима
 const buyerMobileNav: readonly NavItem[] = [
   { to: "/", label: "Главная", icon: Home, exact: true },
-  { to: "/catalog", label: "Каталог", icon: Menu },
+  { to: "/catalog", label: "Каталог", icon: LayoutGrid },
   { to: "/cart", label: "Корзина", icon: ShoppingCart, badge: "cart" },
   { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
   { to: "/account", label: "Кабинет", icon: User },
@@ -49,23 +48,9 @@ const sellerMobileNav: readonly NavItem[] = [
   { to: "/seller/products", label: "Товары", icon: Package },
   { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
   { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
-  { to: "/seller/balance", label: "Финансы", icon: Wallet },
+  { to: "/seller/balance", label: "Баланс", icon: Wallet },
   { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
 ];
-
-// Верхнее меню (desktop)
-const buyerTopNav = [
-  { to: "/catalog", label: "Каталог" },
-  { to: "/catalog", label: "Акции" },
-  { to: "/catalog", label: "Новинки" },
-] as const;
-
-const sellerTopNav = [
-  { to: "/seller/products", label: "Мои товары" },
-  { to: "/seller/orders", label: "Заказы" },
-  { to: "/seller/analytics", label: "Аналитика" },
-  { to: "/seller/balance", label: "Баланс" },
-] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -95,9 +80,19 @@ export function AppLayout({ children }: { children: ReactNode }) {
   }, [pathname, isSeller, mode, setMode]);
 
   const effectiveMode: "buyer" | "seller" = isSeller && mode === "seller" ? "seller" : "buyer";
-  const topNav = effectiveMode === "seller" ? sellerTopNav : buyerTopNav;
-  const mobileNav = effectiveMode === "seller" ? sellerMobileNav : buyerMobileNav;
-  const accountHref = effectiveMode === "seller" ? "/seller/products" : "/account";
+  const sellerModeUi = effectiveMode === "seller";
+
+  // Синхронизируем класс темы на <html>, чтобы страницы вне AppLayout тоже могли получить нужные токены.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("mode-seller", sellerModeUi);
+    return () => {
+      document.documentElement.classList.remove("mode-seller");
+    };
+  }, [sellerModeUi]);
+
+  const mobileNav = sellerModeUi ? sellerMobileNav : buyerMobileNav;
+  const accountHref = sellerModeUi ? "/seller/products" : "/account";
 
   const goSearch = (v: string) =>
     navigate({ to: "/catalog", search: { q: v || undefined } as never });
@@ -108,139 +103,125 @@ export function AppLayout({ children }: { children: ReactNode }) {
     else navigate({ to: "/account" });
   };
 
-  const sellerModeUi = effectiveMode === "seller";
-
   return (
-    <div className={`min-h-[100dvh] flex flex-col text-foreground transition-colors ${sellerModeUi ? "bg-brand-soft/40" : "bg-white"}`}>
-      {/* Шапка — sticky, скрывается при скролле вниз на мобильном */}
+    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
       <header
-        className={`sticky top-0 z-40 backdrop-blur border-b transition-transform duration-300 will-change-transform ${
-          sellerModeUi
-            ? "bg-white/95 supports-[backdrop-filter]:bg-white/85 border-brand/30"
-            : "bg-white/95 supports-[backdrop-filter]:bg-white/85 border-border/60"
-        } ${headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"}`}
+        className={`sticky top-0 z-40 backdrop-blur border-b border-border bg-background/90 supports-[backdrop-filter]:bg-background/75 transition-transform duration-300 will-change-transform ${
+          headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"
+        }`}
       >
-        {user && (
-          <div
-            className={`w-full flex items-center justify-center gap-2 text-xs font-semibold py-1.5 px-3 ${
-              sellerModeUi
-                ? "bg-brand text-brand-foreground"
-                : "bg-foreground text-white"
-            }`}
-          >
-            {sellerModeUi ? <Store className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-            <span className="uppercase tracking-wider">
-              {sellerModeUi ? "Кабинет продавца" : "Режим покупателя"}
-            </span>
-            {isSeller && (
-              <button
-                onClick={() => switchMode(sellerModeUi ? "buyer" : "seller")}
-                className={`ml-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
-                  sellerModeUi
-                    ? "bg-white/20 text-white hover:bg-white/30"
-                    : "bg-white/20 text-white hover:bg-white/30"
-                }`}
-              >
-                <ArrowLeftRight className="h-3 w-3" />
-                {sellerModeUi ? "Стать покупателем" : "Стать продавцом"}
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-3">
+        {/* Верхняя полоса: логотип · категории · переключатель · корзина/меню */}
+        <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-2 md:gap-3">
           <Link to="/" className="flex items-center shrink-0" aria-label="Kupiks">
             <span className="font-display text-2xl md:text-[26px] font-extrabold tracking-tight text-foreground">
               kupiks<span className="text-brand">.</span>
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1 ml-6 text-sm">
-            {topNav.map((it, i) => (
+          {/* Каталог (десктоп) */}
+          <div className="hidden md:flex items-center gap-1 ml-3">
+            <CategoryMenu />
+            {!sellerModeUi && (
               <Link
-                key={i}
-                to={it.to}
-                className="px-3 py-2 rounded-full font-medium text-foreground/80 hover:text-brand transition"
+                to="/catalog"
+                className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition"
               >
-                {it.label}
-              </Link>
-            ))}
-            {!isSeller && effectiveMode === "buyer" && (
-              <Link
-                to="/auth"
-                search={{ as: "seller", mode: "signup" } as never}
-                className="px-3 py-2 rounded-full font-medium text-brand hover:text-brand-strong transition"
-              >
-                Продавать на Kupiks
+                Новинки
               </Link>
             )}
-          </nav>
+            {!sellerModeUi && (
+              <Link
+                to="/catalog"
+                className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition"
+              >
+                Акции
+              </Link>
+            )}
+            {sellerModeUi && (
+              <>
+                <Link to="/seller/products" className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition">Товары</Link>
+                <Link to="/seller/orders" className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition">Заказы</Link>
+                <Link to="/seller/analytics" className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition">Аналитика</Link>
+              </>
+            )}
+          </div>
 
           <div className="ml-auto flex items-center gap-1 md:gap-2">
-            <a
-              href="tel:88001234567"
-              className="hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
-              aria-label="Позвонить"
-            >
-              <Phone className="h-5 w-5" />
-            </a>
+            {/* Сегмент-переключатель ролей — виден когда пользователь продавец */}
+            {user && isSeller && (
+              <div className="hidden md:inline-flex items-center rounded-full bg-surface p-0.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => switchMode("buyer")}
+                  className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full ui-transition ${
+                    !sellerModeUi
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-foreground/60 hover:text-foreground"
+                  }`}
+                  aria-pressed={!sellerModeUi}
+                >
+                  <ShoppingBag className="h-3.5 w-3.5" />
+                  Покупатель
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchMode("seller")}
+                  className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full ui-transition ${
+                    sellerModeUi
+                      ? "bg-foreground text-background shadow-sm"
+                      : "text-foreground/60 hover:text-foreground"
+                  }`}
+                  aria-pressed={sellerModeUi}
+                >
+                  <Store className="h-3.5 w-3.5" />
+                  Продавец
+                </button>
+              </div>
+            )}
 
             {isAdmin && (
               <Link
                 to="/admin"
-                className="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold bg-foreground text-white hover:bg-foreground/85 transition"
-                aria-label="Админ-панель"
+                className="hidden md:inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold bg-foreground text-background hover:opacity-90 ui-transition"
               >
                 Админ
               </Link>
             )}
 
-
-
-            {user && isSeller && effectiveMode === "buyer" && (
-              <button
-                onClick={() => switchMode("seller")}
-                className="hidden md:inline-flex items-center gap-2 h-10 px-3 rounded-full text-sm font-medium text-foreground hover:bg-surface transition"
-              >
-                <Store className="h-4 w-4" /> Кабинет продавца
-              </button>
-            )}
-
-            {effectiveMode === "buyer" && user && (
+            {!sellerModeUi && user && (
               <Link
                 to="/favorites"
-                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Избранное"
               >
-                <Heart className="h-5 w-5" />
+                <Heart className="h-5 w-5" strokeWidth={1.75} />
               </Link>
             )}
 
-            {effectiveMode === "buyer" && (
+            {!sellerModeUi && (
               <Link
                 to="/cart"
-                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Корзина"
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
                 {count > 0 && (
-                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-background">
                     {count}
                   </span>
                 )}
               </Link>
             )}
 
-
             {user && (
               <Link
                 to="/messages"
-                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Сообщения"
               >
-                <MessageCircle className="h-5 w-5" />
+                <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
                 {unreadChats > 0 && (
-                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-white">
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-background">
                     {unreadChats > 9 ? "9+" : unreadChats}
                   </span>
                 )}
@@ -249,81 +230,77 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
             <Link
               to={user ? accountHref : "/auth"}
-              className="inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface transition"
+              className="inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
               aria-label={user ? "Кабинет" : "Войти"}
             >
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5" strokeWidth={1.75} />
             </Link>
           </div>
         </div>
 
-        {/* Полоса поиска — только в режиме покупателя */}
-        {effectiveMode === "buyer" && (
+        {/* Поиск (только режим покупателя) */}
+        {!sellerModeUi && (
           <div className="mx-auto max-w-7xl px-4 pb-3">
             <div className="flex items-center gap-2.5">
-              <Link
-                to="/catalog"
-                className="shrink-0 inline-flex items-center justify-center h-12 w-12 rounded-full bg-brand text-brand-foreground shadow-sm hover:bg-brand-strong transition"
-                aria-label="Каталог"
-              >
-                <Menu className="h-5 w-5" />
-              </Link>
+              <div className="md:hidden">
+                <CategorySheetButton />
+              </div>
               <div className="flex-1 min-w-0">
-                <CatalogSearchBar value="" onSubmit={goSearch} placeholder="Поиск" />
+                <CatalogSearchBar value="" onSubmit={goSearch} placeholder="Поиск по тысячам товаров" />
               </div>
             </div>
           </div>
         )}
       </header>
 
-      <main className="flex-1 pb-nav md:pb-0 bg-white">{children}</main>
+      <main className="flex-1 pb-nav md:pb-0">{children}</main>
       <SignInPromptDialog />
 
-      {/* Футер (desktop) */}
-      <footer className="hidden md:block bg-foreground text-white/80 mt-8">
+      {/* Футер (десктоп) — единый семантический стиль под текущую тему */}
+      <footer className="hidden md:block mt-12 border-t border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-10 grid grid-cols-4 gap-8 text-sm">
           <div>
-            <div className="font-display text-2xl font-extrabold text-white">
+            <div className="font-display text-2xl font-extrabold text-foreground">
               kupiks<span className="text-brand">.</span>
             </div>
-            <p className="mt-3 text-white/60 text-xs leading-relaxed">
+            <p className="mt-3 text-muted-foreground text-xs leading-relaxed">
               Маркетплейс товаров для дома, отдыха и стиля.
             </p>
           </div>
           <div>
-            <div className="text-white font-semibold mb-3">Покупателям</div>
-            <ul className="space-y-1.5 text-white/70">
-              <li><Link to="/catalog" className="hover:text-brand transition">Каталог</Link></li>
-              <li><Link to="/cart" className="hover:text-brand transition">Корзина</Link></li>
-              <li><Link to="/account" className="hover:text-brand transition">Мои заказы</Link></li>
-              <li><Link to="/favorites" className="hover:text-brand transition">Избранное</Link></li>
+            <div className="text-foreground font-semibold mb-3">Покупателям</div>
+            <ul className="space-y-1.5 text-muted-foreground">
+              <li><Link to="/catalog" className="hover:text-brand ui-transition">Каталог</Link></li>
+              <li><Link to="/cart" className="hover:text-brand ui-transition">Корзина</Link></li>
+              <li><Link to="/account" className="hover:text-brand ui-transition">Мои заказы</Link></li>
+              <li><Link to="/favorites" className="hover:text-brand ui-transition">Избранное</Link></li>
             </ul>
           </div>
           <div>
-            <div className="text-white font-semibold mb-3">Продавцам</div>
-            <ul className="space-y-1.5 text-white/70">
-              <li><Link to="/auth" search={{ as: "seller", mode: "signup" } as never} className="hover:text-brand transition">Начать продавать</Link></li>
-              <li><Link to="/seller/products" className="hover:text-brand transition">Мои товары</Link></li>
-              <li><Link to="/seller/analytics" className="hover:text-brand transition">Аналитика</Link></li>
-              <li><Link to="/seller/balance" className="hover:text-brand transition">Баланс</Link></li>
+            <div className="text-foreground font-semibold mb-3">Продавцам</div>
+            <ul className="space-y-1.5 text-muted-foreground">
+              <li><Link to="/auth" search={{ as: "seller", mode: "signup" } as never} className="hover:text-brand ui-transition">Начать продавать</Link></li>
+              <li><Link to="/seller/products" className="hover:text-brand ui-transition">Мои товары</Link></li>
+              <li><Link to="/seller/analytics" className="hover:text-brand ui-transition">Аналитика</Link></li>
+              <li><Link to="/seller/balance" className="hover:text-brand ui-transition">Баланс</Link></li>
             </ul>
           </div>
           <div>
-            <div className="text-white font-semibold mb-3">Kupiks</div>
-            <ul className="space-y-1.5 text-white/70">
-              <li>О маркетплейсе</li>
+            <div className="text-foreground font-semibold mb-3">Kupiks</div>
+            <ul className="space-y-1.5 text-muted-foreground">
+              <li><Link to="/privacy" className="hover:text-brand ui-transition">Политика конфиденциальности</Link></li>
               <li>Помощь</li>
               <li>Контакты</li>
             </ul>
           </div>
         </div>
-        <div className="border-t border-white/10 py-4 text-center text-xs text-white/50">
+        <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Kupiks Marketplace
         </div>
       </footer>
 
-      {/* Нижняя навигация — мобильная, 5 пунктов, safe-area */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-white/95 backdrop-blur safe-pb">
+      {/* Мобильная нижняя навигация */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-pb">
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
@@ -339,7 +316,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               <Link
                 key={`${item.to}-${i}`}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium transition touch-target ${
+                className={`flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium ui-transition touch-target ${
                   active ? "text-brand" : "text-foreground/70 hover:text-foreground"
                 }`}
               >
@@ -349,7 +326,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     strokeWidth={active ? 2 : 1.75}
                   />
                   {badgeN > 0 && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-white flex items-center justify-center px-1 ring-2 ring-white">
+                    <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-background">
                       {badgeN > 9 ? "9+" : badgeN}
                     </span>
                   )}
