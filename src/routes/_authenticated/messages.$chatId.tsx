@@ -169,6 +169,32 @@ function ChatThread() {
     };
   }, [chatId, user, qc, fetchThread]);
 
+  // Восстановление outbox из localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(outboxKey(chatId));
+      if (raw) {
+        const parsed = JSON.parse(raw) as OutboxItem[];
+        setOutbox(parsed.map((o) => (o.status === "sending" ? { ...o, status: "error", error: "Не отправлено" } : o)));
+      }
+    } catch {
+      // ignore
+    }
+  }, [chatId]);
+
+  // Сохраняем outbox в localStorage (только то, что не «sent»)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const toSave = outbox.filter((o) => o.status !== "sent");
+    try {
+      if (toSave.length) window.localStorage.setItem(outboxKey(chatId), JSON.stringify(toSave));
+      else window.localStorage.removeItem(outboxKey(chatId));
+    } catch {
+      // ignore
+    }
+  }, [outbox, chatId]);
+
 
   // Автоповтор ошибочных сообщений при возвращении сети
   const outboxRef = useRef<OutboxItem[]>([]);
