@@ -284,7 +284,7 @@ export const getChatThread = createServerFn({ method: "POST" })
 
     let msgsQuery = supabaseAdmin
       .from("chat_messages")
-      .select("id, sender_id, body, image_path, created_at, read_at")
+      .select("id, sender_id, body, image_path, created_at, delivered_at, read_at")
       .eq("chat_id", chat.id)
       .order("created_at", { ascending: false })
       .limit(limit + 1);
@@ -308,14 +308,23 @@ export const getChatThread = createServerFn({ method: "POST" })
     const hasMore = rowsDesc.length > limit;
     const pageRows = (hasMore ? rowsDesc.slice(0, limit) : rowsDesc).slice().reverse();
 
-    // Помечаем чужие сообщения прочитанными только при начальной загрузке
+    // При открытии треда помечаем чужие сообщения одновременно доставленными и прочитанными.
+    // При подгрузке старых сообщений — только доставленными (историю не считаем «прочитанной заново»).
+    const nowIso = new Date().toISOString();
     if (isInitial) {
       await supabaseAdmin
         .from("chat_messages")
-        .update({ read_at: new Date().toISOString() })
+        .update({ delivered_at: nowIso, read_at: nowIso })
         .eq("chat_id", chat.id)
         .neq("sender_id", userId)
         .is("read_at", null);
+    } else {
+      await supabaseAdmin
+        .from("chat_messages")
+        .update({ delivered_at: nowIso })
+        .eq("chat_id", chat.id)
+        .neq("sender_id", userId)
+        .is("delivered_at", null);
     }
 
     const messages = await Promise.all(
@@ -327,16 +336,22 @@ export const getChatThread = createServerFn({ method: "POST" })
             .createSignedUrl(m.image_path, 60 * 60);
           imageUrl = signed?.signedUrl ?? null;
         }
+        const isMine = m.sender_id === userId;
         return {
           id: m.id,
           sender_id: m.sender_id,
           body: m.body,
           image_url: imageUrl,
           created_at: m.created_at,
-          from_me: m.sender_id === userId,
+          from_me: isMine,
+          // Для собственных сообщений отдаём фактические отметки;
+          // для входящих подмешиваем свежие значения, если только что их проставили.
+          delivered_at: isMine ? m.delivered_at : (m.delivered_at ?? nowIso),
+          read_at: isMine ? m.read_at : (isInitial ? (m.read_at ?? nowIso) : m.read_at),
         };
       }),
     );
+
 
     return {
       chat: isInitial
