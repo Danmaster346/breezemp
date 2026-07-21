@@ -6,7 +6,7 @@ import { Heart, Trash2, ShoppingBag } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { listFavorites } from "@/lib/favorites.functions";
-import { useToggleFavorite } from "@/lib/favorites.client";
+import { useToggleFavorite } from "@/lib/favorites-client";
 
 export const Route = createFileRoute("/_authenticated/favorites")({
   head: () => ({
