@@ -1,6 +1,6 @@
 // Страница входа и регистрации с чётким выбором роли (покупатель/продавец)
 // Параметры: mode=signin|signup, redirect=<path>, as=buyer|seller
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
