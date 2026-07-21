@@ -127,12 +127,6 @@ function ReviewFormModal({
   const create = useServerFn(createReview);
   const update = useServerFn(updateReview);
 
-  useEffect(() => {
-    return () => {
-      pendingFiles.forEach((p) => URL.revokeObjectURL(p.preview));
-    };
-  }, [pendingFiles]);
-
   const mutation = useMutation({
     mutationFn: async () => {
       if (rating < 1) throw new Error("Поставьте оценку от 1 до 5 звёзд");
