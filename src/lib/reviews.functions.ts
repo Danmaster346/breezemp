@@ -129,6 +129,27 @@ export const createReview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Rate limit: не более 5 отзывов в час и 20 в сутки на пользователя
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: hourCount, error: rlErr } = await supabaseAdmin
+      .from("reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .gte("created_at", hourAgo);
+    if (rlErr) throw new Error(rlErr.message);
+    if ((hourCount ?? 0) >= 5) {
+      throw new Error("Слишком много отзывов за последний час. Попробуйте позже.");
+    }
+    const { count: dayCount } = await supabaseAdmin
+      .from("reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", context.userId)
+      .gte("created_at", dayAgo);
+    if ((dayCount ?? 0) >= 20) {
+      throw new Error("Достигнут дневной лимит отзывов. Попробуйте завтра.");
+    }
+
     // Проверяем, что позиция принадлежит покупателю и в допустимом статусе
     const { data: item, error: itemErr } = await supabaseAdmin
       .from("order_items")
@@ -142,6 +163,18 @@ export const createReview = createServerFn({ method: "POST" })
     if (item.product_id !== data.product_id) throw new Error("Товар не совпадает");
     if (!["delivered", "received"].includes(item.status)) {
       throw new Error("Отзыв можно оставить только после получения товара");
+    }
+
+    // Запрет самоотзыва: продавец не может оценивать собственный товар
+    const { data: product, error: prodErr } = await supabaseAdmin
+      .from("products")
+      .select("seller_id")
+      .eq("id", data.product_id)
+      .maybeSingle();
+    if (prodErr) throw new Error(prodErr.message);
+    if (!product) throw new Error("Товар не найден");
+    if (product.seller_id === context.userId) {
+      throw new Error("Нельзя оставить отзыв на собственный товар");
     }
 
     // Получаем имя покупателя из профиля
