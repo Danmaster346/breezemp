@@ -444,9 +444,30 @@ export function ProductReviews({ productId }: { productId: string }) {
                   ))}
                 </div>
               )}
+
+              {user && user.id !== r.user_id && (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setReportFor(r.id)}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition"
+                    aria-label="Пожаловаться на отзыв"
+                  >
+                    <Flag className="h-3.5 w-3.5" />
+                    Пожаловаться
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>
+      )}
+
+      {reportFor && (
+        <ReportReviewModal
+          reviewId={reportFor}
+          onClose={() => setReportFor(null)}
+        />
       )}
 
       {showForm && orderItemId && (
