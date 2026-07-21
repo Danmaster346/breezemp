@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
@@ -55,6 +55,7 @@ const outboxKey = (chatId: string) => `kupiks.chat.outbox.${chatId}`;
 
 function ChatThread() {
   const { chatId } = Route.useParams();
+  const realtimeChannelSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetchThread = useServerFn(getChatThread);
@@ -145,53 +146,58 @@ function ChatThread() {
   // Реалтайм: подхватываем новые сообщения и обновления статусов (доставлено/прочитано)
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel(`chat-${chatId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
-        (payload) => {
-          const row = payload.new as { sender_id?: string };
-          // Если пришло чужое сообщение — мгновенно подтверждаем доставку на сервере,
-          // чтобы у отправителя тут же появилась вторая галочка через UPDATE-событие.
-          if (row?.sender_id && row.sender_id !== user.id) {
-            markDeliveredFn({ data: { chat_id: chatId } }).catch(() => {});
-          }
-          fetchThread({ data: { chat_id: chatId, limit: 20 } })
-            .then((res) => {
-              setMessages((prev) => {
-                const existing = new Set(prev.map((m) => m.id));
-                const fresh = res.messages.filter((m) => !existing.has(m.id));
-                return fresh.length ? [...prev, ...fresh] : prev;
-              });
-            })
-            .catch(() => {});
-          qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
-        (payload) => {
-          const row = payload.new as {
-            id: string;
-            delivered_at: string | null;
-            read_at: string | null;
-          };
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === row.id
-                ? { ...m, delivered_at: row.delivered_at, read_at: row.read_at }
-                : m,
-            ),
-          );
-        },
-      )
-      .subscribe();
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      ch = supabase
+        .channel(`chat-${chatId}-${realtimeChannelSuffix}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
+          (payload) => {
+            const row = payload.new as { sender_id?: string };
+            // Если пришло чужое сообщение — мгновенно подтверждаем доставку на сервере,
+            // чтобы у отправителя тут же появилась вторая галочка через UPDATE-событие.
+            if (row?.sender_id && row.sender_id !== user.id) {
+              markDeliveredFn({ data: { chat_id: chatId } }).catch(() => {});
+            }
+            fetchThread({ data: { chat_id: chatId, limit: 20 } })
+              .then((res) => {
+                setMessages((prev) => {
+                  const existing = new Set(prev.map((m) => m.id));
+                  const fresh = res.messages.filter((m) => !existing.has(m.id));
+                  return fresh.length ? [...prev, ...fresh] : prev;
+                });
+              })
+              .catch(() => {});
+            qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
+          (payload) => {
+            const row = payload.new as {
+              id: string;
+              delivered_at: string | null;
+              read_at: string | null;
+            };
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === row.id
+                  ? { ...m, delivered_at: row.delivered_at, read_at: row.read_at }
+                  : m,
+              ),
+            );
+          },
+        )
+        .subscribe();
+    } catch (error) {
+      console.warn("[chat-thread] realtime subscribe failed", error);
+    }
     return () => {
-      supabase.removeChannel(ch);
+      if (ch) supabase.removeChannel(ch);
     };
-  }, [chatId, user, qc, fetchThread, markDeliveredFn]);
+  }, [chatId, user, qc, fetchThread, markDeliveredFn, realtimeChannelSuffix]);
 
 
   // Восстановление outbox из localStorage

@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Banknote,
@@ -61,6 +61,7 @@ const METHOD_META: Record<
 };
 
 function BalancePage() {
+  const realtimeChannelSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const { user } = useAuth();
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -97,23 +98,28 @@ function BalancePage() {
   // Realtime: подтверждение получения и появление новой выплаты
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`seller-finance-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "order_items", filter: `seller_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["seller-sales-total", user.id] }),
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "payouts", filter: `seller_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["seller-sales-total", user.id] }),
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`seller-finance-${user.id}-${realtimeChannelSuffix}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "order_items", filter: `seller_id=eq.${user.id}` },
+          () => qc.invalidateQueries({ queryKey: ["seller-sales-total", user.id] }),
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "payouts", filter: `seller_id=eq.${user.id}` },
+          () => qc.invalidateQueries({ queryKey: ["seller-sales-total", user.id] }),
+        )
+        .subscribe();
+    } catch (error) {
+      console.warn("[seller-balance] realtime subscribe failed", error);
+    }
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
-  }, [user, qc]);
+  }, [user, qc, realtimeChannelSuffix]);
 
   const amountRub = Number(amountInput.replace(",", "."));
   const amountKopecks =

@@ -2,7 +2,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -110,6 +110,7 @@ function aggregateStatus(items: OrderItem[]): OrderStatus {
 }
 
 function AccountPage() {
+  const realtimeChannelSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
@@ -197,7 +198,7 @@ function AccountPage() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     try {
       channel = supabase
-        .channel(`buyer-orders-${user.id}`)
+        .channel(`buyer-orders-${user.id}-${realtimeChannelSuffix}`)
         .on(
           "postgres_changes",
           { event: "UPDATE", schema: "public", table: "order_items" },
@@ -214,7 +215,7 @@ function AccountPage() {
         if (channel) supabase.removeChannel(channel);
       } catch {}
     };
-  }, [user, qc]);
+  }, [user, qc, realtimeChannelSuffix]);
 
 
   const logout = async () => {
