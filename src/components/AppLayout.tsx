@@ -253,7 +253,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
         )}
       </header>
 
-      <main className="flex-1 pb-nav md:pb-0">{children}</main>
+      <main className={`flex-1 ${hideMobileBottomNav ? "" : "pb-nav"} md:pb-0`}>{children}</main>
       <SignInPromptDialog />
 
       {/* Футер (десктоп) — единый семантический стиль под текущую тему */}
