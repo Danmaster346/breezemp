@@ -91,8 +91,15 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
     };
   }, [sellerModeUi]);
 
-  const mobileNav = sellerModeUi ? sellerMobileNav : buyerMobileNav;
-  const accountHref = sellerModeUi ? "/seller/products" : "/account";
+  // «Кабинет» всегда ведёт в кабинет продавца, если пользователь — продавец,
+  // независимо от текущего режима интерфейса. Переход в /seller/* авто-переключает mode.
+  const accountHref = isSeller ? "/seller/products" : "/account";
+  const baseMobileNav = sellerModeUi ? sellerMobileNav : buyerMobileNav;
+  const mobileNav: readonly NavItem[] = sellerModeUi
+    ? [...sellerMobileNav, { to: "/seller/settings", label: "Кабинет", icon: User }]
+    : baseMobileNav.map((item) =>
+        item.to === "/account" && isSeller ? { ...item, to: "/seller/products" } : item,
+      );
 
   const goSearch = (v: string) =>
     navigate({ to: "/catalog", search: { q: v || undefined } as never });
