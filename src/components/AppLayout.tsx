@@ -52,7 +52,7 @@ const sellerMobileNav: readonly NavItem[] = [
   { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
 ];
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export function AppLayout({ children, hideMobileBottomNav = false }: { children: ReactNode; hideMobileBottomNav?: boolean }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -253,7 +253,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main className="flex-1 pb-nav md:pb-0">{children}</main>
+      <main className={`flex-1 ${hideMobileBottomNav ? "" : "pb-nav"} md:pb-0`}>{children}</main>
       <SignInPromptDialog />
 
       {/* Футер (десктоп) — единый семантический стиль под текущую тему */}
@@ -300,6 +300,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </footer>
 
       {/* Мобильная нижняя навигация */}
+      {!hideMobileBottomNav && (
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-pb">
         <div
           className="grid"
@@ -337,6 +338,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           })}
         </div>
       </nav>
+      )}
     </div>
   );
 }

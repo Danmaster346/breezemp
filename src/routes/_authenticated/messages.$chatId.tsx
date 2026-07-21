@@ -333,9 +333,9 @@ function ChatThread() {
   };
 
   return (
-    <AppLayout>
+    <AppLayout hideMobileBottomNav>
       <div className="mx-auto max-w-3xl px-0 md:px-4 py-0 md:py-6">
-        <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-14rem)] rounded-none md:rounded-2xl border-0 md:border bg-white overflow-hidden">
+        <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-14rem)] rounded-none md:rounded-2xl border-0 md:border bg-white overflow-hidden">
           {/* Шапка чата */}
           <div className="flex items-center gap-3 px-4 py-3 border-b bg-white sticky top-0">
             <Link
@@ -493,7 +493,7 @@ function ChatThread() {
           {/* Композер */}
           <form
             onSubmit={submit}
-            className="border-t bg-white p-3 flex items-end gap-2"
+            className="border-t bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 flex items-end gap-2"
           >
             {pending && (
               <div className="relative shrink-0">
