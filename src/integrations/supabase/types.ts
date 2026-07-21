@@ -76,6 +76,7 @@ export type Database = {
           body: string | null
           chat_id: string
           created_at: string
+          delivered_at: string | null
           id: string
           image_path: string | null
           read_at: string | null
@@ -85,6 +86,7 @@ export type Database = {
           body?: string | null
           chat_id: string
           created_at?: string
+          delivered_at?: string | null
           id?: string
           image_path?: string | null
           read_at?: string | null
@@ -94,6 +96,7 @@ export type Database = {
           body?: string | null
           chat_id?: string
           created_at?: string
+          delivered_at?: string | null
           id?: string
           image_path?: string | null
           read_at?: string | null

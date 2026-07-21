@@ -7,10 +7,10 @@ import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
-import { getChatThread, sendChatMessage } from "@/lib/chat.functions";
+import { getChatThread, markChatDelivered, sendChatMessage } from "@/lib/chat.functions";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
-import { AlertCircle, ArrowLeft, CheckCheck, ChevronUp, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, CheckCheck, ChevronUp, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
 
 type OutboxItem = {
   local_id: string;
@@ -59,6 +59,7 @@ function ChatThread() {
   const qc = useQueryClient();
   const fetchThread = useServerFn(getChatThread);
   const sendFn = useServerFn(sendChatMessage);
+  const markDeliveredFn = useServerFn(markChatDelivered);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   const [pending, setPending] = useState<{ path: string; url: string } | null>(null);
@@ -141,7 +142,7 @@ function ChatThread() {
     if (nearBottom) el.scrollTop = el.scrollHeight;
   }, [messages.length, outbox.length]);
 
-  // Реалтайм: подхватываем новые сообщения без перезагрузки истории
+  // Реалтайм: подхватываем новые сообщения и обновления статусов (доставлено/прочитано)
   useEffect(() => {
     if (!user) return;
     const ch = supabase
@@ -149,8 +150,13 @@ function ChatThread() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
-        () => {
-          // Дозагружаем только свежие сообщения (последняя страница)
+        (payload) => {
+          const row = payload.new as { sender_id?: string };
+          // Если пришло чужое сообщение — мгновенно подтверждаем доставку на сервере,
+          // чтобы у отправителя тут же появилась вторая галочка через UPDATE-событие.
+          if (row?.sender_id && row.sender_id !== user.id) {
+            markDeliveredFn({ data: { chat_id: chatId } }).catch(() => {});
+          }
           fetchThread({ data: { chat_id: chatId, limit: 20 } })
             .then((res) => {
               setMessages((prev) => {
@@ -163,11 +169,30 @@ function ChatThread() {
           qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            delivered_at: string | null;
+            read_at: string | null;
+          };
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === row.id
+                ? { ...m, delivered_at: row.delivered_at, read_at: row.read_at }
+                : m,
+            ),
+          );
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [chatId, user, qc, fetchThread]);
+  }, [chatId, user, qc, fetchThread, markDeliveredFn]);
+
 
   // Восстановление outbox из localStorage
   useEffect(() => {
@@ -386,11 +411,20 @@ function ChatThread() {
                     )}
                     {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                     <div
-                      className={`text-[10px] mt-1 text-right ${
+                      className={`text-[10px] mt-1 flex items-center gap-1 justify-end ${
                         m.from_me ? "text-white/70" : "text-muted-foreground"
                       }`}
                     >
-                      {fmtTime(m.created_at)}
+                      <span>{fmtTime(m.created_at)}</span>
+                      {m.from_me && (
+                        m.read_at ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-sky-200" aria-label="Прочитано" />
+                        ) : m.delivered_at ? (
+                          <CheckCheck className="h-3.5 w-3.5" aria-label="Доставлено" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5" aria-label="Отправлено" />
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
