@@ -322,21 +322,30 @@ export type Database = {
         Row: {
           amount_kopecks: number
           created_at: string
+          destination: string | null
           id: string
+          method: string | null
+          note: string | null
           seller_id: string
           status: string
         }
         Insert: {
           amount_kopecks: number
           created_at?: string
+          destination?: string | null
           id?: string
+          method?: string | null
+          note?: string | null
           seller_id: string
           status?: string
         }
         Update: {
           amount_kopecks?: number
           created_at?: string
+          destination?: string | null
           id?: string
+          method?: string | null
+          note?: string | null
           seller_id?: string
           status?: string
         }
@@ -537,6 +546,8 @@ export type Database = {
         Row: {
           badges: string[]
           created_at: string
+          default_payout_destination: string | null
+          default_payout_method: string | null
           email: string | null
           full_description: string | null
           instagram: string | null
@@ -554,6 +565,8 @@ export type Database = {
         Insert: {
           badges?: string[]
           created_at?: string
+          default_payout_destination?: string | null
+          default_payout_method?: string | null
           email?: string | null
           full_description?: string | null
           instagram?: string | null
@@ -571,6 +584,8 @@ export type Database = {
         Update: {
           badges?: string[]
           created_at?: string
+          default_payout_destination?: string | null
+          default_payout_method?: string | null
           email?: string | null
           full_description?: string | null
           instagram?: string | null
