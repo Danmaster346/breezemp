@@ -318,6 +318,7 @@ export function ProductReviews({ productId }: { productId: string }) {
   const fetchReviewable = useServerFn(getReviewableForProduct);
   const [showForm, setShowForm] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [reportFor, setReportFor] = useState<string | null>(null);
 
   const reviewsQuery = useQuery({
     queryKey: ["product-reviews", productId],
