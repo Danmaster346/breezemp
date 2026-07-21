@@ -48,7 +48,7 @@ function AdminLayout() {
                 <Home className="h-4 w-4" />
               </Link>
             </div>
-            <nav className="grid md:block gap-1 overflow-x-auto md:overflow-visible" style={{ gridTemplateColumns: "repeat(9, minmax(90px, 1fr))" }}>
+            <nav className="grid md:block gap-1 overflow-x-auto md:overflow-visible" style={{ gridTemplateColumns: "repeat(10, minmax(90px, 1fr))" }}>
               {nav.map((n) => {
                 const Icon = n.icon;
                 const active = n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/");
