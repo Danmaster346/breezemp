@@ -1,5 +1,5 @@
 // Секция отзывов на странице товара: список, средний рейтинг, форма
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,10 +8,14 @@ import {
   getReviewableForProduct,
   createReview,
   reportReview,
+  updateReview,
 } from "@/lib/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
-import { Star, Camera, X, Loader2, Plus, Flag } from "lucide-react";
+import { Star, Camera, X, Loader2, Plus, Flag, Pencil } from "lucide-react";
 import { toast } from "sonner";
+
+// Окно редактирования собственного отзыва (24 часа)
+const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
@@ -97,32 +101,48 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-// Форма отзыва (модалка)
+// Форма отзыва (модалка) — создание или редактирование
 function ReviewFormModal({
   productId,
   orderItemId,
+  reviewId,
+  initial,
   onClose,
   onDone,
 }: {
   productId: string;
-  orderItemId: string;
+  orderItemId?: string;
+  reviewId?: string;
+  initial?: { rating: number; comment: string | null; photos: string[] };
   onClose: () => void;
   onDone: () => void;
 }) {
   const { user } = useAuth();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const isEdit = !!reviewId;
+  const [rating, setRating] = useState(initial?.rating ?? 0);
+  const [comment, setComment] = useState(initial?.comment ?? "");
+  const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
   const [uploading, setUploading] = useState(false);
-  const submit = useServerFn(createReview);
+  const create = useServerFn(createReview);
+  const update = useServerFn(updateReview);
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (rating < 1) throw new Error("Поставьте оценку от 1 до 5 звёзд");
-      return await submit({
+      if (isEdit) {
+        return await update({
+          data: {
+            review_id: reviewId!,
+            rating,
+            comment: comment.trim() || null,
+            photos,
+          },
+        });
+      }
+      return await create({
         data: {
           product_id: productId,
-          order_item_id: orderItemId,
+          order_item_id: orderItemId!,
           rating,
           comment: comment.trim() || null,
           photos,
@@ -130,7 +150,7 @@ function ReviewFormModal({
       });
     },
     onSuccess: () => {
-      toast.success("Спасибо за отзыв!");
+      toast.success(isEdit ? "Отзыв обновлён" : "Спасибо за отзыв!");
       onDone();
       onClose();
     },
@@ -162,6 +182,26 @@ function ReviewFormModal({
         RATE_DAY: {
           title: "Дневной лимит достигнут",
           description: "Вы уже оставили 20 отзывов за сутки. Возвращайтесь завтра.",
+        },
+        WINDOW_CLOSED: {
+          title: "Срок редактирования истёк",
+          description: "Отзыв можно редактировать в течение 24 часов после публикации.",
+        },
+        NO_CHANGES: {
+          title: "Изменений нет",
+          description: "Вы ничего не изменили в отзыве.",
+        },
+        HIDDEN: {
+          title: "Отзыв скрыт",
+          description: "Скрытый модератором отзыв не подлежит редактированию.",
+        },
+        FORBIDDEN: {
+          title: "Недоступно",
+          description: "Можно редактировать только собственный отзыв.",
+        },
+        NOT_FOUND: {
+          title: "Отзыв не найден",
+          description: "Возможно, он был удалён.",
         },
       };
       const info = code && map[code];
@@ -228,7 +268,7 @@ function ReviewFormModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card z-10">
-          <div className="font-semibold">Оставить отзыв</div>
+          <div className="font-semibold">{isEdit ? "Редактировать отзыв" : "Оставить отзыв"}</div>
           <button onClick={onClose} className="p-1 rounded hover:bg-accent" aria-label="Закрыть">
             <X className="h-5 w-5" />
           </button>
@@ -302,7 +342,7 @@ function ReviewFormModal({
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Опубликовать отзыв
+            {isEdit ? "Сохранить изменения" : "Опубликовать отзыв"}
           </button>
         </div>
       </div>
@@ -428,6 +468,18 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [reportFor, setReportFor] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    photos: string[];
+  } | null>(null);
+  // Тикающий таймер, чтобы окно "Ещё Xч на редактирование" пересчитывалось без перезагрузки
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const reviewsQuery = useQuery({
     queryKey: ["product-reviews", productId],
@@ -603,6 +655,34 @@ export function ProductReviews({ productId }: { productId: string }) {
                   </button>
                 </div>
               )}
+
+              {user && user.id === r.user_id && (() => {
+                const msLeft = EDIT_WINDOW_MS - (now - new Date(r.created_at).getTime());
+                if (msLeft <= 0) return null;
+                const hoursLeft = Math.max(1, Math.ceil(msLeft / (60 * 60 * 1000)));
+                return (
+                  <div className="mt-3 flex justify-end items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      Можно редактировать ещё {hoursLeft} ч
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingReview({
+                          id: r.id,
+                          rating: r.rating,
+                          comment: r.comment,
+                          photos: r.photos,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Редактировать
+                    </button>
+                  </div>
+                );
+              })()}
             </article>
           ))}
         </div>
@@ -623,6 +703,22 @@ export function ProductReviews({ productId }: { productId: string }) {
           onDone={() => {
             qc.invalidateQueries({ queryKey: ["product-reviews", productId] });
             qc.invalidateQueries({ queryKey: ["can-review", productId] });
+          }}
+        />
+      )}
+
+      {editingReview && (
+        <ReviewFormModal
+          productId={productId}
+          reviewId={editingReview.id}
+          initial={{
+            rating: editingReview.rating,
+            comment: editingReview.comment,
+            photos: editingReview.photos,
+          }}
+          onClose={() => setEditingReview(null)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["product-reviews", productId] });
           }}
         />
       )}

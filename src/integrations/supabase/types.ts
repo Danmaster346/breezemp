@@ -524,6 +524,53 @@ export type Database = {
         }
         Relationships: []
       }
+      review_edits: {
+        Row: {
+          created_at: string
+          id: string
+          new_comment: string | null
+          new_photos: string[]
+          new_rating: number
+          old_comment: string | null
+          old_photos: string[]
+          old_rating: number
+          review_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_comment?: string | null
+          new_photos?: string[]
+          new_rating: number
+          old_comment?: string | null
+          old_photos?: string[]
+          old_rating: number
+          review_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_comment?: string | null
+          new_photos?: string[]
+          new_rating?: number
+          old_comment?: string | null
+          old_photos?: string[]
+          old_rating?: number
+          review_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_edits_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_reports: {
         Row: {
           comment: string | null

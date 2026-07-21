@@ -318,3 +318,81 @@ export const reportReview = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+// Окно редактирования отзыва: 24 часа с момента создания
+export const REVIEW_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+// Редактирование собственного отзыва: рейтинг, текст, фото.
+// Разрешено в течение окна редактирования; каждое изменение фиксируется в review_edits.
+export const updateReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z
+      .object({
+        review_id: z.string().uuid(),
+        rating: z.number().int().min(1).max(5),
+        comment: z.string().trim().max(2000).optional().nullable(),
+        photos: z.array(z.string().url()).max(5).default([]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const fail = (code: string, message: string): never => {
+      throw new Error(`[${code}] ${message}`);
+    };
+
+    const { data: current, error: curErr } = await supabaseAdmin
+      .from("reviews")
+      .select("id, user_id, rating, comment, photos, created_at, is_hidden")
+      .eq("id", data.review_id)
+      .maybeSingle();
+    if (curErr) throw new Error(curErr.message);
+    if (!current) fail("NOT_FOUND", "Отзыв не найден");
+    if (current!.user_id !== context.userId)
+      fail("FORBIDDEN", "Можно редактировать только собственный отзыв");
+    if (current!.is_hidden)
+      fail("HIDDEN", "Отзыв скрыт модератором и не подлежит редактированию");
+
+    const age = Date.now() - new Date(current!.created_at).getTime();
+    if (age > REVIEW_EDIT_WINDOW_MS)
+      fail("WINDOW_CLOSED", "Срок редактирования отзыва истёк (24 часа)");
+
+    const newComment = data.comment?.trim() || null;
+    const oldComment = current!.comment ?? null;
+    const oldPhotos = (current!.photos ?? []) as string[];
+    const samePhotos =
+      oldPhotos.length === data.photos.length &&
+      oldPhotos.every((v, i) => v === data.photos[i]);
+    const nothingChanged =
+      current!.rating === data.rating &&
+      oldComment === newComment &&
+      samePhotos;
+    if (nothingChanged) fail("NO_CHANGES", "Изменений нет");
+
+    const { error: updErr } = await supabaseAdmin
+      .from("reviews")
+      .update({
+        rating: data.rating,
+        comment: newComment,
+        photos: data.photos,
+      })
+      .eq("id", data.review_id)
+      .eq("user_id", context.userId);
+    if (updErr) throw new Error(updErr.message);
+
+    // Аудит: пишем всегда после успешного апдейта
+    await supabaseAdmin.from("review_edits").insert({
+      review_id: data.review_id,
+      user_id: context.userId,
+      old_rating: current!.rating,
+      new_rating: data.rating,
+      old_comment: oldComment,
+      new_comment: newComment,
+      old_photos: oldPhotos,
+      new_photos: data.photos,
+    });
+
+    return { ok: true };
+  });
+
