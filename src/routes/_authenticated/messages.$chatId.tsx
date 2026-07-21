@@ -142,7 +142,7 @@ function ChatThread() {
     if (nearBottom) el.scrollTop = el.scrollHeight;
   }, [messages.length, outbox.length]);
 
-  // Реалтайм: подхватываем новые сообщения без перезагрузки истории
+  // Реалтайм: подхватываем новые сообщения и обновления статусов (доставлено/прочитано)
   useEffect(() => {
     if (!user) return;
     const ch = supabase
@@ -150,8 +150,13 @@ function ChatThread() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
-        () => {
-          // Дозагружаем только свежие сообщения (последняя страница)
+        (payload) => {
+          const row = payload.new as { sender_id?: string };
+          // Если пришло чужое сообщение — мгновенно подтверждаем доставку на сервере,
+          // чтобы у отправителя тут же появилась вторая галочка через UPDATE-событие.
+          if (row?.sender_id && row.sender_id !== user.id) {
+            markDeliveredFn({ data: { chat_id: chatId } }).catch(() => {});
+          }
           fetchThread({ data: { chat_id: chatId, limit: 20 } })
             .then((res) => {
               setMessages((prev) => {
@@ -164,11 +169,30 @@ function ChatThread() {
           qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
+        (payload) => {
+          const row = payload.new as {
+            id: string;
+            delivered_at: string | null;
+            read_at: string | null;
+          };
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === row.id
+                ? { ...m, delivered_at: row.delivered_at, read_at: row.read_at }
+                : m,
+            ),
+          );
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [chatId, user, qc, fetchThread]);
+  }, [chatId, user, qc, fetchThread, markDeliveredFn]);
+
 
   // Восстановление outbox из localStorage
   useEffect(() => {
