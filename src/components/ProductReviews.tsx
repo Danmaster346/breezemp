@@ -122,6 +122,7 @@ function ReviewFormModal({
   const [rating, setRating] = useState(initial?.rating ?? 0);
   const [comment, setComment] = useState(initial?.comment ?? "");
   const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
+  const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const create = useServerFn(createReview);
   const update = useServerFn(updateReview);
@@ -226,25 +227,25 @@ function ReviewFormModal({
   ];
   const ALLOWED_LABEL = "JPG, PNG, WEBP, HEIC, GIF";
 
-  const onFiles = async (files: FileList | null) => {
+  const totalSlots = MAX_PHOTOS - photos.length - pendingFiles.length;
+
+  const onFiles = (files: FileList | null) => {
     if (!files || !user) return;
     const all = Array.from(files);
     if (!all.length) return;
 
-    const slots = MAX_PHOTOS - photos.length;
-    if (slots <= 0) {
+    if (totalSlots <= 0) {
       toast.error(`Можно добавить не больше ${MAX_PHOTOS} фото`);
       return;
     }
-    if (all.length > slots) {
+    if (all.length > totalSlots) {
       toast.error(
-        `Выбрано ${all.length}, но осталось мест: ${slots}. Загрузим первые ${slots}.`,
+        `Выбрано ${all.length}, но осталось мест: ${totalSlots}. Загрузим первые ${totalSlots}.`,
       );
     }
-    const list = all.slice(0, slots);
+    const list = all.slice(0, totalSlots);
 
-    // Пре-валидация до сети — понятные ошибки одним тостом на файл
-    const valid: File[] = [];
+    const valid: { file: File; preview: string }[] = [];
     for (const file of list) {
       const isImg =
         file.type.startsWith("image/") ||
@@ -268,14 +269,27 @@ function ReviewFormModal({
         toast.error(`«${file.name}» — ${mb} МБ. Лимит ${MAX_SIZE_MB} МБ на фото.`);
         continue;
       }
-      valid.push(file);
+      valid.push({ file, preview: URL.createObjectURL(file) });
     }
     if (!valid.length) return;
+    setPendingFiles((prev) => [...prev, ...valid]);
+  };
 
+  const removePending = (index: number) => {
+    setPendingFiles((prev) => {
+      const next = [...prev];
+      URL.revokeObjectURL(next[index].preview);
+      next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const uploadPending = async () => {
+    if (!user || !pendingFiles.length) return;
     setUploading(true);
     const uploaded: string[] = [];
     try {
-      for (const file of valid) {
+      for (const { file } of pendingFiles) {
         const extRaw = (file.name.split(".").pop() || "jpg").toLowerCase();
         const ext = /^(jpe?g|png|webp|heic|heif|gif)$/.test(extRaw) ? extRaw : "jpg";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
@@ -308,6 +322,8 @@ function ReviewFormModal({
         );
       }
     } finally {
+      pendingFiles.forEach((p) => URL.revokeObjectURL(p.preview));
+      setPendingFiles([]);
       setUploading(false);
     }
   };
@@ -351,36 +367,64 @@ function ReviewFormModal({
           <div>
             <div className="flex items-baseline justify-between gap-2 mb-1.5">
               <div className="text-sm font-medium">
-                Фото <span className="text-muted-foreground font-normal">({photos.length}/{MAX_PHOTOS})</span>
+                Фото{" "}
+                <span className="text-muted-foreground font-normal">
+                  ({photos.length + pendingFiles.length}/{MAX_PHOTOS})
+                </span>
               </div>
               <div className="text-[11px] text-muted-foreground">
                 {ALLOWED_LABEL} · до {MAX_SIZE_MB} МБ
               </div>
             </div>
+
             <div className="flex flex-wrap gap-2">
               {photos.map((url, i) => (
-                <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border">
+                <div
+                  key={url}
+                  className="relative h-20 w-20 rounded-lg overflow-hidden border group"
+                >
                   <img src={url} alt="" className="h-full w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
-                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80"
+                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80 opacity-0 group-hover:opacity-100 transition"
                     aria-label="Удалить фото"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
-              {photos.length < MAX_PHOTOS && (
+
+              {pendingFiles.map((p, i) => (
+                <div
+                  key={p.preview}
+                  className="relative h-20 w-20 rounded-lg overflow-hidden border-2 border-dashed border-brand/50 group"
+                >
+                  <img
+                    src={p.preview}
+                    alt={`Выбранное фото ${i + 1}`}
+                    className="h-full w-full object-cover opacity-80"
+                  />
+                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <span className="text-[10px] font-medium text-white bg-black/50 px-1.5 py-0.5 rounded">
+                      загрузка
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removePending(i)}
+                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80"
+                    aria-label="Убрать из выбранных"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+
+              {totalSlots > 0 && (
                 <label className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground cursor-pointer hover:bg-accent transition">
-                  {uploading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="h-5 w-5" />
-                      <span>Фото</span>
-                    </>
-                  )}
+                  <Plus className="h-5 w-5" />
+                  <span>Фото</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif"
@@ -395,6 +439,22 @@ function ReviewFormModal({
                 </label>
               )}
             </div>
+
+            {pendingFiles.length > 0 && (
+              <button
+                type="button"
+                onClick={uploadPending}
+                disabled={uploading}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand/20 disabled:opacity-50 transition"
+              >
+                {uploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Camera className="h-3.5 w-3.5" />
+                )}
+                Загрузить {pendingFiles.length} {pendingFiles.length === 1 ? "фото" : "фото"}
+              </button>
+            )}
           </div>
 
           <button
