@@ -343,7 +343,20 @@ function ChatThread() {
 
           {/* Лента */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-surface/40">
-            {q.isLoading ? (
+            {hasMore && !loading && (
+              <div className="flex justify-center pb-2">
+                <button
+                  type="button"
+                  onClick={loadOlder}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-surface disabled:opacity-60"
+                >
+                  {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                  Загрузить ещё
+                </button>
+              </div>
+            )}
+            {loading ? (
               <div className="text-center text-muted-foreground text-sm">Загрузка…</div>
             ) : messages.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-10">
