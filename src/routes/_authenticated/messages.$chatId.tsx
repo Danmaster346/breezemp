@@ -125,6 +125,26 @@ function ChatThread() {
     };
   }, [chatId, user, qc]);
 
+  // Автоповтор ошибочных сообщений при возвращении сети
+  const outboxRef = useRef<OutboxItem[]>([]);
+  useEffect(() => {
+    outboxRef.current = outbox;
+  }, [outbox]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onOnline = () => {
+      const pending = outboxRef.current.filter((o) => o.status === "error");
+      if (pending.length) {
+        toast.info(`Соединение восстановлено — повторяем отправку (${pending.length})`);
+        pending.forEach((o) => void trySend(o));
+      }
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
