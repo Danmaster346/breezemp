@@ -2,7 +2,7 @@
 import { Link } from "@tanstack/react-router";
 import { Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
-import { useFavoriteHandler, useIsFavorite } from "@/lib/favorites.client";
+import { useFavoriteHandler, useIsFavorite } from "@/lib/favorites-client";
 
 export type ProductCardProps = {
   id: string;
