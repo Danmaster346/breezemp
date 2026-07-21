@@ -30,6 +30,28 @@ function fmtTime(dt: string) {
   return new Date(dt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Понятные сообщения об ошибках вместо сырых 500/технических текстов
+function friendlyError(err: unknown): string {
+  const raw = (err as Error)?.message ?? String(err ?? "");
+  const s = raw.toLowerCase();
+  if (!navigator.onLine) return "Нет соединения. Сообщение сохранено — отправим при подключении.";
+  if (s.includes("failed to fetch") || s.includes("networkerror") || s.includes("network request"))
+    return "Не удалось связаться с сервером. Проверьте интернет.";
+  if (s.includes("unauthorized") || s.includes("401") || s.includes("нет доступа"))
+    return "Сессия истекла. Войдите в аккаунт заново.";
+  if (s.includes("нет доступа к чату")) return "Нет доступа к этому чату.";
+  if (s.includes("чат не найден")) return "Чат не найден.";
+  if (s.includes("пустое сообщение")) return "Сообщение пустое.";
+  if (s.includes("500") || s.includes("http error") || s.includes("internal"))
+    return "Сервер временно недоступен. Попробуйте ещё раз.";
+  if (s.includes("timeout") || s.includes("aborted"))
+    return "Превышено время ожидания. Попробуйте ещё раз.";
+  return raw || "Не удалось отправить. Попробуйте ещё раз.";
+}
+
+const outboxKey = (chatId: string) => `kupiks.chat.outbox.${chatId}`;
+
+
 function ChatThread() {
   const { chatId } = Route.useParams();
   const { user } = useAuth();
