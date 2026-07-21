@@ -1,7 +1,7 @@
 // Хук счётчика непрочитанных сообщений в чатах (с реалтайм-обновлением)
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo } from "react";
+import { useEffect, useId } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { getUnreadChatCount } from "@/lib/chat.functions";
@@ -11,7 +11,7 @@ export function useUnreadChats() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const fetchUnread = useServerFn(getUnreadChatCount);
-  const channelSuffix = useMemo(() => Math.random().toString(36).slice(2), []);
+  const channelSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   const q = useQuery({
     queryKey: ["unread-chats", user?.id],
