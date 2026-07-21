@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from "lucide-react";
+import { getCategoryIcon } from "@/lib/category-icons";
 
 export const Route = createFileRoute("/")({
   head: () => ({
