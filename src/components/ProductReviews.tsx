@@ -213,50 +213,105 @@ function ReviewFormModal({
     },
   });
 
+  const MAX_PHOTOS = 5;
+  const MAX_SIZE_MB = 5;
+  const MAX_SIZE = MAX_SIZE_MB * 1024 * 1024;
+  const ALLOWED_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/gif",
+  ];
+  const ALLOWED_LABEL = "JPG, PNG, WEBP, HEIC, GIF";
+
   const onFiles = async (files: FileList | null) => {
     if (!files || !user) return;
-    const slots = 5 - photos.length;
-    const list = Array.from(files).slice(0, slots);
-    if (!list.length) return;
+    const all = Array.from(files);
+    if (!all.length) return;
+
+    const slots = MAX_PHOTOS - photos.length;
+    if (slots <= 0) {
+      toast.error(`Можно добавить не больше ${MAX_PHOTOS} фото`);
+      return;
+    }
+    if (all.length > slots) {
+      toast.error(
+        `Выбрано ${all.length}, но осталось мест: ${slots}. Загрузим первые ${slots}.`,
+      );
+    }
+    const list = all.slice(0, slots);
+
+    // Пре-валидация до сети — понятные ошибки одним тостом на файл
+    const valid: File[] = [];
+    for (const file of list) {
+      const isImg =
+        file.type.startsWith("image/") ||
+        /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(file.name);
+      if (!isImg) {
+        toast.error(`«${file.name}» — не изображение. Разрешено: ${ALLOWED_LABEL}`);
+        continue;
+      }
+      if (file.type && !ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+        toast.error(
+          `«${file.name}»: формат не поддерживается. Разрешено: ${ALLOWED_LABEL}`,
+        );
+        continue;
+      }
+      if (file.size === 0) {
+        toast.error(`«${file.name}» пустой (0 Б). Выберите другой файл.`);
+        continue;
+      }
+      if (file.size > MAX_SIZE) {
+        const mb = (file.size / 1024 / 1024).toFixed(1);
+        toast.error(`«${file.name}» — ${mb} МБ. Лимит ${MAX_SIZE_MB} МБ на фото.`);
+        continue;
+      }
+      valid.push(file);
+    }
+    if (!valid.length) return;
+
     setUploading(true);
     const uploaded: string[] = [];
     try {
-      for (const file of list) {
-        if (!file.type.startsWith("image/")) {
-          toast.error(`«${file.name}» — не изображение`);
-          continue;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error(`«${file.name}» больше 5 МБ`);
-          continue;
-        }
-        const ext = file.name.split(".").pop() || "jpg";
+      for (const file of valid) {
+        const extRaw = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const ext = /^(jpe?g|png|webp|heic|heif|gif)$/.test(extRaw) ? extRaw : "jpg";
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
         const up = await supabase.storage
           .from("review-photos")
           .upload(path, file, {
             cacheControl: "3600",
             upsert: false,
-            contentType: file.type,
+            contentType: file.type || `image/${ext}`,
           });
         if (up.error) {
-          toast.error(up.error.message);
+          toast.error(`«${file.name}»: ${up.error.message}`);
           continue;
         }
         const signed = await supabase.storage
           .from("review-photos")
           .createSignedUrl(path, SIGNED_URL_TTL);
         if (signed.error || !signed.data) {
-          toast.error(signed.error?.message || "Не удалось получить ссылку");
+          toast.error(
+            `«${file.name}»: ${signed.error?.message || "не удалось получить ссылку"}`,
+          );
           continue;
         }
         uploaded.push(signed.data.signedUrl);
       }
-      if (uploaded.length) setPhotos((p) => [...p, ...uploaded]);
+      if (uploaded.length) {
+        setPhotos((p) => [...p, ...uploaded]);
+        toast.success(
+          uploaded.length === 1 ? "Фото добавлено" : `Добавлено фото: ${uploaded.length}`,
+        );
+      }
     } finally {
       setUploading(false);
     }
   };
+
 
   return (
     <div
@@ -294,7 +349,14 @@ function ReviewFormModal({
           </div>
 
           <div>
-            <div className="text-sm font-medium mb-1.5">Фото (до 5)</div>
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
+              <div className="text-sm font-medium">
+                Фото <span className="text-muted-foreground font-normal">({photos.length}/{MAX_PHOTOS})</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {ALLOWED_LABEL} · до {MAX_SIZE_MB} МБ
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {photos.map((url, i) => (
                 <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border">
@@ -309,7 +371,7 @@ function ReviewFormModal({
                   </button>
                 </div>
               ))}
-              {photos.length < 5 && (
+              {photos.length < MAX_PHOTOS && (
                 <label className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground cursor-pointer hover:bg-accent transition">
                   {uploading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -321,7 +383,7 @@ function ReviewFormModal({
                   )}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif"
                     multiple
                     className="sr-only"
                     disabled={uploading}
@@ -337,13 +399,18 @@ function ReviewFormModal({
 
           <button
             type="button"
-            disabled={mutation.isPending || rating < 1}
+            disabled={mutation.isPending || uploading || rating < 1}
             onClick={() => mutation.mutate()}
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEdit ? "Сохранить изменения" : "Опубликовать отзыв"}
+            {uploading
+              ? "Загружаем фото…"
+              : isEdit
+                ? "Сохранить изменения"
+                : "Опубликовать отзыв"}
           </button>
+
         </div>
       </div>
     </div>
