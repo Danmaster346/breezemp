@@ -1,7 +1,7 @@
 // Админ-лейаут: sidebar + гейт по роли admin
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Package, ShoppingBag, Undo2, Star, Grid3x3, TicketPercent, ScrollText, Home } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingBag, Undo2, Star, Grid3x3, TicketPercent, ScrollText, Home, Flag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -25,6 +25,7 @@ const nav: readonly NavItem[] = [
   { to: "/admin/orders", label: "Заказы", icon: ShoppingBag },
   { to: "/admin/returns", label: "Возвраты", icon: Undo2 },
   { to: "/admin/reviews", label: "Отзывы", icon: Star },
+  { to: "/admin/review-reports", label: "Жалобы", icon: Flag },
   { to: "/admin/categories", label: "Категории", icon: Grid3x3 },
   { to: "/admin/promo", label: "Промокоды", icon: TicketPercent },
   { to: "/admin/logs", label: "Логи", icon: ScrollText },
