@@ -60,7 +60,7 @@ async function userHasSellerRole(userId: string): Promise<boolean> {
 }
 
 function AuthPage() {
-  const navigate = useNavigate();
+  function AuthPage() {
   const search = Route.useSearch();
   const setMode = useMode((s) => s.setMode);
 
