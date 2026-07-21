@@ -30,6 +30,28 @@ function fmtTime(dt: string) {
   return new Date(dt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Понятные сообщения об ошибках вместо сырых 500/технических текстов
+function friendlyError(err: unknown): string {
+  const raw = (err as Error)?.message ?? String(err ?? "");
+  const s = raw.toLowerCase();
+  if (!navigator.onLine) return "Нет соединения. Сообщение сохранено — отправим при подключении.";
+  if (s.includes("failed to fetch") || s.includes("networkerror") || s.includes("network request"))
+    return "Не удалось связаться с сервером. Проверьте интернет.";
+  if (s.includes("unauthorized") || s.includes("401") || s.includes("нет доступа"))
+    return "Сессия истекла. Войдите в аккаунт заново.";
+  if (s.includes("нет доступа к чату")) return "Нет доступа к этому чату.";
+  if (s.includes("чат не найден")) return "Чат не найден.";
+  if (s.includes("пустое сообщение")) return "Сообщение пустое.";
+  if (s.includes("500") || s.includes("http error") || s.includes("internal"))
+    return "Сервер временно недоступен. Попробуйте ещё раз.";
+  if (s.includes("timeout") || s.includes("aborted"))
+    return "Превышено время ожидания. Попробуйте ещё раз.";
+  return raw || "Не удалось отправить. Попробуйте ещё раз.";
+}
+
+const outboxKey = (chatId: string) => `kupiks.chat.outbox.${chatId}`;
+
+
 function ChatThread() {
   const { chatId } = Route.useParams();
   const { user } = useAuth();
@@ -51,6 +73,33 @@ function ChatThread() {
 
   const messages = q.data?.messages ?? [];
   const chat = q.data?.chat;
+
+  // Восстановление outbox из localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(outboxKey(chatId));
+      if (raw) {
+        const parsed = JSON.parse(raw) as OutboxItem[];
+        // Все "sending" при перезагрузке считаем ошибкой — пусть пользователь повторит
+        setOutbox(parsed.map((o) => (o.status === "sending" ? { ...o, status: "error", error: "Не отправлено" } : o)));
+      }
+    } catch {
+      // ignore
+    }
+  }, [chatId]);
+
+  // Сохраняем outbox в localStorage (только то, что не «sent»)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const toSave = outbox.filter((o) => o.status !== "sent");
+    try {
+      if (toSave.length) window.localStorage.setItem(outboxKey(chatId), JSON.stringify(toSave));
+      else window.localStorage.removeItem(outboxKey(chatId));
+    } catch {
+      // ignore
+    }
+  }, [outbox, chatId]);
 
   // Прокрутка к последнему сообщению
   useEffect(() => {
@@ -75,6 +124,27 @@ function ChatThread() {
       supabase.removeChannel(ch);
     };
   }, [chatId, user, qc]);
+
+  // Автоповтор ошибочных сообщений при возвращении сети
+  const outboxRef = useRef<OutboxItem[]>([]);
+  useEffect(() => {
+    outboxRef.current = outbox;
+  }, [outbox]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onOnline = () => {
+      const pending = outboxRef.current.filter((o) => o.status === "error");
+      if (pending.length) {
+        toast.info(`Соединение восстановлено — повторяем отправку (${pending.length})`);
+        pending.forEach((o) => void trySend(o));
+      }
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,8 +197,9 @@ function ChatThread() {
     } catch (err) {
       const e = err as Error & { cause?: unknown };
       console.error("[chat.send] failed", { message: e.message, name: e.name, cause: e.cause, stack: e.stack });
-      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: e.message || "Ошибка сети" } : o)));
-      toast.error(e.message || "Не удалось отправить сообщение");
+      const friendly = friendlyError(err);
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: friendly } : o)));
+      toast.error(friendly, { description: "Сообщение сохранено — нажмите «Повторить»." });
     }
   };
 
