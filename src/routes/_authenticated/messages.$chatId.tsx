@@ -66,48 +66,82 @@ function ChatThread() {
   const [sending, setSending] = useState(false);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
 
-  const q = useQuery({
-    queryKey: ["chat", chatId],
-    enabled: !!user,
-    queryFn: () => fetchThread({ data: { chat_id: chatId } }),
-  });
+  // Пагинация: держим сообщения в локальном стейте, подгружаем страницами по 30
+  type ChatMeta = NonNullable<Awaited<ReturnType<typeof getChatThread>>["chat"]>;
+  type ChatMessage = Awaited<ReturnType<typeof getChatThread>>["messages"][number];
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chat, setChat] = useState<ChatMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const oldestCursor = messages[0]?.created_at ?? null;
+  const didInitialScroll = useRef(false);
 
-  const messages = q.data?.messages ?? [];
-  const chat = q.data?.chat;
-
-  // Восстановление outbox из localStorage
+  // Начальная загрузка последней страницы
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!user) return;
+    let cancelled = false;
+    setLoading(true);
+    didInitialScroll.current = false;
+    fetchThread({ data: { chat_id: chatId } })
+      .then((res) => {
+        if (cancelled) return;
+        setChat(res.chat);
+        setMessages(res.messages);
+        setHasMore(res.hasMore);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(friendlyError(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, user, fetchThread]);
+
+  const loadOlder = async () => {
+    if (loadingMore || !hasMore || !oldestCursor) return;
+    setLoadingMore(true);
+    const el = scrollRef.current;
+    const prevHeight = el?.scrollHeight ?? 0;
+    const prevTop = el?.scrollTop ?? 0;
     try {
-      const raw = window.localStorage.getItem(outboxKey(chatId));
-      if (raw) {
-        const parsed = JSON.parse(raw) as OutboxItem[];
-        // Все "sending" при перезагрузке считаем ошибкой — пусть пользователь повторит
-        setOutbox(parsed.map((o) => (o.status === "sending" ? { ...o, status: "error", error: "Не отправлено" } : o)));
-      }
-    } catch {
-      // ignore
+      const res = await fetchThread({ data: { chat_id: chatId, before: oldestCursor } });
+      setMessages((prev) => {
+        const existing = new Set(prev.map((m) => m.id));
+        const older = res.messages.filter((m) => !existing.has(m.id));
+        return [...older, ...prev];
+      });
+      setHasMore(res.hasMore);
+      // Сохраняем позицию скролла — компенсируем прирост высоты
+      requestAnimationFrame(() => {
+        const now = scrollRef.current;
+        if (now) now.scrollTop = prevTop + (now.scrollHeight - prevHeight);
+      });
+    } catch (err) {
+      toast.error(friendlyError(err));
+    } finally {
+      setLoadingMore(false);
     }
-  }, [chatId]);
+  };
 
-  // Сохраняем outbox в localStorage (только то, что не «sent»)
+  // Прокрутка вниз при первой загрузке и при появлении новых сообщений/outbox
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const toSave = outbox.filter((o) => o.status !== "sent");
-    try {
-      if (toSave.length) window.localStorage.setItem(outboxKey(chatId), JSON.stringify(toSave));
-      else window.localStorage.removeItem(outboxKey(chatId));
-    } catch {
-      // ignore
+    const el = scrollRef.current;
+    if (!el) return;
+    if (!didInitialScroll.current && messages.length > 0) {
+      el.scrollTop = el.scrollHeight;
+      didInitialScroll.current = true;
+      return;
     }
-  }, [outbox, chatId]);
-
-  // Прокрутка к последнему сообщению
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    // Автоскролл вниз, если пользователь и так у низа
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
   }, [messages.length, outbox.length]);
 
-  // Реалтайм: перезагружаем при новых сообщениях в этом чате
+  // Реалтайм: подхватываем новые сообщения без перезагрузки истории
   useEffect(() => {
     if (!user) return;
     const ch = supabase
@@ -116,7 +150,16 @@ function ChatThread() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
         () => {
-          qc.invalidateQueries({ queryKey: ["chat", chatId] });
+          // Дозагружаем только свежие сообщения (последняя страница)
+          fetchThread({ data: { chat_id: chatId, limit: 20 } })
+            .then((res) => {
+              setMessages((prev) => {
+                const existing = new Set(prev.map((m) => m.id));
+                const fresh = res.messages.filter((m) => !existing.has(m.id));
+                return fresh.length ? [...prev, ...fresh] : prev;
+              });
+            })
+            .catch(() => {});
           qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
         },
       )
@@ -124,7 +167,8 @@ function ChatThread() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [chatId, user, qc]);
+  }, [chatId, user, qc, fetchThread]);
+
 
   // Автоповтор ошибочных сообщений при возвращении сети
   const outboxRef = useRef<OutboxItem[]>([]);
