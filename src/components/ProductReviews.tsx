@@ -349,7 +349,14 @@ function ReviewFormModal({
           </div>
 
           <div>
-            <div className="text-sm font-medium mb-1.5">Фото (до 5)</div>
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
+              <div className="text-sm font-medium">
+                Фото <span className="text-muted-foreground font-normal">({photos.length}/{MAX_PHOTOS})</span>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {ALLOWED_LABEL} · до {MAX_SIZE_MB} МБ
+              </div>
+            </div>
             <div className="flex flex-wrap gap-2">
               {photos.map((url, i) => (
                 <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border">
@@ -364,7 +371,7 @@ function ReviewFormModal({
                   </button>
                 </div>
               ))}
-              {photos.length < 5 && (
+              {photos.length < MAX_PHOTOS && (
                 <label className="h-20 w-20 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center gap-1 text-xs text-muted-foreground cursor-pointer hover:bg-accent transition">
                   {uploading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -376,7 +383,7 @@ function ReviewFormModal({
                   )}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/gif"
                     multiple
                     className="sr-only"
                     disabled={uploading}
@@ -392,13 +399,18 @@ function ReviewFormModal({
 
           <button
             type="button"
-            disabled={mutation.isPending || rating < 1}
+            disabled={mutation.isPending || uploading || rating < 1}
             onClick={() => mutation.mutate()}
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEdit ? "Сохранить изменения" : "Опубликовать отзыв"}
+            {uploading
+              ? "Загружаем фото…"
+              : isEdit
+                ? "Сохранить изменения"
+                : "Опубликовать отзыв"}
           </button>
+
         </div>
       </div>
     </div>
