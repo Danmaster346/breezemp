@@ -252,9 +252,21 @@ export const listChats = createServerFn({ method: "GET" })
   });
 
 // Загрузка сообщений чата + метаданные и авто-пометка прочитанным
+// Пагинация: возвращаем последние `limit` сообщений старше `before` (если задан).
+// В ответе — по возрастанию created_at + флаг hasMore для «Загрузить ещё».
+const CHAT_PAGE_SIZE = 30;
+
 export const getChatThread = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((d) => z.object({ chat_id: z.string().uuid() }).parse(d))
+  .validator((d) =>
+    z
+      .object({
+        chat_id: z.string().uuid(),
+        before: z.string().datetime().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+      })
+      .parse(d),
+  )
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -266,34 +278,48 @@ export const getChatThread = createServerFn({ method: "POST" })
     if (chatErr || !chat) throw new Error("Чат не найден");
     if (chat.buyer_id !== userId && chat.seller_id !== userId) throw new Error("Нет доступа");
 
+    const limit = data.limit ?? CHAT_PAGE_SIZE;
+    const isInitial = !data.before;
     const otherId = chat.buyer_id === userId ? chat.seller_id : chat.buyer_id;
-    const [{ data: other }, product, { data: msgs }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, full_name").eq("id", otherId).maybeSingle(),
-      chat.product_id
+
+    let msgsQuery = supabaseAdmin
+      .from("chat_messages")
+      .select("id, sender_id, body, image_path, created_at, read_at")
+      .eq("chat_id", chat.id)
+      .order("created_at", { ascending: false })
+      .limit(limit + 1);
+    if (data.before) msgsQuery = msgsQuery.lt("created_at", data.before);
+
+    const [{ data: other }, product, { data: msgsDesc }] = await Promise.all([
+      isInitial
+        ? supabaseAdmin.from("profiles").select("id, full_name").eq("id", otherId).maybeSingle()
+        : Promise.resolve({ data: null as null | { id: string; full_name: string | null } }),
+      isInitial && chat.product_id
         ? supabaseAdmin
             .from("products")
             .select("id, title, image_url, price_kopecks")
             .eq("id", chat.product_id)
             .maybeSingle()
         : Promise.resolve({ data: null as null | { id: string; title: string; image_url: string | null; price_kopecks: number } }),
-      supabaseAdmin
-        .from("chat_messages")
-        .select("id, sender_id, body, image_path, created_at, read_at")
-        .eq("chat_id", chat.id)
-        .order("created_at", { ascending: true })
-        .limit(500),
+      msgsQuery,
     ]);
 
-    // Помечаем чужие сообщения прочитанными
-    await supabaseAdmin
-      .from("chat_messages")
-      .update({ read_at: new Date().toISOString() })
-      .eq("chat_id", chat.id)
-      .neq("sender_id", userId)
-      .is("read_at", null);
+    const rowsDesc = msgsDesc ?? [];
+    const hasMore = rowsDesc.length > limit;
+    const pageRows = (hasMore ? rowsDesc.slice(0, limit) : rowsDesc).slice().reverse();
+
+    // Помечаем чужие сообщения прочитанными только при начальной загрузке
+    if (isInitial) {
+      await supabaseAdmin
+        .from("chat_messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("chat_id", chat.id)
+        .neq("sender_id", userId)
+        .is("read_at", null);
+    }
 
     const messages = await Promise.all(
-      (msgs ?? []).map(async (m) => {
+      pageRows.map(async (m) => {
         let imageUrl: string | null = null;
         if (m.image_path) {
           const { data: signed } = await supabaseAdmin.storage
@@ -313,14 +339,18 @@ export const getChatThread = createServerFn({ method: "POST" })
     );
 
     return {
-      chat: {
-        id: chat.id,
-        role: chat.buyer_id === userId ? ("buyer" as const) : ("seller" as const),
-        other: { id: otherId, full_name: other?.full_name ?? "Пользователь" },
-        product: product.data ?? null,
-        order_id: chat.order_id,
-      },
+      chat: isInitial
+        ? {
+            id: chat.id,
+            role: chat.buyer_id === userId ? ("buyer" as const) : ("seller" as const),
+            other: { id: otherId, full_name: other?.full_name ?? "Пользователь" },
+            product: product.data ?? null,
+            order_id: chat.order_id,
+          }
+        : null,
       messages,
+      hasMore,
+      nextCursor: pageRows.length > 0 ? pageRows[0].created_at : null,
     };
   });
 
