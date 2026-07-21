@@ -263,9 +263,32 @@ function AuthPage() {
               />
             </div>
 
+            {mode === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreedPrivacy}
+                  onChange={(e) => setAgreedPrivacy(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-brand shrink-0"
+                />
+                <span>
+                  Я соглашаюсь с{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand hover:underline font-medium"
+                  >
+                    Политикой конфиденциальности
+                  </a>{" "}
+                  и обработкой персональных данных.
+                </span>
+              </label>
+            )}
+
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || (mode === "signup" && !agreedPrivacy)}
               className={`w-full rounded-xl py-3 font-semibold transition disabled:opacity-50 ${accent.btn}`}
             >
               {busy
