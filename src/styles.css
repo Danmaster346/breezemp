@@ -4,7 +4,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Дизайн-токены BREEZE — премиальный e-commerce (Amazon × Аскона) */
+/* ============================================
+   Kupiks — две темы:
+   • buyer (по умолчанию): янтарь-мандарин на светлом
+   • seller (класс .mode-seller на <html>): чистый нуар
+   ============================================ */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -39,70 +43,84 @@
   --color-promo: var(--promo);
   --color-promo-foreground: var(--promo-foreground);
   --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Unbounded", "Manrope", system-ui, sans-serif;
+  --font-display: "Sora", "Manrope", system-ui, sans-serif;
 
-  /* Мобильные размеры и safe-area */
   --bottom-nav-h: 64px;
   --sab: env(safe-area-inset-bottom);
   --sat: env(safe-area-inset-top);
 }
 
+/* Тема покупателя — по умолчанию (янтарь-мандарин) */
 :root {
   --radius: 1rem;
-  --background: #ffffff;
-  --foreground: #0b1220;
+  --background: #fffbf5;
+  --foreground: #111827;
   --card: #ffffff;
-  --card-foreground: #0b1220;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #0b1220;
-  --brand: #ff5a3c;
+  --popover-foreground: #111827;
+  --brand: #ea580c;
   --brand-foreground: #ffffff;
-  --brand-soft: #ffe8e1;
-  --brand-strong: #e63e20;
-  --primary: #ff5a3c;
+  --brand-soft: #fde68a;
+  --brand-strong: #c2410c;
+  --primary: #ea580c;
   --primary-foreground: #ffffff;
-  --secondary: #f4f5f7;
-  --secondary-foreground: #0b1220;
-  --muted: #f4f5f7;
+  --secondary: #fef3e7;
+  --secondary-foreground: #111827;
+  --muted: #fef3e7;
   --muted-foreground: #6b7280;
-  --accent: #ffe8e1;
-  --accent-foreground: #8a2a15;
-  --destructive: #e5484d;
+  --accent: #fed7aa;
+  --accent-foreground: #7c2d12;
+  --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: #ececec;
-  --input: #ececec;
-  --ring: #ff5a3c;
-  --surface: #f6f6f8;
-  --surface-strong: #eceef2;
-  --promo: #ffd83b;
-  --promo-foreground: #0b1220;
+  --border: #f1e8d8;
+  --input: #f1e8d8;
+  --ring: #ea580c;
+  --surface: #fff5e6;
+  --surface-strong: #ffe9c9;
+  --promo: #fbbf24;
+  --promo-foreground: #111827;
+
+  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.04), 0 4px 12px rgba(17, 24, 39, 0.05);
+  --shadow-elevated: 0 8px 30px rgba(17, 24, 39, 0.08);
+}
+
+/* Тема продавца — чистый нуар (класс на <html>) */
+.mode-seller {
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --card: #171717;
+  --card-foreground: #ffffff;
+  --popover: #171717;
+  --popover-foreground: #ffffff;
+  --brand: #ffffff;
+  --brand-foreground: #0a0a0a;
+  --brand-soft: #262626;
+  --brand-strong: #e5e5e5;
+  --primary: #ffffff;
+  --primary-foreground: #0a0a0a;
+  --secondary: #171717;
+  --secondary-foreground: #ffffff;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --accent: #262626;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #262626;
+  --input: #262626;
+  --ring: #ffffff;
+  --surface: #141414;
+  --surface-strong: #1f1f1f;
+  --promo: #fbbf24;
+  --promo-foreground: #0a0a0a;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
 .dark {
-  --background: #0f1720;
-  --foreground: #f2f5f8;
-  --card: #17212b;
-  --card-foreground: #f2f5f8;
-  --popover: #17212b;
-  --popover-foreground: #f2f5f8;
-  --brand: #4bbccf;
-  --brand-foreground: #0b1218;
-  --brand-soft: #10323a;
-  --primary: #4bbccf;
-  --primary-foreground: #0b1218;
-  --secondary: #1c2732;
-  --secondary-foreground: #f2f5f8;
-  --muted: #1c2732;
-  --muted-foreground: #9aa6b2;
-  --accent: #10323a;
-  --accent-foreground: #d7eef3;
-  --destructive: #e5544c;
-  --destructive-foreground: #ffffff;
-  --border: rgba(255,255,255,0.10);
-  --input: rgba(255,255,255,0.14);
-  --ring: #4bbccf;
-  --surface: #0f1720;
-  --surface-strong: #17212b;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -117,18 +135,23 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
     font-size: 16px;
     line-height: 1.55;
     min-height: 100dvh;
+    transition: background-color 250ms ease, color 250ms ease;
   }
-  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; line-height: 1.2; }
-  /* iOS не зумит в форму, если размер шрифта ≥ 16px */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    font-weight: 700;
+  }
   input, select, textarea { font-size: 16px; }
   button, [role="button"] { -webkit-user-select: none; user-select: none; }
 }
 
-/* Утилиты для мобильной адаптации */
+/* Утилиты */
 @utility safe-pt { padding-top: env(safe-area-inset-top); }
 @utility safe-pb { padding-bottom: env(safe-area-inset-bottom); }
 @utility touch-target { min-height: 44px; min-width: 44px; }
@@ -144,11 +167,21 @@
 @utility snap-center { scroll-snap-align: center; }
 @utility snap-start { scroll-snap-align: start; }
 
-/* Отступ снизу под нижнюю мобильную навигацию + safe-area */
 @utility pb-nav {
   padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom) + 12px);
 }
-/* Сдвиг sticky-панелей выше bottom nav */
 @utility bottom-nav {
   bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+
+/* Красивый hairline-бордер для тёмной темы продавца */
+@utility hairline {
+  border: 1px solid color-mix(in oklab, var(--color-border) 80%, transparent);
+}
+
+/* Плавные переходы для интерактивных элементов */
+@utility ui-transition {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }

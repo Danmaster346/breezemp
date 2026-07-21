@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { BuyerSidebar, BuyerTabs } from "@/components/BuyerSidebar";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
@@ -215,35 +217,36 @@ function AccountPage() {
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-4xl px-4 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Личный кабинет</h1>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/favorites"
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-accent"
-            >
-              <Heart className="h-4 w-4 text-brand" /> Избранное
-            </Link>
-            {isSeller && (
-              <Link
-                to="/seller/products"
-                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-accent"
-              >
-                <Store className="h-4 w-4" /> Кабинет продавца
-              </Link>
-            )}
-            <button
-              onClick={logout}
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-accent"
-            >
-              <LogOut className="h-4 w-4" /> Выйти
-            </button>
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <Breadcrumbs items={[{ label: "Личный кабинет" }]} className="mb-4" />
+        <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-8">
+          <BuyerSidebar />
+
+          <div className="min-w-0">
+            <BuyerTabs />
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Мои заказы</h1>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 lg:hidden">
+                {isSeller && (
+                  <Link
+                    to="/seller/products"
+                    className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm hover:bg-surface"
+                  >
+                    <Store className="h-4 w-4" /> Продавец
+                  </Link>
+                )}
+                <button
+                  onClick={logout}
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm hover:bg-surface"
+                >
+                  <LogOut className="h-4 w-4" /> Выйти
+                </button>
+              </div>
+            </div>
+
 
 
         {/* Обзорные карточки покупателя */}
@@ -649,6 +652,8 @@ function AccountPage() {
           returnItemFn={returnItemFn}
         />
       )}
+          </div>
+        </div>
     </AppLayout>
   );
 }
