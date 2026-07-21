@@ -52,7 +52,7 @@ const sellerMobileNav: readonly NavItem[] = [
   { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
 ];
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export function AppLayout({ children, hideMobileBottomNav = false }: { children: ReactNode; hideMobileBottomNav?: boolean }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
