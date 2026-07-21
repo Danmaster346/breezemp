@@ -300,6 +300,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
       </footer>
 
       {/* Мобильная нижняя навигация */}
+      {!hideMobileBottomNav && (
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-pb">
         <div
           className="grid"
