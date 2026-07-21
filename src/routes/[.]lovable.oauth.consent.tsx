@@ -107,7 +107,7 @@ function ConsentPage() {
                 Запрашиваемые разрешения
               </div>
               <ul className="space-y-1.5">
-                {details.scopes.map((s) => (
+                {details.scopes.map((s: string) => (
                   <li key={s} className="text-sm flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-brand" /> {s}
                   </li>
