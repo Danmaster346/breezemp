@@ -106,9 +106,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
       <header
-        className={`sticky top-0 z-40 backdrop-blur border-b border-border bg-background/90 supports-[backdrop-filter]:bg-background/75 transition-transform duration-300 will-change-transform ${
-          headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"
-        }`}
+        className={`sticky top-0 z-40 backdrop-blur border-b bg-background/90 supports-[backdrop-filter]:bg-background/75 transition-transform duration-300 will-change-transform ${
+          sellerModeUi ? "border-b-2 border-brand" : "border-border"
+        } ${headerHidden ? "-translate-y-full md:translate-y-0" : "translate-y-0"}`}
       >
         {/* Верхняя полоса: логотип · категории · переключатель · корзина/меню */}
         <div className="mx-auto max-w-7xl px-4 h-14 md:h-16 flex items-center gap-2 md:gap-3">
