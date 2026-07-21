@@ -59,6 +59,7 @@ function ChatThread() {
   const qc = useQueryClient();
   const fetchThread = useServerFn(getChatThread);
   const sendFn = useServerFn(sendChatMessage);
+  const markDeliveredFn = useServerFn(markChatDelivered);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
   const [pending, setPending] = useState<{ path: string; url: string } | null>(null);
