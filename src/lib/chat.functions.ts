@@ -457,3 +457,28 @@ export const getUnreadChatCount = createServerFn({ method: "GET" })
       .is("read_at", null);
     return { count: count ?? 0 };
   });
+
+// Отметить входящие сообщения чата доставленными (без пометки «прочитано»).
+// Вызывается получателем, когда его клиент активен и получает realtime-INSERT.
+export const markChatDelivered = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ chat_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: chat, error: chatErr } = await supabaseAdmin
+      .from("chats")
+      .select("id, buyer_id, seller_id")
+      .eq("id", data.chat_id)
+      .single();
+    if (chatErr || !chat) throw new Error("Чат не найден");
+    if (chat.buyer_id !== userId && chat.seller_id !== userId) throw new Error("Нет доступа");
+    await supabaseAdmin
+      .from("chat_messages")
+      .update({ delivered_at: new Date().toISOString() })
+      .eq("chat_id", data.chat_id)
+      .neq("sender_id", userId)
+      .is("delivered_at", null);
+    return { ok: true };
+  });
+
