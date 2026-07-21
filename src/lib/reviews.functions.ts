@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
 
+
 // Публичный клиент для чтения списка отзывов (без RLS-нюансов)
 const publicClient = () =>
   createClient<Database>(
@@ -128,9 +129,24 @@ export const createReview = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const logAbuse = async (code: string, message: string) => {
+      try {
+        await supabaseAdmin.from("review_abuse_logs").insert({
+          user_id: context.userId,
+          reason_code: code,
+          message,
+          product_id: data.product_id ?? null,
+          order_item_id: data.order_item_id ?? null,
+        });
+      } catch {
+        // не мешаем основному потоку
+      }
+    };
     const fail = (code: string, message: string): never => {
+      void logAbuse(code, message);
       throw new Error(`[${code}] ${message}`);
     };
+
 
     // Rate limit: не более 5 отзывов в час и 20 в сутки на пользователя
     const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();

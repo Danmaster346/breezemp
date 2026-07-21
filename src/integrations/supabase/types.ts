@@ -485,6 +485,42 @@ export type Database = {
         }
         Relationships: []
       }
+      review_abuse_logs: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string | null
+          message: string | null
+          order_item_id: string | null
+          product_id: string | null
+          reason_code: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          order_item_id?: string | null
+          product_id?: string | null
+          reason_code: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string | null
+          message?: string | null
+          order_item_id?: string | null
+          product_id?: string | null
+          reason_code?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       review_reports: {
         Row: {
           comment: string | null
