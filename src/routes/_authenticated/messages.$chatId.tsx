@@ -177,8 +177,9 @@ function ChatThread() {
     } catch (err) {
       const e = err as Error & { cause?: unknown };
       console.error("[chat.send] failed", { message: e.message, name: e.name, cause: e.cause, stack: e.stack });
-      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: e.message || "Ошибка сети" } : o)));
-      toast.error(e.message || "Не удалось отправить сообщение");
+      const friendly = friendlyError(err);
+      setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "error", error: friendly } : o)));
+      toast.error(friendly, { description: "Сообщение сохранено — нажмите «Повторить»." });
     }
   };
 
