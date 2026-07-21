@@ -7,9 +7,10 @@ import {
   getProductReviews,
   getReviewableForProduct,
   createReview,
+  reportReview,
 } from "@/lib/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
-import { Star, Camera, X, Loader2, Plus } from "lucide-react";
+import { Star, Camera, X, Loader2, Plus, Flag } from "lucide-react";
 import { toast } from "sonner";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
@@ -309,7 +310,116 @@ function ReviewFormModal({
   );
 }
 
-// Основная секция отзывов на странице товара
+// Модалка «Пожаловаться на отзыв»
+const REPORT_REASONS: Array<{ value: "spam" | "offensive" | "fake" | "off_topic" | "personal_info" | "other"; label: string }> = [
+  { value: "spam", label: "Спам или реклама" },
+  { value: "offensive", label: "Оскорбления или нецензурная лексика" },
+  { value: "fake", label: "Фейковый отзыв" },
+  { value: "off_topic", label: "Не по теме товара" },
+  { value: "personal_info", label: "Персональные данные" },
+  { value: "other", label: "Другое" },
+];
+
+function ReportReviewModal({ reviewId, onClose }: { reviewId: string; onClose: () => void }) {
+  const [reason, setReason] = useState<(typeof REPORT_REASONS)[number]["value"]>("spam");
+  const [comment, setComment] = useState("");
+  const submit = useServerFn(reportReview);
+
+  const mutation = useMutation({
+    mutationFn: async () =>
+      await submit({ data: { review_id: reviewId, reason, comment: comment.trim() || null } }),
+    onSuccess: () => {
+      toast.success("Жалоба отправлена", {
+        description: "Модераторы рассмотрят отзыв в ближайшее время.",
+      });
+      onClose();
+    },
+    onError: (e: Error) => {
+      const m = e.message.match(/^\[([A-Z_]+)\]\s*(.*)$/);
+      const code = m?.[1];
+      const msg = m?.[2] || e.message;
+      const map: Record<string, { title: string; description: string }> = {
+        DUPLICATE: {
+          title: "Жалоба уже отправлена",
+          description: "Вы уже жаловались на этот отзыв — модераторы её рассмотрят.",
+        },
+        SELF_REPORT: {
+          title: "Нельзя жаловаться на свой отзыв",
+          description: "Если хотите удалить свой отзыв — сделайте это в личном кабинете.",
+        },
+        RATE_HOUR: {
+          title: "Слишком часто",
+          description: "Вы отправили много жалоб за последний час. Попробуйте позже.",
+        },
+        NOT_FOUND: { title: "Отзыв не найден", description: "Возможно, он был удалён." },
+      };
+      const info = code && map[code];
+      if (info) toast.error(info.title, { description: info.description });
+      else toast.error(msg);
+    },
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-card rounded-t-2xl sm:rounded-2xl border shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="font-semibold">Пожаловаться на отзыв</div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-accent" aria-label="Закрыть">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="text-sm text-muted-foreground">
+            Расскажите, что не так с этим отзывом. Модераторы рассмотрят жалобу.
+          </div>
+          <div className="grid gap-2">
+            {REPORT_REASONS.map((r) => (
+              <label
+                key={r.value}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition ${
+                  reason === r.value ? "border-brand bg-brand/5" : "hover:bg-accent"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="reason"
+                  value={r.value}
+                  checked={reason === r.value}
+                  onChange={() => setReason(r.value)}
+                  className="accent-brand"
+                />
+                {r.label}
+              </label>
+            ))}
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Комментарий (необязательно)"
+            maxLength={500}
+            rows={3}
+            className="w-full rounded-lg border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand/30"
+          />
+          <button
+            type="button"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate()}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-destructive px-6 py-2.5 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition"
+          >
+            {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Отправить жалобу
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 export function ProductReviews({ productId }: { productId: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -317,6 +427,7 @@ export function ProductReviews({ productId }: { productId: string }) {
   const fetchReviewable = useServerFn(getReviewableForProduct);
   const [showForm, setShowForm] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [reportFor, setReportFor] = useState<string | null>(null);
 
   const reviewsQuery = useQuery({
     queryKey: ["product-reviews", productId],
@@ -443,9 +554,30 @@ export function ProductReviews({ productId }: { productId: string }) {
                   ))}
                 </div>
               )}
+
+              {user && user.id !== r.user_id && (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setReportFor(r.id)}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition"
+                    aria-label="Пожаловаться на отзыв"
+                  >
+                    <Flag className="h-3.5 w-3.5" />
+                    Пожаловаться
+                  </button>
+                </div>
+              )}
             </article>
           ))}
         </div>
+      )}
+
+      {reportFor && (
+        <ReportReviewModal
+          reviewId={reportFor}
+          onClose={() => setReportFor(null)}
+        />
       )}
 
       {showForm && orderItemId && (
