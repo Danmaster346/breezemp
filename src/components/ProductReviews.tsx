@@ -416,6 +416,7 @@ function ReviewFormModal({
                     onClick={() => removePending(i)}
                     className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80"
                     aria-label="Убрать из выбранных"
+                    title="Убрать из выбранных"
                   >
                     <X className="h-3 w-3" />
                   </button>
