@@ -75,7 +75,7 @@ export const getSellerFinance = createServerFn({ method: "GET" })
     // Учитываем только реально выведенные (не отклонённые/ожидающие)
     const { data: payouts, error: payoutsErr } = await supabaseAdmin
       .from("payouts")
-      .select("id, amount_kopecks, created_at, status")
+      .select("id, amount_kopecks, created_at, status, method, destination, note")
       .eq("seller_id", context.userId)
       .neq("status", "rejected")
       .order("created_at", { ascending: false });
