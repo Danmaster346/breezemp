@@ -69,6 +69,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
