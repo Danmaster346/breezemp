@@ -450,9 +450,18 @@ export function ProductReviews({ productId }: { productId: string }) {
     return d;
   }, [reviews]);
 
-  const canReview =
-    canReviewQuery.data && "canReview" in canReviewQuery.data && canReviewQuery.data.canReview;
-  const orderItemId = canReview ? canReviewQuery.data!.order_item_id : null;
+  const reviewableData = canReviewQuery.data;
+  const canReview = !!reviewableData && reviewableData.canReview === true;
+  const orderItemId = canReview && reviewableData.canReview ? reviewableData.order_item_id : null;
+  const cannotReason =
+    reviewableData && reviewableData.canReview === false ? reviewableData.reason : null;
+
+  const reasonHint: Record<NonNullable<typeof cannotReason>, string> = {
+    not_purchased: "Отзыв можно оставить только на купленный товар.",
+    not_delivered: "Оставить отзыв можно после того, как заказ будет доставлен.",
+    already_reviewed: "Вы уже оставили отзыв на этот товар.",
+    self: "Продавец не может оставлять отзывы на свои товары.",
+  };
 
   return (
     <section className="mt-10 md:mt-14">
@@ -471,15 +480,41 @@ export function ProductReviews({ productId }: { productId: string }) {
             <div className="mt-1 text-sm text-muted-foreground">Пока нет отзывов</div>
           )}
         </div>
-        {canReview && (
-          <button
-            type="button"
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 transition shadow-sm"
-          >
-            <Star className="h-4 w-4" />
-            Написать отзыв
-          </button>
+        {user && (
+          canReview ? (
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 transition shadow-sm"
+            >
+              <Star className="h-4 w-4" />
+              Написать отзыв
+            </button>
+          ) : cannotReason ? (
+            <div className="flex flex-col items-end gap-1 max-w-xs">
+              <button
+                type="button"
+                disabled
+                title={reasonHint[cannotReason]}
+                className="inline-flex items-center gap-2 rounded-full bg-muted px-5 py-2.5 text-sm font-semibold text-muted-foreground cursor-not-allowed"
+              >
+                <Star className="h-4 w-4" />
+                Написать отзыв
+              </button>
+              <span className="text-xs text-muted-foreground text-right leading-snug">
+                {reasonHint[cannotReason]}
+              </span>
+            </div>
+          ) : canReviewQuery.isLoading ? (
+            <button
+              type="button"
+              disabled
+              className="inline-flex items-center gap-2 rounded-full bg-muted px-5 py-2.5 text-sm font-semibold text-muted-foreground cursor-wait"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Проверяем…
+            </button>
+          ) : null
         )}
       </div>
 
