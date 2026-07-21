@@ -493,7 +493,7 @@ function ChatThread() {
           {/* Композер */}
           <form
             onSubmit={submit}
-            className="border-t bg-white p-3 flex items-end gap-2"
+            className="border-t bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3 flex items-end gap-2"
           >
             {pending && (
               <div className="relative shrink-0">
