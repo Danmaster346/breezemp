@@ -1,6 +1,7 @@
 // Один чат: сообщения + отправка текста и фото
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
@@ -9,7 +10,7 @@ import { useAuth } from "@/lib/use-auth";
 import { getChatThread, sendChatMessage } from "@/lib/chat.functions";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
-import { AlertCircle, ArrowLeft, CheckCheck, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCheck, ChevronUp, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
 
 type OutboxItem = {
   local_id: string;
@@ -65,14 +66,108 @@ function ChatThread() {
   const [sending, setSending] = useState(false);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
 
-  const q = useQuery({
-    queryKey: ["chat", chatId],
-    enabled: !!user,
-    queryFn: () => fetchThread({ data: { chat_id: chatId } }),
-  });
+  // Пагинация: держим сообщения в локальном стейте, подгружаем страницами по 30
+  type ChatMeta = NonNullable<Awaited<ReturnType<typeof getChatThread>>["chat"]>;
+  type ChatMessage = Awaited<ReturnType<typeof getChatThread>>["messages"][number];
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chat, setChat] = useState<ChatMeta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const oldestCursor = messages[0]?.created_at ?? null;
+  const didInitialScroll = useRef(false);
 
-  const messages = q.data?.messages ?? [];
-  const chat = q.data?.chat;
+  // Начальная загрузка последней страницы
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setLoading(true);
+    didInitialScroll.current = false;
+    fetchThread({ data: { chat_id: chatId } })
+      .then((res) => {
+        if (cancelled) return;
+        setChat(res.chat);
+        setMessages(res.messages);
+        setHasMore(res.hasMore);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(friendlyError(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, user, fetchThread]);
+
+  const loadOlder = async () => {
+    if (loadingMore || !hasMore || !oldestCursor) return;
+    setLoadingMore(true);
+    const el = scrollRef.current;
+    const prevHeight = el?.scrollHeight ?? 0;
+    const prevTop = el?.scrollTop ?? 0;
+    try {
+      const res = await fetchThread({ data: { chat_id: chatId, before: oldestCursor } });
+      setMessages((prev) => {
+        const existing = new Set(prev.map((m) => m.id));
+        const older = res.messages.filter((m) => !existing.has(m.id));
+        return [...older, ...prev];
+      });
+      setHasMore(res.hasMore);
+      // Сохраняем позицию скролла — компенсируем прирост высоты
+      requestAnimationFrame(() => {
+        const now = scrollRef.current;
+        if (now) now.scrollTop = prevTop + (now.scrollHeight - prevHeight);
+      });
+    } catch (err) {
+      toast.error(friendlyError(err));
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Прокрутка вниз при первой загрузке и при появлении новых сообщений/outbox
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (!didInitialScroll.current && messages.length > 0) {
+      el.scrollTop = el.scrollHeight;
+      didInitialScroll.current = true;
+      return;
+    }
+    // Автоскролл вниз, если пользователь и так у низа
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages.length, outbox.length]);
+
+  // Реалтайм: подхватываем новые сообщения без перезагрузки истории
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`chat-${chatId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
+        () => {
+          // Дозагружаем только свежие сообщения (последняя страница)
+          fetchThread({ data: { chat_id: chatId, limit: 20 } })
+            .then((res) => {
+              setMessages((prev) => {
+                const existing = new Set(prev.map((m) => m.id));
+                const fresh = res.messages.filter((m) => !existing.has(m.id));
+                return fresh.length ? [...prev, ...fresh] : prev;
+              });
+            })
+            .catch(() => {});
+          qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [chatId, user, qc, fetchThread]);
 
   // Восстановление outbox из localStorage
   useEffect(() => {
@@ -81,7 +176,6 @@ function ChatThread() {
       const raw = window.localStorage.getItem(outboxKey(chatId));
       if (raw) {
         const parsed = JSON.parse(raw) as OutboxItem[];
-        // Все "sending" при перезагрузке считаем ошибкой — пусть пользователь повторит
         setOutbox(parsed.map((o) => (o.status === "sending" ? { ...o, status: "error", error: "Не отправлено" } : o)));
       }
     } catch {
@@ -101,29 +195,6 @@ function ChatThread() {
     }
   }, [outbox, chatId]);
 
-  // Прокрутка к последнему сообщению
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [messages.length, outbox.length]);
-
-  // Реалтайм: перезагружаем при новых сообщениях в этом чате
-  useEffect(() => {
-    if (!user) return;
-    const ch = supabase
-      .channel(`chat-${chatId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages", filter: `chat_id=eq.${chatId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["chat", chatId] });
-          qc.invalidateQueries({ queryKey: ["unread-chats", user.id] });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [chatId, user, qc]);
 
   // Автоповтор ошибочных сообщений при возвращении сети
   const outboxRef = useRef<OutboxItem[]>([]);
@@ -188,7 +259,7 @@ function ChatThread() {
       const res = await sendFn({ data: payload });
       console.log("[chat.send] server response", res);
       setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sent" } : o)));
-      qc.invalidateQueries({ queryKey: ["chat", chatId] });
+      qc.invalidateQueries({ queryKey: ["chats", user?.id] });
       if (user) qc.invalidateQueries({ queryKey: ["chats", user.id] });
       // Убираем «отправлено» из outbox после того, как оно точно есть в q.data
       setTimeout(() => {
@@ -272,7 +343,20 @@ function ChatThread() {
 
           {/* Лента */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-surface/40">
-            {q.isLoading ? (
+            {hasMore && !loading && (
+              <div className="flex justify-center pb-2">
+                <button
+                  type="button"
+                  onClick={loadOlder}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-1.5 rounded-full border bg-white px-3 py-1.5 text-xs text-foreground/80 hover:bg-surface disabled:opacity-60"
+                >
+                  {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                  Загрузить ещё
+                </button>
+              </div>
+            )}
+            {loading ? (
               <div className="text-center text-muted-foreground text-sm">Загрузка…</div>
             ) : messages.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-10">
