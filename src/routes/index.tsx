@@ -168,25 +168,32 @@ function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-5">
-            {categoriesQuery.data?.map((c) => (
-              <Link
-                key={c.id}
-                to="/catalog"
-                search={{ category: c.slug }}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div className="aspect-square w-full rounded-2xl bg-surface flex items-center justify-center text-5xl md:text-6xl transition group-hover:bg-surface-strong group-hover:scale-[1.02]">
-                  {c.icon ?? "📦"}
-                </div>
-                <span className="text-xs md:text-sm font-medium text-center text-foreground/90 line-clamp-2">
-                  {c.name}
-                </span>
-              </Link>
-            ))}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 md:gap-4">
+            {categoriesQuery.data?.map((c) => {
+              const Icon = getCategoryIcon(c.slug);
+              return (
+                <Link
+                  key={c.id}
+                  to="/catalog"
+                  search={{ category: c.slug }}
+                  className="group flex flex-col items-center gap-2"
+                >
+                  <div className="aspect-square w-full rounded-2xl bg-surface flex items-center justify-center ui-transition group-hover:bg-brand/10 group-hover:-translate-y-0.5 group-hover:shadow-sm">
+                    <Icon
+                      className="h-8 w-8 md:h-9 md:w-9 text-foreground/70 group-hover:text-brand ui-transition"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                  <span className="text-xs md:text-sm font-medium text-center text-foreground/85 group-hover:text-foreground line-clamp-2">
+                    {c.name}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         )}
       </section>
+
 
       {/* Подборки */}
       <section className="mx-auto max-w-7xl px-4 pt-10 md:pt-14">
