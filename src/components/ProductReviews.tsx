@@ -450,9 +450,18 @@ export function ProductReviews({ productId }: { productId: string }) {
     return d;
   }, [reviews]);
 
-  const canReview =
-    canReviewQuery.data && "canReview" in canReviewQuery.data && canReviewQuery.data.canReview;
-  const orderItemId = canReview ? canReviewQuery.data!.order_item_id : null;
+  const reviewableData = canReviewQuery.data;
+  const canReview = !!reviewableData && reviewableData.canReview === true;
+  const orderItemId = canReview && reviewableData.canReview ? reviewableData.order_item_id : null;
+  const cannotReason =
+    reviewableData && reviewableData.canReview === false ? reviewableData.reason : null;
+
+  const reasonHint: Record<NonNullable<typeof cannotReason>, string> = {
+    not_purchased: "Отзыв можно оставить только на купленный товар.",
+    not_delivered: "Оставить отзыв можно после того, как заказ будет доставлен.",
+    already_reviewed: "Вы уже оставили отзыв на этот товар.",
+    self: "Продавец не может оставлять отзывы на свои товары.",
+  };
 
   return (
     <section className="mt-10 md:mt-14">
