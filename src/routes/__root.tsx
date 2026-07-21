@@ -40,13 +40,24 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+  const message = (error && (error.message || String(error))) || "Неизвестная ошибка";
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="max-w-lg w-full text-center">
         <h1 className="text-xl font-semibold">Что-то пошло не так</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Попробуйте обновить страницу или вернитесь на главную.
         </p>
+        <div className="mt-4 rounded-lg border bg-muted/40 p-3 text-left text-xs text-muted-foreground break-words">
+          <div className="font-medium text-foreground mb-1">Детали ошибки</div>
+          <div className="whitespace-pre-wrap">{message}</div>
+          {error?.stack && (
+            <details className="mt-2">
+              <summary className="cursor-pointer">Стек</summary>
+              <pre className="mt-1 whitespace-pre-wrap text-[10px] leading-snug">{error.stack}</pre>
+            </details>
+          )}
+        </div>
         <div className="mt-6 flex gap-2 justify-center">
           <button
             onClick={() => {
@@ -68,6 +79,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     </div>
   );
 }
+
 
 // Создаём корневой маршрут с контекстом QueryClient
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({

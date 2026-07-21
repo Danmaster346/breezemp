@@ -1,6 +1,6 @@
 // Страница входа и регистрации с чётким выбором роли (покупатель/продавец)
 // Параметры: mode=signin|signup, redirect=<path>, as=buyer|seller
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,7 +60,7 @@ async function userHasSellerRole(userId: string): Promise<boolean> {
 }
 
 function AuthPage() {
-  const navigate = useNavigate();
+
   const search = Route.useSearch();
   const setMode = useMode((s) => s.setMode);
 
@@ -137,19 +137,26 @@ function AuthPage() {
       // Устанавливаем режим интерфейса согласно выбору
       setMode(role);
 
-      // Явный редирект по выбранной роли (?redirect используем только для покупателя)
+      // Жёсткий редирект: гарантированно перечитывает сессию из localStorage
+      // и не даёт _authenticated beforeLoad сработать до её установки.
       if (role === "seller") {
-        navigate({ to: "/seller/products" });
+        window.location.assign("/seller/products");
       } else {
         const redirectTo = search.redirect ?? "/account";
-        navigate({ to: redirectTo as "/account" });
+        window.location.assign(redirectTo);
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      const e = err as { message?: string; status?: number; name?: string; code?: string };
+      console.error("[auth] submit failed", err);
+      const detail = [e?.status && `HTTP ${e.status}`, e?.code, e?.name].filter(Boolean).join(" · ");
+      toast.error(e?.message || "Не удалось выполнить вход", {
+        description: detail || undefined,
+      });
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <AppLayout>
