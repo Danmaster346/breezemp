@@ -27,7 +27,7 @@ type UnreadRecord = { chat_id: string };
 // Создание/поиск чата покупателем с продавцом (можно привязать к товару/заказу)
 export const getOrCreateChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         seller_id: z.string().uuid(),
@@ -101,7 +101,7 @@ export const getOrCreateChat = createServerFn({ method: "POST" })
 // Работает и для покупателя, и для продавца: сервер сам определяет участников заказа.
 export const getOrCreateOrderChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ order_item_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ order_item_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -254,7 +254,7 @@ export const listChats = createServerFn({ method: "GET" })
 // Загрузка сообщений чата + метаданные и авто-пометка прочитанным
 export const getChatThread = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ chat_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ chat_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -327,7 +327,7 @@ export const getChatThread = createServerFn({ method: "POST" })
 // Отправка сообщения (текст и/или картинка)
 export const sendChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         chat_id: z.string().uuid(),
