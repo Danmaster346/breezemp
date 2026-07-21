@@ -1,9 +1,10 @@
 // Серверные функции для отзывов
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, getRequestHeader } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 import { z } from "zod";
+
 
 // Публичный клиент для чтения списка отзывов (без RLS-нюансов)
 const publicClient = () =>
