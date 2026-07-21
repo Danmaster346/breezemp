@@ -7,10 +7,10 @@ import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
-import { getChatThread, sendChatMessage } from "@/lib/chat.functions";
+import { getChatThread, markChatDelivered, sendChatMessage } from "@/lib/chat.functions";
 import { formatPrice } from "@/lib/format";
 import { toast } from "sonner";
-import { AlertCircle, ArrowLeft, CheckCheck, ChevronUp, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, CheckCheck, ChevronUp, Image as ImageIcon, Loader2, RotateCw, Send, X } from "lucide-react";
 
 type OutboxItem = {
   local_id: string;
