@@ -338,6 +338,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
           })}
         </div>
       </nav>
+      )}
     </div>
   );
 }
