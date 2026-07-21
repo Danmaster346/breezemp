@@ -342,7 +342,7 @@ function ReviewFormModal({
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Опубликовать отзыв
+            {isEdit ? "Сохранить изменения" : "Опубликовать отзыв"}
           </button>
         </div>
       </div>
