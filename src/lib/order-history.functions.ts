@@ -27,6 +27,9 @@ type SellerPayout = {
   amount_kopecks: number;
   created_at: string;
   status?: string;
+  method?: string | null;
+  destination?: string | null;
+  note?: string | null;
 };
 
 export const getBuyerOrders = createServerFn({ method: "GET" })
