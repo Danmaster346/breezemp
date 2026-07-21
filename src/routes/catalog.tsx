@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { BottomSheet } from "@/components/BottomSheet";
