@@ -268,7 +268,7 @@ function ReviewFormModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card z-10">
-          <div className="font-semibold">Оставить отзыв</div>
+          <div className="font-semibold">{isEdit ? "Редактировать отзыв" : "Оставить отзыв"}</div>
           <button onClick={onClose} className="p-1 rounded hover:bg-accent" aria-label="Закрыть">
             <X className="h-5 w-5" />
           </button>
