@@ -387,8 +387,9 @@ function ReviewFormModal({
                   <button
                     type="button"
                     onClick={() => setPhotos((p) => p.filter((_, idx) => idx !== i))}
-                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80 opacity-0 group-hover:opacity-100 transition"
+                    className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
                     aria-label="Удалить фото"
+                    title="Удалить фото"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -415,6 +416,7 @@ function ReviewFormModal({
                     onClick={() => removePending(i)}
                     className="absolute top-0.5 right-0.5 rounded-full bg-black/60 text-white p-0.5 hover:bg-black/80"
                     aria-label="Убрать из выбранных"
+                    title="Убрать из выбранных"
                   >
                     <X className="h-3 w-3" />
                   </button>
