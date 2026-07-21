@@ -182,6 +182,17 @@ export const createReview = createServerFn({ method: "POST" })
       fail("SELF_REVIEW", "Нельзя оставить отзыв на собственный товар");
     }
 
+    // Явная предпроверка на дубль: один order_item = один отзыв (доп. слой поверх UNIQUE в БД)
+    const { data: existing, error: existErr } = await supabaseAdmin
+      .from("reviews")
+      .select("id")
+      .eq("order_item_id", data.order_item_id)
+      .maybeSingle();
+    if (existErr) throw new Error(existErr.message);
+    if (existing) fail("DUPLICATE", "Вы уже оставили отзыв на этот товар");
+
+
+
     // Получаем имя покупателя из профиля
     const { data: profile } = await supabaseAdmin
       .from("profiles")
