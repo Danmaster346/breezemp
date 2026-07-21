@@ -194,20 +194,28 @@ function AccountPage() {
   // Realtime: обновляем список при изменениях позиций
   useEffect(() => {
     if (!user) return;
-    const channel = supabase
-      .channel(`buyer-orders-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "order_items" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["my-orders", user.id] });
-        },
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      channel = supabase
+        .channel(`buyer-orders-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "order_items" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["my-orders", user.id] });
+          },
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("[account] realtime subscribe failed", e);
+    }
     return () => {
-      supabase.removeChannel(channel);
+      try {
+        if (channel) supabase.removeChannel(channel);
+      } catch {}
     };
   }, [user, qc]);
+
 
   const logout = async () => {
     await supabase.auth.signOut();
