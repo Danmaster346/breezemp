@@ -1,5 +1,5 @@
 // Секция отзывов на странице товара: список, средний рейтинг, форма
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,10 +8,14 @@ import {
   getReviewableForProduct,
   createReview,
   reportReview,
+  updateReview,
 } from "@/lib/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
-import { Star, Camera, X, Loader2, Plus, Flag } from "lucide-react";
+import { Star, Camera, X, Loader2, Plus, Flag, Pencil } from "lucide-react";
 import { toast } from "sonner";
+
+// Окно редактирования собственного отзыва (24 часа)
+const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
