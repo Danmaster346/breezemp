@@ -74,6 +74,33 @@ function ChatThread() {
   const messages = q.data?.messages ?? [];
   const chat = q.data?.chat;
 
+  // Восстановление outbox из localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(outboxKey(chatId));
+      if (raw) {
+        const parsed = JSON.parse(raw) as OutboxItem[];
+        // Все "sending" при перезагрузке считаем ошибкой — пусть пользователь повторит
+        setOutbox(parsed.map((o) => (o.status === "sending" ? { ...o, status: "error", error: "Не отправлено" } : o)));
+      }
+    } catch {
+      // ignore
+    }
+  }, [chatId]);
+
+  // Сохраняем outbox в localStorage (только то, что не «sent»)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const toSave = outbox.filter((o) => o.status !== "sent");
+    try {
+      if (toSave.length) window.localStorage.setItem(outboxKey(chatId), JSON.stringify(toSave));
+      else window.localStorage.removeItem(outboxKey(chatId));
+    } catch {
+      // ignore
+    }
+  }, [outbox, chatId]);
+
   // Прокрутка к последнему сообщению
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -97,6 +124,7 @@ function ChatThread() {
       supabase.removeChannel(ch);
     };
   }, [chatId, user, qc]);
+
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
