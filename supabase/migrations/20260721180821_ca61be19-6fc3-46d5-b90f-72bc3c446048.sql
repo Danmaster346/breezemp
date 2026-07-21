@@ -1,0 +1,1 @@
+DELETE FROM public.payouts WHERE id = '2517a0bf-e51f-4efd-9888-1cbd59428f64';
