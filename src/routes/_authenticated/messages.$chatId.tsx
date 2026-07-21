@@ -259,7 +259,7 @@ function ChatThread() {
       const res = await sendFn({ data: payload });
       console.log("[chat.send] server response", res);
       setOutbox((prev) => prev.map((o) => (o.local_id === item.local_id ? { ...o, status: "sent" } : o)));
-      qc.invalidateQueries({ queryKey: ["chat", chatId] });
+      qc.invalidateQueries({ queryKey: ["chats", user?.id] });
       if (user) qc.invalidateQueries({ queryKey: ["chats", user.id] });
       // Убираем «отправлено» из outbox после того, как оно точно есть в q.data
       setTimeout(() => {
