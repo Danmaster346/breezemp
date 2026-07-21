@@ -7,9 +7,10 @@ import {
   getProductReviews,
   getReviewableForProduct,
   createReview,
+  reportReview,
 } from "@/lib/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
-import { Star, Camera, X, Loader2, Plus } from "lucide-react";
+import { Star, Camera, X, Loader2, Plus, Flag } from "lucide-react";
 import { toast } from "sonner";
 
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
