@@ -87,30 +87,54 @@ export const getReviewableItems = createServerFn({ method: "GET" })
       }));
   });
 
-// Проверка: может ли пользователь оставить отзыв на конкретный товар
+// Проверка: может ли пользователь оставить отзыв на конкретный товар.
+// Возвращает подробную причину для UI-подсказок и отключения кнопки.
+export type ReviewableResult =
+  | { canReview: true; order_item_id: string }
+  | {
+      canReview: false;
+      reason: "not_purchased" | "not_delivered" | "already_reviewed" | "self";
+    };
+
 export const getReviewableForProduct = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ product_id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<ReviewableResult> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: items, error } = await supabaseAdmin
+
+    // Продавец не может оставлять отзыв на свой товар
+    const { data: product } = await supabaseAdmin
+      .from("products")
+      .select("seller_id")
+      .eq("id", data.product_id)
+      .maybeSingle();
+    if (product?.seller_id && product.seller_id === context.userId) {
+      return { canReview: false, reason: "self" };
+    }
+
+    // Все позиции этого товара, купленные пользователем
+    const { data: allItems, error: allErr } = await supabaseAdmin
       .from("order_items")
       .select("id, status, orders!inner(buyer_id)")
       .eq("product_id", data.product_id)
-      .eq("orders.buyer_id", context.userId)
-      .in("status", ["delivered", "received"]);
-    if (error) throw new Error(error.message);
-    const rows = (items ?? []) as unknown as Array<{ id: string }>;
-    if (!rows.length) return { canReview: false as const };
+      .eq("orders.buyer_id", context.userId);
+    if (allErr) throw new Error(allErr.message);
+    const all = (allItems ?? []) as unknown as Array<{ id: string; status: string }>;
+    if (!all.length) return { canReview: false, reason: "not_purchased" };
+
+    const eligible = all.filter(
+      (r) => r.status === "delivered" || r.status === "received",
+    );
+    if (!eligible.length) return { canReview: false, reason: "not_delivered" };
 
     const { data: existing } = await supabaseAdmin
       .from("reviews")
       .select("order_item_id")
-      .in("order_item_id", rows.map((r) => r.id));
+      .in("order_item_id", eligible.map((r) => r.id));
     const usedSet = new Set((existing ?? []).map((r) => r.order_item_id));
-    const free = rows.find((r) => !usedSet.has(r.id));
-    if (!free) return { canReview: false as const };
-    return { canReview: true as const, order_item_id: free.id };
+    const free = eligible.find((r) => !usedSet.has(r.id));
+    if (!free) return { canReview: false, reason: "already_reviewed" };
+    return { canReview: true, order_item_id: free.id };
   });
 
 // Создание отзыва
