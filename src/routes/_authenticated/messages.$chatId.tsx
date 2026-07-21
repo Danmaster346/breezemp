@@ -411,11 +411,20 @@ function ChatThread() {
                     )}
                     {m.body && <div className="whitespace-pre-wrap break-words">{m.body}</div>}
                     <div
-                      className={`text-[10px] mt-1 text-right ${
+                      className={`text-[10px] mt-1 flex items-center gap-1 justify-end ${
                         m.from_me ? "text-white/70" : "text-muted-foreground"
                       }`}
                     >
-                      {fmtTime(m.created_at)}
+                      <span>{fmtTime(m.created_at)}</span>
+                      {m.from_me && (
+                        m.read_at ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-sky-200" aria-label="Прочитано" />
+                        ) : m.delivered_at ? (
+                          <CheckCheck className="h-3.5 w-3.5" aria-label="Доставлено" />
+                        ) : (
+                          <Check className="h-3.5 w-3.5" aria-label="Отправлено" />
+                        )
+                      )}
                     </div>
                   </div>
                 </div>
