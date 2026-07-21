@@ -468,6 +468,18 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [showForm, setShowForm] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [reportFor, setReportFor] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    photos: string[];
+  } | null>(null);
+  // Тикающий таймер, чтобы окно "Ещё Xч на редактирование" пересчитывалось без перезагрузки
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const reviewsQuery = useQuery({
     queryKey: ["product-reviews", productId],
