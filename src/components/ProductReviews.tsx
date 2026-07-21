@@ -101,32 +101,48 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
   );
 }
 
-// Форма отзыва (модалка)
+// Форма отзыва (модалка) — создание или редактирование
 function ReviewFormModal({
   productId,
   orderItemId,
+  reviewId,
+  initial,
   onClose,
   onDone,
 }: {
   productId: string;
-  orderItemId: string;
+  orderItemId?: string;
+  reviewId?: string;
+  initial?: { rating: number; comment: string | null; photos: string[] };
   onClose: () => void;
   onDone: () => void;
 }) {
   const { user } = useAuth();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const isEdit = !!reviewId;
+  const [rating, setRating] = useState(initial?.rating ?? 0);
+  const [comment, setComment] = useState(initial?.comment ?? "");
+  const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
   const [uploading, setUploading] = useState(false);
-  const submit = useServerFn(createReview);
+  const create = useServerFn(createReview);
+  const update = useServerFn(updateReview);
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (rating < 1) throw new Error("Поставьте оценку от 1 до 5 звёзд");
-      return await submit({
+      if (isEdit) {
+        return await update({
+          data: {
+            review_id: reviewId!,
+            rating,
+            comment: comment.trim() || null,
+            photos,
+          },
+        });
+      }
+      return await create({
         data: {
           product_id: productId,
-          order_item_id: orderItemId,
+          order_item_id: orderItemId!,
           rating,
           comment: comment.trim() || null,
           photos,
@@ -134,7 +150,7 @@ function ReviewFormModal({
       });
     },
     onSuccess: () => {
-      toast.success("Спасибо за отзыв!");
+      toast.success(isEdit ? "Отзыв обновлён" : "Спасибо за отзыв!");
       onDone();
       onClose();
     },
