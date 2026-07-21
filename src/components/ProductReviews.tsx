@@ -655,6 +655,34 @@ export function ProductReviews({ productId }: { productId: string }) {
                   </button>
                 </div>
               )}
+
+              {user && user.id === r.user_id && (() => {
+                const msLeft = EDIT_WINDOW_MS - (now - new Date(r.created_at).getTime());
+                if (msLeft <= 0) return null;
+                const hoursLeft = Math.max(1, Math.ceil(msLeft / (60 * 60 * 1000)));
+                return (
+                  <div className="mt-3 flex justify-end items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      Можно редактировать ещё {hoursLeft} ч
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingReview({
+                          id: r.id,
+                          rating: r.rating,
+                          comment: r.comment,
+                          photos: r.photos,
+                        })
+                      }
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Редактировать
+                    </button>
+                  </div>
+                );
+              })()}
             </article>
           ))}
         </div>
@@ -675,6 +703,22 @@ export function ProductReviews({ productId }: { productId: string }) {
           onDone={() => {
             qc.invalidateQueries({ queryKey: ["product-reviews", productId] });
             qc.invalidateQueries({ queryKey: ["can-review", productId] });
+          }}
+        />
+      )}
+
+      {editingReview && (
+        <ReviewFormModal
+          productId={productId}
+          reviewId={editingReview.id}
+          initial={{
+            rating: editingReview.rating,
+            comment: editingReview.comment,
+            photos: editingReview.photos,
+          }}
+          onClose={() => setEditingReview(null)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["product-reviews", productId] });
           }}
         />
       )}
