@@ -137,19 +137,26 @@ function AuthPage() {
       // Устанавливаем режим интерфейса согласно выбору
       setMode(role);
 
-      // Явный редирект по выбранной роли (?redirect используем только для покупателя)
+      // Жёсткий редирект: гарантированно перечитывает сессию из localStorage
+      // и не даёт _authenticated beforeLoad сработать до её установки.
       if (role === "seller") {
-        navigate({ to: "/seller/products" });
+        window.location.assign("/seller/products");
       } else {
         const redirectTo = search.redirect ?? "/account";
-        navigate({ to: redirectTo as "/account" });
+        window.location.assign(redirectTo);
       }
     } catch (err) {
-      toast.error((err as Error).message);
+      const e = err as { message?: string; status?: number; name?: string; code?: string };
+      console.error("[auth] submit failed", err);
+      const detail = [e?.status && `HTTP ${e.status}`, e?.code, e?.name].filter(Boolean).join(" · ");
+      toast.error(e?.message || "Не удалось выполнить вход", {
+        description: detail || undefined,
+      });
     } finally {
       setBusy(false);
     }
   };
+
 
   return (
     <AppLayout>
