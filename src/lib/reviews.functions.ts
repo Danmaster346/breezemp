@@ -213,3 +213,57 @@ export const createReview = createServerFn({ method: "POST" })
     }
     return { id: inserted!.id };
   });
+
+// Пожаловаться на отзыв — покупатель может отправить одну жалобу на отзыв.
+export const reportReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z
+      .object({
+        review_id: z.string().uuid(),
+        reason: z.enum(["spam", "offensive", "fake", "off_topic", "personal_info", "other"]),
+        comment: z.string().trim().max(500).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const fail = (code: string, message: string): never => {
+      throw new Error(`[${code}] ${message}`);
+    };
+
+    // Rate limit — не более 10 жалоб в час на пользователя
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: hourCount } = await supabaseAdmin
+      .from("review_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("reporter_id", context.userId)
+      .gte("created_at", hourAgo);
+    if ((hourCount ?? 0) >= 10) {
+      fail("RATE_HOUR", "Слишком много жалоб за последний час. Попробуйте позже.");
+    }
+
+    // Проверяем, что отзыв существует и это не свой отзыв
+    const { data: review, error: revErr } = await supabaseAdmin
+      .from("reviews")
+      .select("id, user_id")
+      .eq("id", data.review_id)
+      .maybeSingle();
+    if (revErr) throw new Error(revErr.message);
+    if (!review) fail("NOT_FOUND", "Отзыв не найден");
+    if (review!.user_id === context.userId) {
+      fail("SELF_REPORT", "Нельзя жаловаться на собственный отзыв");
+    }
+
+    const { error: insErr } = await supabaseAdmin.from("review_reports").insert({
+      review_id: data.review_id,
+      reporter_id: context.userId,
+      reason: data.reason,
+      comment: data.comment?.trim() || null,
+    });
+    if (insErr) {
+      if (insErr.code === "23505") fail("DUPLICATE", "Вы уже отправляли жалобу на этот отзыв");
+      throw new Error(insErr.message);
+    }
+    return { ok: true };
+  });
