@@ -133,7 +133,43 @@ function ReviewFormModal({
       onDone();
       onClose();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const m = e.message.match(/^\[([A-Z_]+)\]\s*(.*)$/);
+      const code = m?.[1];
+      const msg = m?.[2] || e.message;
+      const map: Record<string, { title: string; description: string }> = {
+        TOO_EARLY: {
+          title: "Отзыв пока недоступен",
+          description: "Оставить отзыв можно после того, как товар будет доставлен и получение подтверждено.",
+        },
+        NOT_PURCHASED: {
+          title: "Отзыв недоступен",
+          description: "Оценивать можно только товары, которые вы купили в этом магазине.",
+        },
+        SELF_REVIEW: {
+          title: "Нельзя оценивать свой товар",
+          description: "Продавец не может оставлять отзывы на собственные товары.",
+        },
+        DUPLICATE: {
+          title: "Отзыв уже оставлен",
+          description: "На эту покупку уже есть ваш отзыв — его можно только отредактировать.",
+        },
+        RATE_HOUR: {
+          title: "Слишком часто",
+          description: "Не более 5 отзывов в час. Попробуйте через несколько минут.",
+        },
+        RATE_DAY: {
+          title: "Дневной лимит достигнут",
+          description: "Вы уже оставили 20 отзывов за сутки. Возвращайтесь завтра.",
+        },
+      };
+      const info = code && map[code];
+      if (info) {
+        toast.error(info.title, { description: info.description });
+      } else {
+        toast.error(msg);
+      }
+    },
   });
 
   const onFiles = async (files: FileList | null) => {
