@@ -180,7 +180,6 @@ function ConversationPage() {
           conversation_id: conversationId,
           body: body || undefined,
           reply_to_id: replyTo?.id,
-          context_type: replyTo ? undefined : undefined,
           attachments,
         },
       });
