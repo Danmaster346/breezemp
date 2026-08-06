@@ -1171,6 +1171,7 @@ export type Database = {
         Args: { _product_id: string; _qty: number }
         Returns: boolean
       }
+      find_order_id_by_code: { Args: { _code: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
