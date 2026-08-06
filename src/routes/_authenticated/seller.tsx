@@ -8,13 +8,21 @@ import { SellerSidebar, SellerTabs, useForceSellerMode } from "@/components/Sell
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerDashboardStats } from "@/lib/order-history.functions";
+import { getSellerTasks } from "@/lib/seller/tasks.functions";
 import {
   Plus,
   Boxes,
   Truck,
   Wallet,
   CalendarDays,
+  AlertTriangle,
+  MessageSquare,
+  PackageCheck,
+  RotateCcw,
+  Star,
+  BarChart3,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/seller")({
   component: SellerLayout,
