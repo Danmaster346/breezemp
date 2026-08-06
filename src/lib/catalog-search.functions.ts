@@ -7,6 +7,7 @@ export type CatalogItem = {
   id: string;
   title: string;
   price_kopecks: number;
+  compare_at_price_kopecks: number | null;
   image_url: string | null;
   stock: number;
   category_slug: string | null;
