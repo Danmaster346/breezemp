@@ -20,7 +20,7 @@ import {
   sellerMarkDeliveredItem,
   sellerShipOrderItem,
 } from "@/lib/order-status.functions";
-import { getOrCreateOrderChat } from "@/lib/chat.functions";
+import { openConversation } from "@/lib/messaging/messaging.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/seller/orders")({
@@ -64,7 +64,7 @@ function SellerOrdersPage() {
   const shipFn = useServerFn(sellerShipOrderItem);
   const cancelFn = useServerFn(sellerCancelOrderItem);
   const deliverFn = useServerFn(sellerMarkDeliveredItem);
-  const openOrderChat = useServerFn(getOrCreateOrderChat);
+  const openOrderChat = useServerFn(openConversation);
   const fetchSellerOrders = useServerFn(getSellerOrderItems);
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
@@ -112,7 +112,7 @@ function SellerOrdersPage() {
   const writeBuyer = async (item: SellerItem) => {
     try {
       const res = await openOrderChat({ data: { order_item_id: item.id } });
-      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+      navigate({ to: "/messages/$conversationId", params: { conversationId: res.id } });
     } catch (err) {
       toast.error("Не удалось открыть чат", { description: (err as Error).message });
     }

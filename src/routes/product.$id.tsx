@@ -12,7 +12,7 @@ import { ProductReviews } from "@/components/ProductReviews";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
-import { getOrCreateChat } from "@/lib/chat.functions";
+import { openConversation } from "@/lib/messaging/messaging.functions";
 import { useAuth } from "@/lib/use-auth";
 import { setPendingAdd, useSignInDialog } from "@/lib/pending-cart";
 import { useNavigate } from "@tanstack/react-router";
@@ -28,7 +28,7 @@ function ProductPage() {
   const [activeImg, setActiveImg] = useState(0);
   const fetchReviews = useServerFn(getProductReviews);
   const fetchSeller = useServerFn(getSellerProfile);
-  const openChat = useServerFn(getOrCreateChat);
+  const openChat = useServerFn(openConversation);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -126,7 +126,7 @@ function ProductPage() {
       const res = await openChat({
         data: { seller_id: product.seller_id, product_id: product.id },
       });
-      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+      navigate({ to: "/messages/$conversationId", params: { conversationId: res.id } });
     } catch (err) {
       toast.error((err as Error).message);
     }

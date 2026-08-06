@@ -10,7 +10,7 @@ import { BuyerSidebar, BuyerTabs } from "@/components/BuyerSidebar";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getBuyerOrders } from "@/lib/order-history.functions";
-import { getOrCreateOrderChat } from "@/lib/chat.functions";
+import { openConversation } from "@/lib/messaging/messaging.functions";
 import {
   buyerConfirmReceivedItem,
   buyerReturnOrderItem,
@@ -114,7 +114,7 @@ function AccountPage() {
   const { user, isSeller } = useAuth();
   const qc = useQueryClient();
   const fetchBuyerOrders = useServerFn(getBuyerOrders);
-  const openOrderChat = useServerFn(getOrCreateOrderChat);
+  const openOrderChat = useServerFn(openConversation);
   const returnItemFn = useServerFn(buyerReturnOrderItem);
   const confirmReceivedFn = useServerFn(buyerConfirmReceivedItem);
   const navigate = useNavigate();
@@ -141,7 +141,7 @@ function AccountPage() {
   const writeSeller = async (item: OrderItem) => {
     try {
       const res = await openOrderChat({ data: { order_item_id: item.id } });
-      navigate({ to: "/messages/$chatId", params: { chatId: res.id } });
+      navigate({ to: "/messages/$conversationId", params: { conversationId: res.id } });
     } catch (err) {
       toast.error("Не удалось открыть чат", { description: (err as Error).message });
     }
