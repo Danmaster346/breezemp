@@ -62,7 +62,44 @@ function SellerProductsPage() {
   const [searchQ, setSearchQ] = useState("");
   const [filterCat, setFilterCat] = useState<string>("");
   const [onlyLow, setOnlyLow] = useState(false);
+  const [sortBy, setSortBy] = useState<"new" | "sold" | "views" | "price" | "stock">("new");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fetchStats = useServerFn(getSellerProductStats);
+  const duplicate = useServerFn(duplicateProduct);
+  const [dupBusy, setDupBusy] = useState<string | null>(null);
+
+  // Просмотры / в корзину / продано по каждому товару
+  const statsQuery = useQuery({
+    queryKey: ["seller-product-stats", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchStats(),
+  });
+  const stats = statsQuery.data ?? { views: {}, carts: {}, sold: {} };
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["seller-products", user?.id] });
+    void qc.invalidateQueries({ queryKey: ["seller-product-stats", user?.id] });
+    setSelected([]);
+  };
+
+  const onDuplicate = async (id: string) => {
+    setDupBusy(id);
+    try {
+      await duplicate({ data: { id } });
+      toast.success("Копия создана — она скрыта, задайте остаток и включите продажи");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось создать копию");
+    } finally {
+      setDupBusy(null);
+    }
+  };
+
 
 
   // При наличии ?new=1 открываем форму и убираем параметр из URL
