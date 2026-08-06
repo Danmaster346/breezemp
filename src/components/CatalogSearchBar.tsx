@@ -124,7 +124,7 @@ export function CatalogSearchBar({ value, onSubmit, placeholder, compact }: Prop
             }
           }}
           type="search"
-          placeholder={placeholder ?? "Поиск по товарам, продавцам и категориям"}
+          placeholder={placeholder ?? "Поиск товаров..."}
           className="flex-1 bg-transparent px-3 text-base outline-none placeholder:text-muted-foreground/80 min-w-0"
         />
         {q && (
