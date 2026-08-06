@@ -4,79 +4,27 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { normalizeStatus, type OrderStatus } from "@/lib/order-status";
 import { getShippingOption } from "@/lib/shipping";
-
-export type TrackStage = "accepted" | "packing" | "shipped" | "in_transit" | "delivered";
-
-export type TrackStep = {
-  key: TrackStage;
-  label: string;
-  date: string | null;
-  state: "done" | "current" | "upcoming";
-};
-
-export type TrackItem = {
-  title: string;
-  image_url: string | null;
-  price_kopecks: number;
-  quantity: number;
-  status: OrderStatus;
-  tracking_number: string | null;
-  shipping_carrier: string | null;
-};
-
-export type TrackEvent = { label: string; date: string };
-
-export type TrackingResult =
-  | { found: false }
-  | {
-      found: true;
-      code: string;
-      created_at: string;
-      status: OrderStatus;
-      steps: TrackStep[];
-      history: TrackEvent[];
-      items: TrackItem[];
-      total_kopecks: number;
-      shipping_cost_kopecks: number;
-      shipping_method_label: string;
-      shipping_address_masked: string;
-      eta_label: string;
-      eta_date: string | null;
-    };
-
-const STAGE_LABELS: Record<TrackStage, string> = {
-  accepted: "Принят",
-  packing: "Собирается",
-  shipped: "Отправлен",
-  in_transit: "В пути",
-  delivered: "Доставлен",
-};
-
-const STAGE_ORDER: TrackStage[] = ["accepted", "packing", "shipped", "in_transit", "delivered"];
-
-/** Маскирует адрес: оставляем город и улицу, номер дома/квартиру скрываем. */
-function maskAddress(address: string | null): string {
-  if (!address) return "Адрес не указан";
-  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
-  if (parts.length <= 2) return parts.map((p, i) => (i === parts.length - 1 && parts.length > 1 ? "•••" : p)).join(", ");
-  return [...parts.slice(0, 2), "•••"].join(", ");
-}
-
-/** Ожидаемая дата доставки: от даты отправки (или оформления) + срок способа доставки. */
-function calcEta(method: string, createdAt: string, shippedAt: string | null) {
-  const opt = getShippingOption(method);
-  const days = Number(opt.eta.replace(/[^\d–-]/g, "").split(/[–-]/).pop() ?? 3) || 3;
-  const base = new Date(shippedAt ?? createdAt);
-  base.setDate(base.getDate() + days);
-  return { eta_date: base.toISOString(), eta_label: opt.eta };
-}
+import {
+  STAGE_LABELS,
+  STAGE_ORDER,
+  STATUS_RANK,
+  STATUS_TEXT,
+  calcEta,
+  maskAddress,
+  normalizeCode,
+  stageIndexForStatus,
+  type TrackEvent,
+  type TrackStage,
+  type TrackStep,
+  type TrackingResult,
+} from "@/lib/tracking.shared";
 
 export const getOrderTracking = createServerFn({ method: "GET" })
   .inputValidator((input: { code: string }) =>
     z.object({ code: z.string().trim().min(4).max(40) }).parse(input),
   )
   .handler(async ({ data }): Promise<TrackingResult> => {
-    const clean = data.code.replace(/[^0-9a-fA-F-]/g, "");
+    const clean = normalizeCode(data.code);
     if (clean.replace(/-/g, "").length < 4) return { found: false };
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -109,25 +57,15 @@ export const getOrderTracking = createServerFn({ method: "GET" })
       returned_at: string | null;
     }>;
 
-    // Агрегированный статус заказа: берём «самый ранний» этап среди позиций
-    const rank: Record<OrderStatus, number> = {
-      new: 0,
-      confirmed: 0,
-      processing: 0,
-      shipped: 1,
-      delivered: 2,
-      received: 3,
-      returned: 4,
-      cancelled: 5,
-    };
+    // Агрегированный статус заказа: берём «самый ранний» этап среди активных позиций
     const statuses = items.map((it) => normalizeStatus(it.status));
     const active = statuses.filter((s) => s !== "cancelled" && s !== "returned");
     const status: OrderStatus =
       active.length > 0
-        ? active.reduce((a, b) => (rank[a] <= rank[b] ? a : b))
+        ? active.reduce((a, b) => (STATUS_RANK[a] <= STATUS_RANK[b] ? a : b))
         : (statuses[0] ?? "processing");
 
-    // История статусов из БД (если триггер уже успел записать события)
+    // История статусов из БД (если триггер уже записал события)
     const { data: rawHistory } = await supabaseAdmin
       .from("order_status_history")
       .select("new_status, created_at")
@@ -137,15 +75,16 @@ export const getOrderTracking = createServerFn({ method: "GET" })
     const history: TrackEvent[] = [];
     const seen = new Set<string>();
     for (const h of rawHistory ?? []) {
-      const st = normalizeStatus(h.new_status);
-      const label = st === "processing" ? "Заказ принят и собирается" : STATUS_TEXT[st];
+      const label = STATUS_TEXT[normalizeStatus(h.new_status)];
       if (seen.has(label)) continue;
       seen.add(label);
       history.push({ label, date: h.created_at });
     }
 
-    const shippedAt = items.map((i) => i.shipped_at).filter(Boolean).sort()[0] ?? null;
-    const receivedAt = items.map((i) => i.received_at).filter(Boolean).sort().pop() ?? null;
+    const shippedAt =
+      items.map((i) => i.shipped_at).filter((v): v is string => !!v).sort()[0] ?? null;
+    const receivedAt =
+      items.map((i) => i.received_at).filter((v): v is string => !!v).sort().pop() ?? null;
 
     const stageDates: Record<TrackStage, string | null> = {
       accepted: order.created_at,
@@ -155,15 +94,7 @@ export const getOrderTracking = createServerFn({ method: "GET" })
       delivered: receivedAt ?? (status === "delivered" || status === "received" ? shippedAt : null),
     };
 
-    const reachedIndex =
-      status === "received" || status === "delivered"
-        ? 4
-        : status === "shipped"
-          ? 3
-          : status === "cancelled" || status === "returned"
-            ? 1
-            : 1;
-
+    const reachedIndex = stageIndexForStatus(status);
     const steps: TrackStep[] = STAGE_ORDER.map((key, i) => ({
       key,
       label: STAGE_LABELS[key],
@@ -172,7 +103,7 @@ export const getOrderTracking = createServerFn({ method: "GET" })
     }));
 
     const opt = getShippingOption(order.shipping_method ?? "pickup");
-    const { eta_date, eta_label } = calcEta(order.shipping_method ?? "pickup", order.created_at, shippedAt);
+    const eta = calcEta(order.shipping_method ?? "pickup", order.created_at, shippedAt);
 
     return {
       found: true,
@@ -194,18 +125,7 @@ export const getOrderTracking = createServerFn({ method: "GET" })
       shipping_cost_kopecks: order.shipping_cost_kopecks ?? 0,
       shipping_method_label: opt.label,
       shipping_address_masked: maskAddress(order.shipping_address),
-      eta_label,
-      eta_date: status === "received" ? null : eta_date,
+      eta_label: eta.eta_label,
+      eta_date: status === "received" || status === "cancelled" ? null : eta.eta_date,
     };
   });
-
-const STATUS_TEXT: Record<OrderStatus, string> = {
-  new: "Заказ принят",
-  confirmed: "Заказ принят",
-  processing: "Заказ собирается",
-  shipped: "Заказ отправлен",
-  delivered: "Заказ доставлен",
-  received: "Заказ получен",
-  returned: "Оформлен возврат",
-  cancelled: "Заказ отменён",
-};
