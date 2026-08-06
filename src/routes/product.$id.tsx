@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
+import { trackProduct } from "@/lib/analytics/track";
+
 import { toast } from "sonner";
 import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store, MessageCircle } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
@@ -88,9 +90,14 @@ function ProductPage() {
     queryFn: () => fetchSeller({ data: { id: product!.seller_id } }),
   });
 
+  // Статистика просмотров карточки для аналитики продавца
+  useEffect(() => {
+    if (product?.id) trackProduct(product.id, "view");
+  }, [product?.id]);
 
   const addToCart = () => {
     if (!product) return;
+
     if (!user) {
       // Гость — сохраняем намерение и открываем модалку входа
       setPendingAdd({ productId: product.id, qty: 1 });
@@ -109,7 +116,9 @@ function ProductPage() {
       seller_id: product.seller_id,
       stock: product.stock,
     });
+    trackProduct(product.id, "add_to_cart");
     toast.success("Товар добавлен в корзину");
+
   };
   const writeSeller = async () => {
     if (!product) return;

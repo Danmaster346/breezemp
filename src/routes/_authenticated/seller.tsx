@@ -8,13 +8,21 @@ import { SellerSidebar, SellerTabs, useForceSellerMode } from "@/components/Sell
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerDashboardStats } from "@/lib/order-history.functions";
+import { getSellerTasks } from "@/lib/seller/tasks.functions";
 import {
   Plus,
   Boxes,
   Truck,
   Wallet,
   CalendarDays,
+  AlertTriangle,
+  MessageSquare,
+  PackageCheck,
+  RotateCcw,
+  Star,
+  BarChart3,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/seller")({
   component: SellerLayout,
@@ -24,6 +32,7 @@ function SellerLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fetchStats = useServerFn(getSellerDashboardStats);
+  const fetchTasks = useServerFn(getSellerTasks);
   useForceSellerMode();
 
   const stats = useQuery({
@@ -32,7 +41,67 @@ function SellerLayout() {
     queryFn: () => fetchStats(),
   });
 
+  const tasks = useQuery({
+    queryKey: ["seller-tasks", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchTasks(),
+    refetchInterval: 60_000,
+  });
+
+  const t = tasks.data;
+  const taskCards = [
+    {
+      key: "orders",
+      label: "Новые заказы",
+      count: t?.newOrders ?? 0,
+      icon: PackageCheck,
+      to: "/seller/orders" as const,
+      tone: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    },
+    {
+      key: "ship",
+      label: "Готовы к отправке",
+      count: t?.toShip ?? 0,
+      icon: Truck,
+      to: "/seller/orders" as const,
+      tone: "bg-sky-50 text-sky-800 border-sky-200",
+    },
+    {
+      key: "messages",
+      label: "Новые сообщения",
+      count: t?.unread ?? 0,
+      icon: MessageSquare,
+      to: "/messages" as const,
+      tone: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    },
+    {
+      key: "stock",
+      label: "Мало на складе",
+      count: (t?.lowStock ?? 0) + (t?.outOfStock ?? 0),
+      icon: AlertTriangle,
+      to: "/seller/products" as const,
+      tone: "bg-amber-50 text-amber-900 border-amber-200",
+    },
+    {
+      key: "returns",
+      label: "Возвраты",
+      count: t?.returns ?? 0,
+      icon: RotateCcw,
+      to: "/seller/returns" as const,
+      tone: "bg-rose-50 text-rose-800 border-rose-200",
+    },
+    {
+      key: "reviews",
+      label: "Низкие оценки",
+      count: t?.lowRated ?? 0,
+      icon: Star,
+      to: "/seller/analytics" as const,
+      tone: "bg-muted text-foreground border-border",
+    },
+  ].filter((c) => c.count > 0);
+
   const cards = [
+
     {
       label: "Всего товаров",
       value: stats.data ? String(stats.data.products) : "—",
@@ -89,7 +158,38 @@ function SellerLayout() {
               >
                 <Plus className="h-4 w-4" strokeWidth={2.25} /> Новый товар
               </button>
+              <Link
+                to="/seller/analytics"
+                className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+              >
+                <BarChart3 className="h-4 w-4" /> Аналитика
+              </Link>
             </div>
+
+            {/* Задачи, требующие внимания */}
+            {taskCards.length > 0 && (
+              <div className="mb-6">
+                <h2 className="mb-2 text-sm font-bold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-brand" /> Требует внимания
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {taskCards.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                      <Link
+                        key={c.key}
+                        to={c.to}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold ui-transition hover:opacity-90 ${c.tone}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {c.label}
+                        <span className="rounded-full bg-white/70 px-1.5 tabular-nums">{c.count}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Дашборд KPI */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">

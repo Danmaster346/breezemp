@@ -8,6 +8,14 @@ import { formatPrice, rublesToKopecks } from "@/lib/format";
 import { Plus, Pencil, Trash2, X, Upload, Loader2, Search, AlertTriangle, Minus, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { Copy, ArrowUpDown, FileUp } from "lucide-react";
+import { BulkBar, ImportCsvDialog } from "@/components/seller/BulkBar";
+import {
+  duplicateProduct,
+  getSellerProductStats,
+} from "@/lib/seller/products-bulk.functions";
+
 
 // Порог низкого остатка — ниже этого числа товар помечается
 const LOW_STOCK_THRESHOLD = 10;
@@ -62,7 +70,44 @@ function SellerProductsPage() {
   const [searchQ, setSearchQ] = useState("");
   const [filterCat, setFilterCat] = useState<string>("");
   const [onlyLow, setOnlyLow] = useState(false);
+  const [sortBy, setSortBy] = useState<"new" | "sold" | "views" | "price" | "stock">("new");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fetchStats = useServerFn(getSellerProductStats);
+  const duplicate = useServerFn(duplicateProduct);
+  const [dupBusy, setDupBusy] = useState<string | null>(null);
+
+  // Просмотры / в корзину / продано по каждому товару
+  const statsQuery = useQuery({
+    queryKey: ["seller-product-stats", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchStats(),
+  });
+  const stats = statsQuery.data ?? { views: {}, carts: {}, sold: {} };
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["seller-products", user?.id] });
+    void qc.invalidateQueries({ queryKey: ["seller-product-stats", user?.id] });
+    setSelected([]);
+  };
+
+  const onDuplicate = async (id: string) => {
+    setDupBusy(id);
+    try {
+      await duplicate({ data: { id } });
+      toast.success("Копия создана — она скрыта, задайте остаток и включите продажи");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не удалось создать копию");
+    } finally {
+      setDupBusy(null);
+    }
+  };
+
 
 
   // При наличии ?new=1 открываем форму и убираем параметр из URL
@@ -246,12 +291,23 @@ function SellerProductsPage() {
   const outCount = all.filter((p) => p.stock === 0).length;
 
   // Клиентская фильтрация: поиск + категория + низкий остаток
-  const filtered = all.filter((p) => {
-    if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
-    if (filterCat && p.category_id !== filterCat) return false;
-    if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
-    return true;
-  });
+  const filtered = all
+    .filter((p) => {
+      if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
+      if (filterCat && p.category_id !== filterCat) return false;
+      if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "sold") return (stats.sold[b.id] ?? 0) - (stats.sold[a.id] ?? 0);
+      if (sortBy === "views") return (stats.views[b.id] ?? 0) - (stats.views[a.id] ?? 0);
+      if (sortBy === "price") return b.price_kopecks - a.price_kopecks;
+      if (sortBy === "stock") return a.stock - b.stock;
+      return 0;
+    });
+
+  const allSelected = filtered.length > 0 && filtered.every((p) => selected.includes(p.id));
+
 
   return (
     <div>
@@ -291,6 +347,28 @@ function SellerProductsPage() {
             </span>
           )}
         </button>
+        <div className="relative inline-flex items-center">
+          <ArrowUpDown className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="h-10 rounded-xl border bg-background pl-9 pr-3 text-sm"
+            aria-label="Сортировка"
+          >
+            <option value="new">Сначала новые</option>
+            <option value="sold">По продажам</option>
+            <option value="views">По просмотрам</option>
+            <option value="price">По цене</option>
+            <option value="stock">По остатку</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border text-sm font-medium hover:bg-accent"
+        >
+          <FileUp className="h-4 w-4" /> Импорт CSV
+        </button>
         <button
           onClick={() => setEditing({ ...emptyForm })}
           className="inline-flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
@@ -298,6 +376,7 @@ function SellerProductsPage() {
           <Plus className="h-4 w-4" /> Добавить товар
         </button>
       </div>
+
 
       {/* Итоги */}
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
@@ -337,7 +416,16 @@ function SellerProductsPage() {
         </div>
       ) : (
         <div className="grid gap-3">
+          <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => setSelected(e.target.checked ? filtered.map((p) => p.id) : [])}
+            />
+            Выбрать все ({filtered.length})
+          </label>
           {filtered.map((p) => {
+
             const low = p.stock > 0 && p.stock < LOW_STOCK_THRESHOLD;
             const out = p.stock === 0;
             return (
@@ -347,7 +435,15 @@ function SellerProductsPage() {
                   out ? "border-rose-200 bg-rose-50/40" : low ? "border-amber-200 bg-amber-50/40" : ""
                 }`}
               >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(p.id)}
+                  onChange={() => toggleSelected(p.id)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                  aria-label={`Выбрать ${p.title}`}
+                />
                 <div className="h-20 w-20 rounded-lg bg-muted overflow-hidden shrink-0">
+
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
                   ) : (
@@ -395,9 +491,31 @@ function SellerProductsPage() {
                     </button>
                     {stockBusy === p.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                   </div>
+                  {/* Мини-статистика товара */}
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>👁 {stats.views[p.id] ?? 0} просмотров</span>
+                    <span>🛒 {stats.carts[p.id] ?? 0} в корзину</span>
+                    <span>📦 {stats.sold[p.id] ?? 0} продано</span>
+                    {!p.is_active && <span className="font-semibold text-rose-600">скрыт</span>}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onDuplicate(p.id)}
+                    disabled={dupBusy === p.id}
+                    className="p-2 rounded-lg hover:bg-accent disabled:opacity-50"
+                    aria-label="Дублировать"
+                    title="Дублировать товар"
+                  >
+                    {dupBusy === p.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
                   <Link
+
                     to="/product/$id"
                     params={{ id: p.id }}
                     className="p-2 rounded-lg hover:bg-accent"
@@ -441,6 +559,19 @@ function SellerProductsPage() {
           })}
         </div>
       )}
+
+      {/* Массовые операции над выбранными товарами */}
+      <BulkBar
+        selected={selected}
+        categories={categoriesQuery.data ?? []}
+        onDone={refresh}
+        onClear={() => setSelected([])}
+      />
+
+      {/* Импорт цен и остатков */}
+      {importOpen && <ImportCsvDialog onClose={() => setImportOpen(false)} onDone={refresh} />}
+
+
 
 
       {/* Модальное окно формы */}
