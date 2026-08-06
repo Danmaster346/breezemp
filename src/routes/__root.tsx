@@ -1,4 +1,4 @@
-// Корневой макет приложения BreezeMarket с русской мета-информацией
+// Корневой макет приложения Kupiks с русской мета-информацией
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,

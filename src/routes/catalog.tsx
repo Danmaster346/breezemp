@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { BottomSheet } from "@/components/BottomSheet";
 import { formatPrice } from "@/lib/format";
+import { getCategoryEmoji } from "@/lib/category-emoji";
 import {
   searchCatalog,
   listCatalogSellers,
@@ -24,6 +25,7 @@ import {
   Store,
   RotateCcw,
   ArrowUpDown,
+  Tag,
 } from "lucide-react";
 
 const SORT_OPTIONS = [
@@ -47,6 +49,7 @@ const searchSchema = z.object({
   rating: z.coerce.number().optional(),
   seller: z.string().optional(),
   in_stock: z.coerce.boolean().optional(),
+  discount: z.coerce.boolean().optional(),
   sort: z.enum(SORT_KEYS).optional(),
   page: z.coerce.number().int().min(1).optional(),
 });
@@ -58,12 +61,22 @@ export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Каталог — BreezeMarket" },
+      { title: "Каталог товаров — Kupiks" },
       {
         name: "description",
-        content: "Умный поиск по товарам, продавцам и категориям маркетплейса BREEZE.",
+        content:
+          "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.",
       },
+      { property: "og:title", content: "Каталог товаров — Kupiks" },
+      {
+        property: "og:description",
+        content: "Тысячи товаров для дома, отдыха и стиля с фильтрами и удобным поиском.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://breezemp.lovable.app/catalog" },
+      { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/catalog" }],
   }),
   component: CatalogPage,
 });
@@ -121,6 +134,7 @@ function CatalogPage() {
     rating: search.rating,
     seller: search.seller,
     in_stock: search.in_stock,
+    discount: search.discount,
     sort: search.sort,
   };
   const productsQuery = useQuery({
@@ -135,6 +149,7 @@ function CatalogPage() {
           min_rating: search.rating || undefined,
           seller_id: search.seller || undefined,
           in_stock: search.in_stock || undefined,
+          discount: search.discount || undefined,
           sort: (search.sort ?? "relevance") as SortKey,
           limit: 240,
         },
@@ -188,7 +203,8 @@ function CatalogPage() {
       search.max ||
       search.rating ||
       search.seller ||
-      search.in_stock,
+      search.in_stock ||
+      search.discount,
   );
 
   const resetAll = () =>
@@ -246,7 +262,7 @@ function CatalogPage() {
                 active={search.category === c.slug}
                 onClick={() => upd({ category: c.slug })}
                 label={c.name}
-                emoji={c.icon ?? "📦"}
+                emoji={getCategoryEmoji(c.slug, c.name)}
                 imageUrl={c.icon_url}
               />
             ))}
@@ -275,6 +291,7 @@ function CatalogPage() {
                   search.rating,
                   search.seller,
                   search.in_stock,
+                  search.discount,
                 ].filter(Boolean).length}
               </span>
             )}
@@ -380,6 +397,18 @@ function CatalogPage() {
               <PackageCheck className="h-4 w-4" /> Только в наличии
             </button>
 
+            <button
+              type="button"
+              onClick={() => upd({ discount: search.discount ? undefined : true })}
+              className={`h-10 px-4 inline-flex items-center gap-2 rounded-xl border text-sm font-semibold transition ${
+                search.discount
+                  ? "border-brand bg-brand text-brand-foreground"
+                  : "border-border bg-white text-foreground/80 hover:border-brand/50"
+              }`}
+            >
+              <Tag className="h-4 w-4" /> Со скидкой
+            </button>
+
             {/* Сортировка */}
             <label className="flex items-center gap-2 ml-auto text-sm">
               <span className="text-muted-foreground hidden sm:inline">Сортировка:</span>
@@ -440,6 +469,12 @@ function CatalogPage() {
                 <FilterChip
                   label="В наличии"
                   onClear={() => upd({ in_stock: undefined })}
+                />
+              )}
+              {search.discount && (
+                <FilterChip
+                  label="Со скидкой"
+                  onClear={() => upd({ discount: undefined })}
                 />
               )}
               <button
@@ -685,6 +720,18 @@ function CatalogPage() {
             }`}
           >
             <PackageCheck className="h-4 w-4" /> Только в наличии
+          </button>
+
+          <button
+            type="button"
+            onClick={() => upd({ discount: search.discount ? undefined : true })}
+            className={`w-full h-12 inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition ${
+              search.discount
+                ? "border-brand bg-brand text-brand-foreground"
+                : "border-border bg-white text-foreground/80"
+            }`}
+          >
+            <Tag className="h-4 w-4" /> Только со скидкой
           </button>
         </div>
       </BottomSheet>

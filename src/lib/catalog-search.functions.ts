@@ -7,6 +7,7 @@ export type CatalogItem = {
   id: string;
   title: string;
   price_kopecks: number;
+  compare_at_price_kopecks: number | null;
   image_url: string | null;
   stock: number;
   category_slug: string | null;
@@ -40,6 +41,7 @@ const filterSchema = z.object({
   min_rating: z.number().optional(),
   seller_id: z.string().uuid().optional(),
   in_stock: z.boolean().optional(),
+  discount: z.boolean().optional(),
   sort: z
     .enum([
       "relevance",
@@ -126,7 +128,7 @@ export const searchCatalog = createServerFn({ method: "GET" })
     let query = supabaseAdmin
       .from("products")
       .select(
-        "id, title, description, price_kopecks, image_url, stock, seller_id, created_at, categories(slug)",
+        "id, title, description, price_kopecks, compare_at_price_kopecks, image_url, stock, seller_id, created_at, categories(slug)",
       )
       .eq("is_active", true)
       .eq("moderation_status", "approved")
@@ -158,6 +160,10 @@ export const searchCatalog = createServerFn({ method: "GET" })
     if (data.max) query = query.lte("price_kopecks", data.max * 100);
     if (data.seller_id) query = query.eq("seller_id", data.seller_id);
     if (data.in_stock) query = query.gt("stock", 0);
+    if (data.discount) {
+      // Акционным считаем товар, у которого указана более высокая старая цена
+      query = query.not("compare_at_price_kopecks", "is", null);
+    }
 
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
@@ -175,6 +181,7 @@ export const searchCatalog = createServerFn({ method: "GET" })
         id: p.id,
         title: p.title,
         price_kopecks: p.price_kopecks,
+        compare_at_price_kopecks: p.compare_at_price_kopecks,
         image_url: p.image_url,
         stock: p.stock,
         category_slug: categorySlug,
@@ -186,6 +193,15 @@ export const searchCatalog = createServerFn({ method: "GET" })
         created_at: p.created_at,
       };
     });
+
+    // 3) Фильтр «со скидкой» — старая цена должна быть выше текущей
+    if (data.discount) {
+      items = items.filter(
+        (i) =>
+          i.compare_at_price_kopecks != null &&
+          i.compare_at_price_kopecks > i.price_kopecks,
+      );
+    }
 
     // 3) Фильтр по рейтингу
     if (data.min_rating && data.min_rating > 0) {

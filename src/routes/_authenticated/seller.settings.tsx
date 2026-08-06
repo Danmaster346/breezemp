@@ -44,7 +44,7 @@ import {
 } from "@/lib/messaging/messaging.functions";
 
 export const Route = createFileRoute("/_authenticated/seller/settings")({
-  head: () => ({ meta: [{ title: "Настройки магазина — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Настройки магазина — Kupiks" }] }),
   component: SellerSettingsPage,
 });
 
@@ -339,7 +339,7 @@ function SellerSettingsPage() {
                   value={form.shop_name}
                   onChange={(e) => set("shop_name", e.target.value)}
                   maxLength={80}
-                  placeholder="Например: BreezeStore"
+                  placeholder="Например: Kupiks Store"
                   className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30"
                 />
               </Field>

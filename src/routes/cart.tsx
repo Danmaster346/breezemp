@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/format";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Корзина — BREEZE" }] }),
+  head: () => ({ meta: [{ title: "Корзина — Kupiks" }] }),
   component: CartPage,
 });
 

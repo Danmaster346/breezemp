@@ -18,7 +18,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Вход и регистрация — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Вход и регистрация — Kupiks" }] }),
   validateSearch: (s) => searchSchema.parse(s),
   component: AuthPage,
 });
@@ -194,7 +194,7 @@ function AuthPage() {
               <Store className="h-6 w-6" />
               <span className="text-sm font-semibold">Продавец</span>
               <span className={`text-[11px] ${role === "seller" ? "text-brand-foreground/80" : "text-muted-foreground"}`}>
-                Продаю на BREEZE
+                Продаю на Kupiks
               </span>
             </button>
           </div>

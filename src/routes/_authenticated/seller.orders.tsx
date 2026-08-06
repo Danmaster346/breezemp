@@ -24,7 +24,7 @@ import { openConversation } from "@/lib/messaging/messaging.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/seller/orders")({
-  head: () => ({ meta: [{ title: "Мои заказы — продавец — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Мои заказы — продавец — Kupiks" }] }),
   component: SellerOrdersPage,
 });
 

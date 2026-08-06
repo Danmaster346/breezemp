@@ -16,7 +16,7 @@ type Filter = "pending" | "resolved" | "all";
 type SearchParams = { filter?: Filter };
 
 export const Route = createFileRoute("/_authenticated/seller/returns")({
-  head: () => ({ meta: [{ title: "Возвраты — продавец — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Возвраты — продавец — Kupiks" }] }),
   validateSearch: (s: Record<string, unknown>): SearchParams => {
     const f = s.filter as Filter | undefined;
     return { filter: f === "resolved" || f === "all" ? f : "pending" };

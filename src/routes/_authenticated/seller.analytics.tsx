@@ -47,11 +47,11 @@ import { useAuth } from "@/lib/use-auth";
 export const Route = createFileRoute("/_authenticated/seller/analytics")({
   head: () => ({
     meta: [
-      { title: "Аналитика магазина — кабинет продавца — BreezeMarket" },
+      { title: "Аналитика магазина — кабинет продавца — Kupiks" },
       {
         name: "description",
         content:
-          "Выручка, заказы, средний чек, воронка продаж, топ-товары и качество сервиса вашего магазина на BreezeMarket.",
+          "Выручка, заказы, средний чек, воронка продаж, топ-товары и качество сервиса вашего магазина на Kupiks.",
       },
     ],
   }),

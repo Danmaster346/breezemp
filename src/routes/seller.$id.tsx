@@ -24,7 +24,7 @@ import { getSellerProfile, type SellerContacts } from "@/lib/seller-profile.func
 export const Route = createFileRoute("/seller/$id")({
   head: () => ({
     meta: [
-      { title: "Магазин продавца — BreezeMarket" },
+      { title: "Магазин продавца — Kupiks" },
       { name: "description", content: "Публичная страница продавца: товары, рейтинг и отзывы." },
     ],
   }),
