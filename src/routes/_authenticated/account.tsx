@@ -401,18 +401,15 @@ function AccountPage() {
                 .map((it) => `${it.title_snapshot} × ${it.quantity}`)
                 .join(", ");
               const more = items.length > 2 ? `, ещё ${items.length - 2}` : "";
+              const code = o.id.replace(/-/g, "").slice(0, 8).toUpperCase();
               return (
-                <button
+                <div
                   key={o.id}
-                  type="button"
-                  onClick={() => setOpenId(o.id)}
                   className="w-full text-left rounded-2xl border bg-card p-4 hover:shadow-md hover:border-primary/40 transition"
                 >
                   <div className="flex justify-between items-start gap-2 flex-wrap">
                     <div className="min-w-0">
-                      <div className="font-mono text-sm">
-                        №{o.id.slice(0, 8).toUpperCase()}
-                      </div>
+                      <div className="font-mono text-sm">№{code}</div>
                       <div className="text-xs text-muted-foreground">
                         {fmtDate(o.created_at)}
                       </div>
@@ -435,11 +432,26 @@ function AccountPage() {
                       {formatPrice(o.total_kopecks)}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-primary font-medium">
-                    Подробнее →
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(o.id)}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand/10 px-4 text-sm font-semibold text-brand hover:bg-brand/20 ui-transition"
+                    >
+                      Подробнее →
+                    </button>
+                    <Link
+                      to="/track-order"
+                      search={{ order: code }}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold hover:bg-accent ui-transition"
+                    >
+                      <Truck className="h-4 w-4" strokeWidth={1.9} />
+                      Отследить
+                    </Link>
                   </div>
-                </button>
+                </div>
               );
+
             })}
           </div>
         )}
