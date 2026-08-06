@@ -425,6 +425,7 @@ export type Database = {
           id: string
           is_blocked: boolean
           phone: string | null
+          preferred_mode: string
         }
         Insert: {
           blocked_reason?: string | null
@@ -434,6 +435,7 @@ export type Database = {
           id: string
           is_blocked?: boolean
           phone?: string | null
+          preferred_mode?: string
         }
         Update: {
           blocked_reason?: string | null
@@ -443,6 +445,7 @@ export type Database = {
           id?: string
           is_blocked?: boolean
           phone?: string | null
+          preferred_mode?: string
         }
         Relationships: []
       }

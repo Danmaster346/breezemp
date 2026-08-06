@@ -17,9 +17,8 @@ const LOW_STOCK_THRESHOLD = 10;
 export const Route = createFileRoute("/_authenticated/seller/products")({
   head: () => ({ meta: [{ title: "Мои товары — BreezeMarket" }] }),
   // Разбираем query — принимаем ?new=1 как флаг открытия модалки
-  validateSearch: (s: Record<string, unknown>) => ({
-    new: s.new === 1 || s.new === "1" ? 1 : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { new?: 1 } =>
+    s.new === 1 || s.new === "1" ? { new: 1 } : {},
   component: SellerProductsPage,
 });
 
