@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /seller/
+Disallow: /account
+Disallow: /checkout
+Disallow: /cart
+Disallow: /messages
+
+Sitemap: https://breezemp.lovable.app/sitemap.xml

@@ -8,7 +8,19 @@ import { formatPrice } from "@/lib/format";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Корзина — Kupiks" }] }),
+  head: () => ({
+    meta: [
+      { title: "Корзина — Kupiks" },
+      {
+        name: "description",
+        content: "Ваша корзина на Kupiks: проверьте товары и оформите заказ с доставкой по России.",
+      },
+      { name: "robots", content: "noindex,follow" },
+      { property: "og:title", content: "Корзина — Kupiks" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CartPage,
 });
 
@@ -78,7 +90,15 @@ function CartPage() {
                     className="h-24 w-24 md:h-28 md:w-28 rounded-xl bg-surface overflow-hidden shrink-0"
                   >
                     {i.image_url ? (
-                      <img src={i.image_url} alt={i.title} className="h-full w-full object-cover" />
+                      <img
+                        src={i.image_url}
+                        alt={i.title}
+                        width={96}
+                        height={96}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-2xl opacity-40">🛍️</div>
                     )}

@@ -29,7 +29,9 @@ export const Route = createFileRoute("/track-order")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: "https://breezemp.lovable.app/track-order" },
     ],
+    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/track-order" }],
   }),
   component: TrackOrderPage,
 });
@@ -200,7 +202,10 @@ function TrackOrderPage() {
                             <img
                               src={it.image_url}
                               alt={it.title}
+                              width={96}
+                              height={96}
                               loading="lazy"
+                              decoding="async"
                               className="h-full w-full object-cover"
                             />
                           ) : (

@@ -7,17 +7,28 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
+import { categoriesQueryOptions } from "@/lib/categories-query";
+import { ProductGridSkeleton, CategoryTilesSkeleton } from "@/components/Skeletons";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Kupiks — маркетплейс товаров от проверенных продавцов" },
+      { title: "Kupiks — маркетплейс товаров для дома, отдыха и стиля" },
       {
         name: "description",
         content:
-          "Тысячи товаров для дома, отдыха и стиля. Честные цены, быстрая доставка по всей России.",
+          "Покупайте и продавайте товары на Kupiks. Доставка по всей России.",
       },
+      { property: "og:title", content: "Kupiks — маркетплейс товаров для дома, отдыха и стиля" },
+      {
+        property: "og:description",
+        content: "Покупайте и продавайте товары на Kupiks. Доставка по всей России.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://breezemp.lovable.app/" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/" }],
   }),
   component: HomePage,
 });
@@ -52,14 +63,7 @@ const PICKS = [
 
 function HomePage() {
   // Загружаем категории
-  const categoriesQuery = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("categories").select("*").order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const categoriesQuery = useQuery(categoriesQueryOptions());
 
   // Загружаем последние товары
   const productsQuery = useQuery({
@@ -67,13 +71,14 @@ function HomePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id,title,price_kopecks,image_url,stock")
+        .select("id, title, price_kopecks, image_url, stock")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(12);
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   return (
@@ -124,19 +129,11 @@ function HomePage() {
           </Link>
         </div>
         {productsQuery.isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="aspect-square rounded-2xl bg-surface animate-pulse" />
-                <div className="h-4 w-20 rounded bg-surface animate-pulse" />
-                <div className="h-3 w-full rounded bg-surface animate-pulse" />
-              </div>
-            ))}
-          </div>
+          <ProductGridSkeleton count={10} />
         ) : productsQuery.data && productsQuery.data.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
-            {productsQuery.data.map((p) => (
-              <ProductCard key={p.id} {...p} />
+            {productsQuery.data.map((p, i) => (
+              <ProductCard key={p.id} {...p} priority={i < 5} />
             ))}
           </div>
         ) : (
@@ -160,14 +157,7 @@ function HomePage() {
           </Link>
         </div>
         {categoriesQuery.isLoading ? (
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 md:gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-2">
-                <div className="aspect-square w-full rounded-2xl bg-surface animate-pulse" />
-                <div className="h-3 w-16 rounded bg-surface animate-pulse" />
-              </div>
-            ))}
-          </div>
+          <CategoryTilesSkeleton count={8} />
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 md:gap-4">
             {categoriesQuery.data?.map((c) => {

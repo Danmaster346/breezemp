@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ArrowUpDown, FileUp } from "lucide-react";
+import { compressImage } from "@/lib/image-compress";
 import { BulkBar, ImportCsvDialog } from "@/components/seller/BulkBar";
 import {
   duplicateProduct,
@@ -162,13 +163,17 @@ function SellerProductsPage() {
           toast.error(`«${file.name}» больше 5 МБ`);
           continue;
         }
+        // Сжимаем до 1200px по длинной стороне и конвертируем в WebP
+        const { file: optimized } = await compressImage(file);
         // Кладём в папку {user.id}/... — это требование политики Storage
-        const ext = file.name.split(".").pop() || "jpg";
+        const ext = optimized.type === "image/webp"
+          ? "webp"
+          : (optimized.name.split(".").pop() || "jpg");
         const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("product-images").upload(path, file, {
-          cacheControl: "3600",
+        const up = await supabase.storage.from("product-images").upload(path, optimized, {
+          cacheControl: "31536000",
           upsert: false,
-          contentType: file.type,
+          contentType: optimized.type,
         });
         if (up.error) {
           toast.error(up.error.message);
