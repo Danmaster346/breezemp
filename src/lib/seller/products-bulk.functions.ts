@@ -97,12 +97,14 @@ export const bulkUpdateProducts = createServerFn({ method: "POST" })
           ? Math.max(100, Math.round(p.price_kopecks * (1 + data.value / 100)))
           : Math.max(100, data.value);
       // Если цена снижается — фиксируем старую цену как «зачёркнутую»
-      const patch: Record<string, unknown> = { price_kopecks: next };
-      if (next < p.price_kopecks) patch['compare_at_price_kopecks'] = p.price_kopecks;
-      if (next >= p.price_kopecks) patch['compare_at_price_kopecks'] = null;
+      const patch = {
+        price_kopecks: next,
+        compare_at_price_kopecks: next < p.price_kopecks ? p.price_kopecks : null,
+      };
       const up = await db
         .from("products")
         .update(patch)
+
         .eq("seller_id", context.userId)
         .eq("id", p.id);
       if (!up.error) n += 1;
