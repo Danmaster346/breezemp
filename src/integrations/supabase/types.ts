@@ -631,11 +631,49 @@ export type Database = {
         }
         Relationships: []
       }
+      product_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          product_id: string | null
+          seller_id: string
+          visitor_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          product_id?: string | null
+          seller_id: string
+          visitor_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          product_id?: string | null
+          seller_id?: string
+          visitor_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          badges: string[]
           category_id: string | null
+          compare_at_price_kopecks: number | null
           created_at: string
           description: string | null
+          discount_notified_at: string | null
           id: string
           image_url: string | null
           image_urls: string[]
@@ -650,9 +688,12 @@ export type Database = {
           title: string
         }
         Insert: {
+          badges?: string[]
           category_id?: string | null
+          compare_at_price_kopecks?: number | null
           created_at?: string
           description?: string | null
+          discount_notified_at?: string | null
           id?: string
           image_url?: string | null
           image_urls?: string[]
@@ -667,9 +708,12 @@ export type Database = {
           title: string
         }
         Update: {
+          badges?: string[]
           category_id?: string | null
+          compare_at_price_kopecks?: number | null
           created_at?: string
           description?: string | null
+          discount_notified_at?: string | null
           id?: string
           image_url?: string | null
           image_urls?: string[]
@@ -737,6 +781,7 @@ export type Database = {
           id: string
           max_uses: number | null
           min_order_kopecks: number
+          seller_id: string | null
           updated_at: string
           used_count: number
         }
@@ -750,6 +795,7 @@ export type Database = {
           id?: string
           max_uses?: number | null
           min_order_kopecks?: number
+          seller_id?: string | null
           updated_at?: string
           used_count?: number
         }
@@ -763,6 +809,7 @@ export type Database = {
           id?: string
           max_uses?: number | null
           min_order_kopecks?: number
+          seller_id?: string | null
           updated_at?: string
           used_count?: number
         }
