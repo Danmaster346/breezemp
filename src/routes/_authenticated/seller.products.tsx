@@ -491,9 +491,31 @@ function SellerProductsPage() {
                     </button>
                     {stockBusy === p.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                   </div>
+                  {/* Мини-статистика товара */}
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>👁 {stats.views[p.id] ?? 0} просмотров</span>
+                    <span>🛒 {stats.carts[p.id] ?? 0} в корзину</span>
+                    <span>📦 {stats.sold[p.id] ?? 0} продано</span>
+                    {!p.is_active && <span className="font-semibold text-rose-600">скрыт</span>}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onDuplicate(p.id)}
+                    disabled={dupBusy === p.id}
+                    className="p-2 rounded-lg hover:bg-accent disabled:opacity-50"
+                    aria-label="Дублировать"
+                    title="Дублировать товар"
+                  >
+                    {dupBusy === p.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
                   <Link
+
                     to="/product/$id"
                     params={{ id: p.id }}
                     className="p-2 rounded-lg hover:bg-accent"
