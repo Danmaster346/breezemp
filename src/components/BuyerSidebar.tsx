@@ -1,6 +1,6 @@
 // Сайдбар покупателя — используется в кабинете покупателя.
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ShoppingBag, Heart, MessageCircle, User, Store, LogOut, Package } from "lucide-react";
+import { ShoppingBag, Heart, MessageCircle, User, Store, LogOut, Package, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useUnreadChats } from "@/lib/use-unread-chats";
 import { useAuth } from "@/lib/use-auth";
@@ -25,6 +25,7 @@ export function BuyerSidebar() {
     { to: "/account", label: "Мои заказы", icon: ShoppingBag },
     { to: "/favorites", label: "Избранное", icon: Heart },
     { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/track-order", label: "Отследить заказ", icon: Truck },
   ];
 
   const displayName =

@@ -274,6 +274,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
               <li><Link to="/catalog" className="hover:text-brand ui-transition">Каталог</Link></li>
               <li><Link to="/cart" className="hover:text-brand ui-transition">Корзина</Link></li>
               <li><Link to="/account" className="hover:text-brand ui-transition">Мои заказы</Link></li>
+              <li><Link to="/track-order" className="hover:text-brand ui-transition">Отследить заказ</Link></li>
               <li><Link to="/favorites" className="hover:text-brand ui-transition">Избранное</Link></li>
             </ul>
           </div>
