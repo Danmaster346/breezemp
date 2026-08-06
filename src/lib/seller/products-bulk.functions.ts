@@ -263,11 +263,12 @@ export const importProductsCsv = createServerFn({ method: "POST" })
     let applied = 0;
     for (const r of rows) {
       if (r.error) continue;
-      const patch: Record<string, unknown> = {};
-      if (r.price !== null) patch['price_kopecks'] = Math.round(r.price * 100);
-      if (r.stock !== null) patch['stock'] = r.stock;
+      const patch: { price_kopecks?: number; stock?: number } = {};
+      if (r.price !== null) patch.price_kopecks = Math.round(r.price * 100);
+      if (r.stock !== null) patch.stock = r.stock;
       if (Object.keys(patch).length === 0) continue;
       const up = await db.from("products").update(patch).eq("id", r.id).eq("seller_id", context.userId);
+
       if (!up.error) applied += 1;
     }
     return { rows, applied };
