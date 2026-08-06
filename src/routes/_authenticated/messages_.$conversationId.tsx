@@ -23,7 +23,7 @@ import type { ChatMessage } from "@/lib/messaging/types";
 import { friendlyMessagingError } from "@/lib/messaging/types";
 import { ArrowLeft, Headphones, Loader2, ShieldAlert } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/messages/$conversationId")({
+export const Route = createFileRoute("/_authenticated/messages_/$conversationId")({
   head: () => ({ meta: [{ title: "Диалог — Kupiks" }] }),
   component: ConversationPage,
 });
