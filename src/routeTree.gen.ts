@@ -13,6 +13,7 @@ import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as CartRouteImport } from './routes/cart'
@@ -70,6 +71,11 @@ const McpRoute = McpRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -287,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/contacts': typeof ContactsRoute
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -330,6 +337,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/contacts': typeof ContactsRoute
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/catalog': typeof CatalogRoute
   '/checkout': typeof CheckoutRoute
+  '/contacts': typeof ContactsRoute
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
@@ -419,6 +428,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/contacts'
     | '/help'
     | '/mcp'
     | '/privacy'
@@ -462,6 +472,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/contacts'
     | '/help'
     | '/mcp'
     | '/privacy'
@@ -505,6 +516,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catalog'
     | '/checkout'
+    | '/contacts'
     | '/help'
     | '/mcp'
     | '/privacy'
@@ -550,6 +562,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CatalogRoute: typeof CatalogRoute
   CheckoutRoute: typeof CheckoutRoute
+  ContactsRoute: typeof ContactsRoute
   HelpRoute: typeof HelpRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -591,6 +604,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -951,6 +971,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CatalogRoute: CatalogRoute,
   CheckoutRoute: CheckoutRoute,
+  ContactsRoute: ContactsRoute,
   HelpRoute: HelpRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
