@@ -560,6 +560,19 @@ function SellerProductsPage() {
         </div>
       )}
 
+      {/* Массовые операции над выбранными товарами */}
+      <BulkBar
+        selected={selected}
+        categories={categoriesQuery.data ?? []}
+        onDone={refresh}
+        onClear={() => setSelected([])}
+      />
+
+      {/* Импорт цен и остатков */}
+      {importOpen && <ImportCsvDialog onClose={() => setImportOpen(false)} onDone={refresh} />}
+
+
+
 
       {/* Модальное окно формы */}
       {editing && (
