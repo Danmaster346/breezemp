@@ -27,6 +27,8 @@ import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { CategoryMenu, CategorySheetButton } from "@/components/CategoryMenu";
+import { ModeBadge, ModeSegmented } from "@/components/ModeSwitch";
+import { getPreferredMode, setPreferredMode } from "@/lib/ui-mode.functions";
 
 type NavItem = {
   to: string;
