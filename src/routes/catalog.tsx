@@ -47,8 +47,8 @@ const searchSchema = z.object({
   rating: z.coerce.number().optional(),
   seller: z.string().optional(),
   in_stock: z.coerce.boolean().optional(),
-  sort: z.enum(SORT_KEYS).optional().default("relevance"),
-  page: z.coerce.number().int().min(1).optional().default(1),
+  sort: z.enum(SORT_KEYS).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 });
 type SearchParams = z.infer<typeof searchSchema>;
 
