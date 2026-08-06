@@ -32,6 +32,7 @@ function SellerLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const fetchStats = useServerFn(getSellerDashboardStats);
+  const fetchTasks = useServerFn(getSellerTasks);
   useForceSellerMode();
 
   const stats = useQuery({
@@ -40,7 +41,67 @@ function SellerLayout() {
     queryFn: () => fetchStats(),
   });
 
+  const tasks = useQuery({
+    queryKey: ["seller-tasks", user?.id],
+    enabled: !!user,
+    queryFn: () => fetchTasks(),
+    refetchInterval: 60_000,
+  });
+
+  const t = tasks.data;
+  const taskCards = [
+    {
+      key: "orders",
+      label: "Новые заказы",
+      count: t?.newOrders ?? 0,
+      icon: PackageCheck,
+      to: "/seller/orders" as const,
+      tone: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    },
+    {
+      key: "ship",
+      label: "Готовы к отправке",
+      count: t?.toShip ?? 0,
+      icon: Truck,
+      to: "/seller/orders" as const,
+      tone: "bg-sky-50 text-sky-800 border-sky-200",
+    },
+    {
+      key: "messages",
+      label: "Новые сообщения",
+      count: t?.unread ?? 0,
+      icon: MessageSquare,
+      to: "/messages" as const,
+      tone: "bg-indigo-50 text-indigo-800 border-indigo-200",
+    },
+    {
+      key: "stock",
+      label: "Мало на складе",
+      count: (t?.lowStock ?? 0) + (t?.outOfStock ?? 0),
+      icon: AlertTriangle,
+      to: "/seller/products" as const,
+      tone: "bg-amber-50 text-amber-900 border-amber-200",
+    },
+    {
+      key: "returns",
+      label: "Возвраты",
+      count: t?.returns ?? 0,
+      icon: RotateCcw,
+      to: "/seller/returns" as const,
+      tone: "bg-rose-50 text-rose-800 border-rose-200",
+    },
+    {
+      key: "reviews",
+      label: "低 оценки",
+      count: t?.lowRated ?? 0,
+      icon: Star,
+      to: "/seller/analytics" as const,
+      tone: "bg-muted text-foreground border-border",
+    },
+  ].filter((c) => c.count > 0);
+
   const cards = [
+
     {
       label: "Всего товаров",
       value: stats.data ? String(stats.data.products) : "—",
