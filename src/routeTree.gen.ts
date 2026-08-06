@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackOrderRouteImport } from './routes/track-order'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as HelpRouteImport } from './routes/help'
@@ -56,6 +57,11 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 const TrackOrderRoute = TrackOrderRouteImport.update({
   id: '/track-order',
   path: '/track-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/track-order': typeof TrackOrderRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -341,6 +348,7 @@ export interface FileRoutesByTo {
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/track-order': typeof TrackOrderRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/help': typeof HelpRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/track-order': typeof TrackOrderRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -432,6 +441,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/mcp'
     | '/privacy'
+    | '/sitemap.xml'
     | '/track-order'
     | '/admin'
     | '/.mcp/list-tools'
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/mcp'
     | '/privacy'
+    | '/sitemap.xml'
     | '/track-order'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -520,6 +531,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/mcp'
     | '/privacy'
+    | '/sitemap.xml'
     | '/track-order'
     | '/_authenticated/admin'
     | '/.mcp/list-tools'
@@ -566,6 +578,7 @@ export interface RootRouteChildren {
   HelpRoute: typeof HelpRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TrackOrderRoute: typeof TrackOrderRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -583,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/track-order'
       fullPath: '/track-order'
       preLoaderRoute: typeof TrackOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -975,6 +995,7 @@ const rootRouteChildren: RootRouteChildren = {
   HelpRoute: HelpRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TrackOrderRoute: TrackOrderRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
