@@ -43,25 +43,18 @@ export const resolveReturn = createServerFn({ method: "POST" })
         .eq("id", data.itemId);
       if (error) throw new Error(error.message);
     } else {
-      // request_info — оставляем статус, ставим note в chat при наличии
+      // request_info — статус не меняем, пишем системное сообщение в диалог
       const { data: item } = await supabaseAdmin.from("order_items").select("order_id, seller_id, product_id").eq("id", data.itemId).maybeSingle();
       const { data: order } = item ? await supabaseAdmin.from("orders").select("buyer_id").eq("id", item.order_id).maybeSingle() : { data: null };
       if (item && order) {
-        const { data: chat } = await supabaseAdmin
-          .from("chats")
-          .upsert(
-            { buyer_id: order.buyer_id, seller_id: item.seller_id, product_id: item.product_id, order_id: item.order_id },
-            { onConflict: "buyer_id,seller_id,product_id,order_id", ignoreDuplicates: false },
-          )
-          .select("id")
-          .maybeSingle();
-        if (chat) {
-          await supabaseAdmin.from("chat_messages").insert({
-            chat_id: chat.id,
-            sender_id: context.userId,
-            body: `Администратор запрашивает дополнительную информацию по возврату: ${data.reason ?? "уточните детали"}`,
-          });
-        }
+        const { postSystemMessage } = await import("@/lib/messaging/system.server");
+        await postSystemMessage({
+          buyerId: order.buyer_id,
+          sellerId: item.seller_id,
+          senderId: context.userId,
+          orderId: item.order_id,
+          body: `Администратор запрашивает дополнительную информацию по возврату: ${data.reason ?? "уточните детали"}`,
+        });
       }
     }
     await logAction(context.userId, `return.${data.action}`, "order_item", data.itemId, { reason: data.reason });
