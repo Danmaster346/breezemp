@@ -5,7 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 
 // Определяем маршрут «/order-success/$id»
 export const Route = createFileRoute("/order-success/$id")({
-  head: () => ({ meta: [{ title: "Заказ оформлен — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Заказ оформлен — Kupiks" }] }),
   component: OrderSuccess,
 });
 

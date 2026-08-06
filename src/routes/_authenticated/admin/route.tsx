@@ -45,7 +45,7 @@ function AdminLayout() {
             <div className="px-3 py-2 mb-1 flex items-center justify-between">
               <div>
                 <div className="text-[11px] uppercase tracking-wider text-foreground/50 font-semibold">Админ</div>
-                <div className="text-sm font-bold">BREEZE</div>
+                <div className="text-sm font-bold">Kupiks</div>
               </div>
               <Link to="/" className="text-foreground/50 hover:text-brand transition p-1.5 rounded-full hover:bg-surface" aria-label="На сайт">
                 <Home className="h-4 w-4" />

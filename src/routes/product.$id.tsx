@@ -60,7 +60,7 @@ function ProductPage() {
   // Обновляем title и description вкладки, когда товар загружен (SEO/шаринг)
   useEffect(() => {
     if (!product) return;
-    const title = `${product.title} — BREEZE`;
+    const title = `${product.title} — Kupiks`;
     document.title = title;
     const setMeta = (name: string, content: string, isProp = false) => {
       const attr = isProp ? "property" : "name";
@@ -72,7 +72,7 @@ function ProductPage() {
       }
       el.setAttribute("content", content);
     };
-    const desc = (product.description ?? "").slice(0, 160) || `${product.title} — купите на BREEZE.`;
+    const desc = (product.description ?? "").slice(0, 160) || `${product.title} — купите на Kupiks.`;
     setMeta("description", desc);
     setMeta("og:title", title, true);
     setMeta("og:description", desc, true);

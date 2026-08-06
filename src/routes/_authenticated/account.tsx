@@ -41,7 +41,7 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/account")({
-  head: () => ({ meta: [{ title: "Мои заказы — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Мои заказы — Kupiks" }] }),
   component: AccountPage,
 });
 

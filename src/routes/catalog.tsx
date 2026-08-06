@@ -58,10 +58,10 @@ export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Каталог — BreezeMarket" },
+      { title: "Каталог — Kupiks" },
       {
         name: "description",
-        content: "Умный поиск по товарам, продавцам и категориям маркетплейса BREEZE.",
+        content: "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks.",
       },
     ],
   }),

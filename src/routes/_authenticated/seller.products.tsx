@@ -23,7 +23,7 @@ const LOW_STOCK_THRESHOLD = 10;
 
 // Маршрут «/seller/products» с поддержкой ?new=1 (сразу открыть форму)
 export const Route = createFileRoute("/_authenticated/seller/products")({
-  head: () => ({ meta: [{ title: "Мои товары — BreezeMarket" }] }),
+  head: () => ({ meta: [{ title: "Мои товары — Kupiks" }] }),
   // Разбираем query — принимаем ?new=1 как флаг открытия модалки
   validateSearch: (s: Record<string, unknown>): { new?: 1 } =>
     s.new === 1 || s.new === "1" ? { new: 1 } : {},
