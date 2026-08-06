@@ -435,7 +435,15 @@ function SellerProductsPage() {
                   out ? "border-rose-200 bg-rose-50/40" : low ? "border-amber-200 bg-amber-50/40" : ""
                 }`}
               >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(p.id)}
+                  onChange={() => toggleSelected(p.id)}
+                  className="mt-1 h-4 w-4 shrink-0"
+                  aria-label={`Выбрать ${p.title}`}
+                />
                 <div className="h-20 w-20 rounded-lg bg-muted overflow-hidden shrink-0">
+
                   {p.image_url ? (
                     <img src={p.image_url} alt={p.title} className="h-full w-full object-cover" />
                   ) : (
