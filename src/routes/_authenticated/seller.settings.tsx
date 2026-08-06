@@ -470,6 +470,11 @@ function SellerSettingsPage() {
             </div>
           </section>
 
+          {/* Сообщения: быстрые ответы и автоответ */}
+          <MessagingSettings />
+
+
+
           {/* Save bar */}
           <div className="sticky bottom-4 z-10 rounded-2xl border bg-card/95 backdrop-blur px-4 py-3 shadow-lg flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
