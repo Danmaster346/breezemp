@@ -148,6 +148,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             {!sellerModeUi && (
               <Link
                 to="/catalog"
+                search={{ sort: "new" } as never}
                 className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition"
               >
                 Новинки
@@ -156,6 +157,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             {!sellerModeUi && (
               <Link
                 to="/catalog"
+                search={{ discount: true } as never}
                 className="hidden lg:inline-flex items-center h-10 px-3 rounded-full text-sm font-medium text-foreground/80 hover:bg-surface ui-transition"
               >
                 Акции
@@ -247,7 +249,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
                 <CategorySheetButton />
               </div>
               <div className="flex-1 min-w-0">
-                <CatalogSearchBar value="" onSubmit={goSearch} placeholder="Поиск по тысячам товаров" />
+                <CatalogSearchBar value="" onSubmit={goSearch} placeholder="Поиск товаров..." />
               </div>
             </div>
           </div>
@@ -291,8 +293,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             <div className="text-foreground font-semibold mb-3">Kupiks</div>
             <ul className="space-y-1.5 text-muted-foreground">
               <li><Link to="/privacy" className="hover:text-brand ui-transition">Политика конфиденциальности</Link></li>
-              <li>Помощь</li>
-              <li>Контакты</li>
+              <li><Link to="/help" className="hover:text-brand ui-transition">Помощь</Link></li>
+              <li><Link to="/contacts" className="hover:text-brand ui-transition">Контакты</Link></li>
             </ul>
           </div>
         </div>
