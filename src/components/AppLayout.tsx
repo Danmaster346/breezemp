@@ -106,7 +106,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
 
   const switchMode = (next: "buyer" | "seller") => {
     setMode(next);
-    if (next === "seller") navigate({ to: "/seller/products" });
+    void savePreferredMode({ data: { mode: next } }).catch(() => {});
+    if (next === "seller") navigate({ to: "/seller/products", search: {} as never });
     else navigate({ to: "/account" });
   };
 
@@ -154,37 +155,14 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
           </div>
 
           <div className="ml-auto flex items-center gap-1 md:gap-2">
-            {/* Сегмент-переключатель ролей — виден когда пользователь продавец */}
-            {user && isSeller && (
-              <div className="hidden md:inline-flex items-center rounded-full bg-surface p-0.5 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => switchMode("buyer")}
-                  className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full ui-transition ${
-                    !sellerModeUi
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-foreground/60 hover:text-foreground"
-                  }`}
-                  aria-pressed={!sellerModeUi}
-                >
-                  <ShoppingBag className="h-3.5 w-3.5" />
-                  Покупатель
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchMode("seller")}
-                  className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full ui-transition ${
-                    sellerModeUi
-                      ? "bg-foreground text-background shadow-sm"
-                      : "text-foreground/60 hover:text-foreground"
-                  }`}
-                  aria-pressed={sellerModeUi}
-                >
-                  <Store className="h-3.5 w-3.5" />
-                  Продавец
-                </button>
-              </div>
+            {/* Индикатор + переключатель режима */}
+            {user && (
+              <>
+                <ModeBadge mode={effectiveMode} isSeller={isSeller} onSelect={switchMode} />
+                <ModeSegmented mode={effectiveMode} isSeller={isSeller} onSelect={switchMode} />
+              </>
             )}
+
 
             {isAdmin && (
               <Link
