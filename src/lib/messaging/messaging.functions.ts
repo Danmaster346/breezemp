@@ -672,7 +672,7 @@ export const updateConversationFlags = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<{ ok: true }> => {
     const db = await admin();
-    const patch: Record<string, boolean> = {};
+    const patch: { is_pinned?: boolean; is_archived?: boolean; muted?: boolean } = {};
     if (typeof data.is_pinned === "boolean") patch.is_pinned = data.is_pinned;
     if (typeof data.is_archived === "boolean") patch.is_archived = data.is_archived;
     if (typeof data.muted === "boolean") patch.muted = data.muted;
