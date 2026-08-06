@@ -336,6 +336,28 @@ function SellerProductsPage() {
             </span>
           )}
         </button>
+        <div className="relative inline-flex items-center">
+          <ArrowUpDown className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="h-10 rounded-xl border bg-background pl-9 pr-3 text-sm"
+            aria-label="Сортировка"
+          >
+            <option value="new">Сначала новые</option>
+            <option value="sold">По продажам</option>
+            <option value="views">По просмотрам</option>
+            <option value="price">По цене</option>
+            <option value="stock">По остатку</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border text-sm font-medium hover:bg-accent"
+        >
+          <FileUp className="h-4 w-4" /> Импорт CSV
+        </button>
         <button
           onClick={() => setEditing({ ...emptyForm })}
           className="inline-flex items-center gap-2 h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90"
@@ -343,6 +365,7 @@ function SellerProductsPage() {
           <Plus className="h-4 w-4" /> Добавить товар
         </button>
       </div>
+
 
       {/* Итоги */}
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
