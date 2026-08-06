@@ -12,6 +12,8 @@ import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { BottomSheet } from "@/components/BottomSheet";
 import { formatPrice } from "@/lib/format";
 import { getCategoryEmoji } from "@/lib/category-emoji";
+import { categoriesQueryOptions } from "@/lib/categories-query";
+import { ProductGridSkeleton } from "@/components/Skeletons";
 import {
   searchCatalog,
   listCatalogSellers,
@@ -55,7 +57,7 @@ const searchSchema = z.object({
 });
 type SearchParams = z.infer<typeof searchSchema>;
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -114,15 +116,12 @@ function CatalogPage() {
     });
   };
 
-  const catsQuery = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () =>
-      (await supabase.from("categories").select("*").order("name")).data ?? [],
-  });
+  const catsQuery = useQuery(categoriesQueryOptions());
 
   const sellersQuery = useQuery({
     queryKey: ["catalog-sellers"],
     queryFn: () => loadSellers(),
+    staleTime: 30 * 60 * 1000,
   });
 
   // Ключ без page — датасет один, страницы нарезаются на клиенте
@@ -155,6 +154,8 @@ function CatalogPage() {
         },
       }),
     placeholderData: (prev) => prev,
+    // Товары считаем свежими 5 минут — повторный вход в каталог мгновенный
+    staleTime: 5 * 60 * 1000,
   });
 
   const allItems = productsQuery.data?.items ?? [];
@@ -514,25 +515,12 @@ function CatalogPage() {
 
         {/* Сетка */}
         {productsQuery.isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-border bg-white overflow-hidden animate-pulse"
-              >
-                <div className="aspect-square bg-surface-strong" />
-                <div className="p-3 space-y-2">
-                  <div className="h-3 w-3/4 bg-surface-strong rounded" />
-                  <div className="h-4 w-1/2 bg-surface-strong rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <ProductGridSkeleton count={10} />
         ) : items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
-            {items.map((p) => (
+            {items.map((p, i) => (
               <div key={p.id} className="flex flex-col">
-                <ProductCard {...p} />
+                <ProductCard {...p} priority={i < 5} />
                 {(p.reviews_count > 0 || p.seller_name) && (
                   <div className="px-1 pt-1 pb-2 flex items-center justify-between text-[11px] text-muted-foreground">
                     <Link
@@ -563,19 +551,8 @@ function CatalogPage() {
           <>
             <div ref={sentinelRef} aria-hidden className="h-1 w-full" />
             <div className="mt-6 flex flex-col items-center gap-3">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 w-full">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border border-border bg-white overflow-hidden animate-pulse"
-                  >
-                    <div className="aspect-square bg-surface-strong" />
-                    <div className="p-3 space-y-2">
-                      <div className="h-3 w-3/4 bg-surface-strong rounded" />
-                      <div className="h-4 w-1/2 bg-surface-strong rounded" />
-                    </div>
-                  </div>
-                ))}
+              <div className="w-full">
+                <ProductGridSkeleton count={5} />
               </div>
               <button
                 type="button"
