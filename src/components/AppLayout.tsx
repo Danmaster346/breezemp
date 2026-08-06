@@ -81,6 +81,20 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
     }
   }, [pathname, isSeller, mode, setMode]);
 
+  // Гидрация режима из профиля: режим запоминается за аккаунтом, а не только в браузере.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getPreferredMode()
+      .then((r) => {
+        if (!cancelled && r?.mode) setMode(r.mode);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, setMode]);
+
   const effectiveMode: "buyer" | "seller" = isSeller && mode === "seller" ? "seller" : "buyer";
   const sellerModeUi = effectiveMode === "seller";
 
