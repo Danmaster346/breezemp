@@ -416,7 +416,16 @@ function SellerProductsPage() {
         </div>
       ) : (
         <div className="grid gap-3">
+          <label className="flex items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => setSelected(e.target.checked ? filtered.map((p) => p.id) : [])}
+            />
+            Выбрать все ({filtered.length})
+          </label>
           {filtered.map((p) => {
+
             const low = p.stock > 0 && p.stock < LOW_STOCK_THRESHOLD;
             const out = p.stock === 0;
             return (
