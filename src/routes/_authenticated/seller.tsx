@@ -92,7 +92,7 @@ function SellerLayout() {
     },
     {
       key: "reviews",
-      label: "低 оценки",
+      label: "Низкие оценки",
       count: t?.lowRated ?? 0,
       icon: Star,
       to: "/seller/analytics" as const,
@@ -158,7 +158,38 @@ function SellerLayout() {
               >
                 <Plus className="h-4 w-4" strokeWidth={2.25} /> Новый товар
               </button>
+              <Link
+                to="/seller/analytics"
+                className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+              >
+                <BarChart3 className="h-4 w-4" /> Аналитика
+              </Link>
             </div>
+
+            {/* Задачи, требующие внимания */}
+            {taskCards.length > 0 && (
+              <div className="mb-6">
+                <h2 className="mb-2 text-sm font-bold flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-brand" /> Требует внимания
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {taskCards.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                      <Link
+                        key={c.key}
+                        to={c.to}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold ui-transition hover:opacity-90 ${c.tone}`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {c.label}
+                        <span className="rounded-full bg-white/70 px-1.5 tabular-nums">{c.count}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Дашборд KPI */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
