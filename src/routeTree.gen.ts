@@ -35,7 +35,6 @@ import { Route as AuthenticatedSellerOrdersRouteImport } from './routes/_authent
 import { Route as AuthenticatedSellerBalanceRouteImport } from './routes/_authenticated/seller.balance'
 import { Route as AuthenticatedSellerAnalyticsRouteImport } from './routes/_authenticated/seller.analytics'
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages_.$conversationId'
-import { Route as AuthenticatedMessagesChatIdRouteImport } from './routes/_authenticated/messages.$chatId'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminReviewReportsRouteImport } from './routes/_authenticated/admin/review-reports'
@@ -187,12 +186,6 @@ const AuthenticatedMessagesConversationIdRoute =
     path: '/messages/$conversationId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedMessagesChatIdRoute =
-  AuthenticatedMessagesChatIdRouteImport.update({
-    id: '/$chatId',
-    path: '/$chatId',
-    getParentRoute: () => AuthenticatedMessagesRoute,
-  } as any)
 const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -275,7 +268,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
-  '/messages': typeof AuthenticatedMessagesRouteWithChildren
+  '/messages': typeof AuthenticatedMessagesRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -292,7 +285,6 @@ export interface FileRoutesByFullPath {
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/messages/$chatId': typeof AuthenticatedMessagesChatIdRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/seller/balance': typeof AuthenticatedSellerBalanceRoute
@@ -314,7 +306,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRoute
   '/favorites': typeof AuthenticatedFavoritesRoute
-  '/messages': typeof AuthenticatedMessagesRouteWithChildren
+  '/messages': typeof AuthenticatedMessagesRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -331,7 +323,6 @@ export interface FileRoutesByTo {
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/messages/$chatId': typeof AuthenticatedMessagesChatIdRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/seller/balance': typeof AuthenticatedSellerBalanceRoute
@@ -356,7 +347,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
-  '/_authenticated/messages': typeof AuthenticatedMessagesRouteWithChildren
+  '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/order-success/$id': typeof OrderSuccessIdRoute
   '/product/$id': typeof ProductIdRoute
@@ -373,7 +364,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
-  '/_authenticated/messages/$chatId': typeof AuthenticatedMessagesChatIdRoute
   '/_authenticated/messages_/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
   '/_authenticated/seller/analytics': typeof AuthenticatedSellerAnalyticsRoute
   '/_authenticated/seller/balance': typeof AuthenticatedSellerBalanceRoute
@@ -415,7 +405,6 @@ export interface FileRouteTypes {
     | '/admin/review-reports'
     | '/admin/reviews'
     | '/admin/users'
-    | '/messages/$chatId'
     | '/messages/$conversationId'
     | '/seller/analytics'
     | '/seller/balance'
@@ -454,7 +443,6 @@ export interface FileRouteTypes {
     | '/admin/review-reports'
     | '/admin/reviews'
     | '/admin/users'
-    | '/messages/$chatId'
     | '/messages/$conversationId'
     | '/seller/analytics'
     | '/seller/balance'
@@ -495,7 +483,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/review-reports'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/users'
-    | '/_authenticated/messages/$chatId'
     | '/_authenticated/messages_/$conversationId'
     | '/_authenticated/seller/analytics'
     | '/_authenticated/seller/balance'
@@ -708,13 +695,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMessagesConversationIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/messages/$chatId': {
-      id: '/_authenticated/messages/$chatId'
-      path: '/$chatId'
-      fullPath: '/messages/$chatId'
-      preLoaderRoute: typeof AuthenticatedMessagesChatIdRouteImport
-      parentRoute: typeof AuthenticatedMessagesRoute
-    }
     '/_authenticated/admin/users': {
       id: '/_authenticated/admin/users'
       path: '/users'
@@ -836,19 +816,6 @@ const AuthenticatedAdminRouteRouteWithChildren =
     AuthenticatedAdminRouteRouteChildren,
   )
 
-interface AuthenticatedMessagesRouteChildren {
-  AuthenticatedMessagesChatIdRoute: typeof AuthenticatedMessagesChatIdRoute
-}
-
-const AuthenticatedMessagesRouteChildren: AuthenticatedMessagesRouteChildren = {
-  AuthenticatedMessagesChatIdRoute: AuthenticatedMessagesChatIdRoute,
-}
-
-const AuthenticatedMessagesRouteWithChildren =
-  AuthenticatedMessagesRoute._addFileChildren(
-    AuthenticatedMessagesRouteChildren,
-  )
-
 interface AuthenticatedSellerRouteChildren {
   AuthenticatedSellerAnalyticsRoute: typeof AuthenticatedSellerAnalyticsRoute
   AuthenticatedSellerBalanceRoute: typeof AuthenticatedSellerBalanceRoute
@@ -874,7 +841,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
   AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
-  AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRouteWithChildren
+  AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedSellerRoute: typeof AuthenticatedSellerRouteWithChildren
   AuthenticatedMessagesConversationIdRoute: typeof AuthenticatedMessagesConversationIdRoute
 }
@@ -883,7 +850,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
   AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
-  AuthenticatedMessagesRoute: AuthenticatedMessagesRouteWithChildren,
+  AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedSellerRoute: AuthenticatedSellerRouteWithChildren,
   AuthenticatedMessagesConversationIdRoute:
     AuthenticatedMessagesConversationIdRoute,
