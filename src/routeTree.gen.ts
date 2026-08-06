@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -50,6 +51,11 @@ import { Route as AuthenticatedAdminCategoriesRouteImport } from './routes/_auth
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
+const TrackOrderRoute = TrackOrderRouteImport.update({
+  id: '/track-order',
+  path: '/track-order',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/track-order': typeof TrackOrderRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/track-order': typeof TrackOrderRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/mcp': typeof McpRoute
   '/privacy': typeof PrivacyRoute
+  '/track-order': typeof TrackOrderRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -403,6 +412,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mcp'
     | '/privacy'
+    | '/track-order'
     | '/admin'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mcp'
     | '/privacy'
+    | '/track-order'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
     | '/account'
@@ -485,6 +496,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/mcp'
     | '/privacy'
+    | '/track-order'
     | '/_authenticated/admin'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -528,6 +540,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   McpRoute: typeof McpRoute
   PrivacyRoute: typeof PrivacyRoute
+  TrackOrderRoute: typeof TrackOrderRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   OrderSuccessIdRoute: typeof OrderSuccessIdRoute
@@ -539,6 +552,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/track-order': {
+      id: '/track-order'
+      path: '/track-order'
+      fullPath: '/track-order'
+      preLoaderRoute: typeof TrackOrderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -913,6 +933,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   McpRoute: McpRoute,
   PrivacyRoute: PrivacyRoute,
+  TrackOrderRoute: TrackOrderRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
