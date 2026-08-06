@@ -8,6 +8,14 @@ import { formatPrice, rublesToKopecks } from "@/lib/format";
 import { Plus, Pencil, Trash2, X, Upload, Loader2, Search, AlertTriangle, Minus, ExternalLink } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { Copy, ArrowUpDown, FileUp } from "lucide-react";
+import { BulkBar, ImportCsvDialog } from "@/components/seller/BulkBar";
+import {
+  duplicateProduct,
+  getSellerProductStats,
+} from "@/lib/seller/products-bulk.functions";
+
 
 // Порог низкого остатка — ниже этого числа товар помечается
 const LOW_STOCK_THRESHOLD = 10;
