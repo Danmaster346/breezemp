@@ -470,7 +470,7 @@ function AccountPage() {
             <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card z-10">
               <div>
                 <div className="font-semibold">
-                  Заказ №{openOrder.id.slice(0, 8).toUpperCase()}
+                  Заказ №{openOrder.id.replace(/-/g, "").slice(0, 8).toUpperCase()}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {fmtDate(openOrder.created_at)}
@@ -486,14 +486,25 @@ function AccountPage() {
             </div>
 
             <div className="p-4 space-y-4">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Статус заказа</div>
-                <span
-                  className={`inline-block px-2.5 py-1 rounded-full text-sm font-medium ${STATUS_BADGE[aggregateStatus(openOrder.order_items ?? [])]}`}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Статус заказа</div>
+                  <span
+                    className={`inline-block px-2.5 py-1 rounded-full text-sm font-medium ${STATUS_BADGE[aggregateStatus(openOrder.order_items ?? [])]}`}
+                  >
+                    {STATUS_LABELS[aggregateStatus(openOrder.order_items ?? [])]}
+                  </span>
+                </div>
+                <Link
+                  to="/track-order"
+                  search={{ order: openOrder.id.replace(/-/g, "").slice(0, 8).toUpperCase() }}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold hover:bg-accent ui-transition"
                 >
-                  {STATUS_LABELS[aggregateStatus(openOrder.order_items ?? [])]}
-                </span>
+                  <Truck className="h-4 w-4" strokeWidth={1.9} />
+                  Отследить
+                </Link>
               </div>
+
 
               {(openOrder.shipping_name ||
                 openOrder.shipping_phone ||
