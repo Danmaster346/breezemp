@@ -28,7 +28,18 @@ export function BulkBar({ selected, categories, onDone, onClear }: Props) {
   const [categoryId, setCategoryId] = useState("");
   const [badges, setBadges] = useState<("hit" | "new")[]>([]);
 
-  const run = async (payload: Parameters<typeof bulkUpdateProducts>[0]["data"]) => {
+  type BulkPayload = {
+    ids: string[];
+    action: "activate" | "deactivate" | "price" | "stock" | "category" | "delete" | "badges";
+    price_mode?: "percent" | "fixed";
+    value?: number;
+    stock_mode?: "set" | "add";
+    category_id?: string | null;
+    badges?: ("hit" | "new")[];
+  };
+
+  const run = async (payload: BulkPayload) => {
+
     setBusy(true);
     try {
       const r = await bulk({ data: payload });
