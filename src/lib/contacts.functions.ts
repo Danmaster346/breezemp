@@ -18,7 +18,6 @@ export const submitContactMessage = createServerFn({ method: "POST" })
       message: data.message,
     });
     if (error) {
-      console.error("[contacts] insert failed:", error.message, error.details, error.hint);
       return { ok: false as const, error: "Не удалось отправить сообщение" };
     }
     return { ok: true as const };
