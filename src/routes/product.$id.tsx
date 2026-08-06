@@ -11,6 +11,8 @@ import { trackProduct } from "@/lib/analytics/track";
 import { toast } from "sonner";
 import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store, MessageCircle } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
+import { ProductPageSkeleton } from "@/components/Skeletons";
+import { productQueryOptions } from "@/lib/product-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
@@ -21,7 +23,52 @@ import { useNavigate } from "@tanstack/react-router";
 
 
 export const Route = createFileRoute("/product/$id")({
+  loader: ({ params, context }) =>
+    context.queryClient.ensureQueryData(productQueryOptions(params.id)),
+  head: ({ params, loaderData }) => {
+    const title = loaderData?.title
+      ? `${loaderData.title} — купить на Kupiks`
+      : "Товар — Kupiks";
+    const description =
+      (loaderData?.description ?? "").slice(0, 160) ||
+      `${loaderData?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
+    const url = `https://breezemp.lovable.app/product/${params.id}`;
+    const image = loaderData?.image_url ?? null;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary_large_image" },
+        ...(image && /^https:\/\//.test(image)
+          ? [
+              { property: "og:image", content: image },
+              { name: "twitter:image", content: image },
+            ]
+          : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: ProductPage,
+  errorComponent: ({ error }) => (
+    <AppLayout>
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center" role="alert">
+        <h1 className="text-xl font-semibold">Не удалось загрузить товар</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+      </div>
+    </AppLayout>
+  ),
+  notFoundComponent: () => (
+    <AppLayout>
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <h1 className="text-xl font-semibold">Товар не найден</h1>
+      </div>
+    </AppLayout>
+  ),
 });
 
 function ProductPage() {
@@ -36,58 +83,21 @@ function ProductPage() {
 
 
 
-  const { data: product, isLoading, error } = useQuery({
-    queryKey: ["product", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*, categories(name,slug)")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) throw notFound();
-      return data;
-    },
-  });
+  const { data: product, isLoading, error } = useQuery(productQueryOptions(id));
 
   const ratingQuery = useQuery({
     queryKey: ["product-reviews", id],
     queryFn: () => fetchReviews({ data: { product_id: id } }),
+    staleTime: 2 * 60 * 1000,
   });
   const avg = ratingQuery.data?.avg ?? 0;
   const reviewsCount = ratingQuery.data?.count ?? 0;
-
-  // Обновляем title и description вкладки, когда товар загружен (SEO/шаринг)
-  useEffect(() => {
-    if (!product) return;
-    const title = `${product.title} — Kupiks`;
-    document.title = title;
-    const setMeta = (name: string, content: string, isProp = false) => {
-      const attr = isProp ? "property" : "name";
-      let el = document.head.querySelector(`meta[${attr}="${name}"]`);
-      if (!el) {
-        el = document.createElement("meta");
-        el.setAttribute(attr, name);
-        document.head.appendChild(el);
-      }
-      el.setAttribute("content", content);
-    };
-    const desc = (product.description ?? "").slice(0, 160) || `${product.title} — купите на Kupiks.`;
-    setMeta("description", desc);
-    setMeta("og:title", title, true);
-    setMeta("og:description", desc, true);
-    setMeta("og:type", "product", true);
-    if (product.image_url) {
-      setMeta("og:image", product.image_url, true);
-      setMeta("twitter:image", product.image_url);
-    }
-    setMeta("twitter:card", "summary_large_image");
-  }, [product]);
 
   const sellerQuery = useQuery({
     queryKey: ["seller-profile-mini", product?.seller_id],
     enabled: !!product?.seller_id,
     queryFn: () => fetchSeller({ data: { id: product!.seller_id } }),
+    staleTime: 5 * 60 * 1000,
   });
 
   // Статистика просмотров карточки для аналитики продавца
@@ -153,16 +163,7 @@ function ProductPage() {
         </Link>
 
         {isLoading ? (
-          <div className="grid md:grid-cols-2 gap-8 animate-pulse">
-            <div className="aspect-square rounded-2xl bg-surface-strong" />
-            <div className="space-y-4">
-              <div className="h-4 w-20 bg-surface-strong rounded" />
-              <div className="h-8 w-3/4 bg-surface-strong rounded" />
-              <div className="h-10 w-40 bg-surface-strong rounded" />
-              <div className="h-4 w-32 bg-surface-strong rounded" />
-              <div className="h-24 bg-surface-strong rounded" />
-            </div>
-          </div>
+          <ProductPageSkeleton />
         ) : error || !product ? (
           <div className="py-20 text-center text-muted-foreground">Товар не найден</div>
         ) : (
@@ -198,6 +199,10 @@ function ProductPage() {
                             <img
                               src={url}
                               alt={product.title}
+                              width={800}
+                              height={800}
+                              loading={i === 0 ? "eager" : "lazy"}
+                              decoding="async"
                               className="h-full w-full object-cover"
                             />
                           </div>
@@ -225,6 +230,9 @@ function ProductPage() {
                         <img
                           src={current}
                           alt={product.title}
+                          width={900}
+                          height={900}
+                          decoding="async"
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -246,7 +254,15 @@ function ProductPage() {
                                 : "border-transparent hover:border-border"
                             }`}
                           >
-                            <img src={url} alt="" className="h-full w-full object-cover" />
+                            <img
+                              src={url}
+                              alt=""
+                              width={160}
+                              height={160}
+                              loading="lazy"
+                              decoding="async"
+                              className="h-full w-full object-cover"
+                            />
                           </button>
                         ))}
                       </div>
