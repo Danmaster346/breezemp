@@ -116,6 +116,7 @@ export function BuyerTabs() {
     { to: "/account", label: "Заказы", icon: Package },
     { to: "/favorites", label: "Избранное", icon: Heart },
     { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/track-order", label: "Отследить", icon: Truck },
   ];
   return (
     <div className="lg:hidden -mx-4 px-4 mb-4 overflow-x-auto no-scrollbar">
