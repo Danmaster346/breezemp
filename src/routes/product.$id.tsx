@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/lib/cart-store";
+import { trackProduct } from "@/lib/analytics/track";
+
 import { toast } from "sonner";
 import { ShoppingCart, ArrowLeft, Truck, ShieldCheck, RotateCcw, Star, Store, MessageCircle } from "lucide-react";
 import { ProductReviews } from "@/components/ProductReviews";
