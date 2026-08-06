@@ -122,7 +122,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
 
   const switchMode = (next: "buyer" | "seller") => {
     setMode(next);
-    void savePreferredMode({ data: { mode: next } }).catch(() => {});
+    void setPreferredMode({ data: { mode: next } }).catch(() => {});
     if (next === "seller") navigate({ to: "/seller/products", search: {} as never });
     else navigate({ to: "/account" });
   };
