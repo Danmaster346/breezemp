@@ -35,6 +35,13 @@ import {
   computeAutoBadges,
   type SellerSettings,
 } from "@/lib/seller-settings.functions";
+import {
+  listQuickReplies,
+  saveQuickReply,
+  deleteQuickReply,
+  getAutoReplySettings,
+  saveAutoReplySettings,
+} from "@/lib/messaging/messaging.functions";
 
 export const Route = createFileRoute("/_authenticated/seller/settings")({
   head: () => ({ meta: [{ title: "Настройки магазина — BreezeMarket" }] }),
@@ -656,5 +663,176 @@ function PreviewLine({
       <Icon className="h-3.5 w-3.5 text-brand shrink-0" />
       <span className="truncate text-foreground">{value}</span>
     </div>
+  );
+}
+
+// ===== Сообщения: быстрые ответы и автоответ вне рабочих часов =====
+function MessagingSettings() {
+  const qc = useQueryClient();
+  const fetchQuick = useServerFn(listQuickReplies);
+  const saveQuick = useServerFn(saveQuickReply);
+  const removeQuick = useServerFn(deleteQuickReply);
+  const fetchAuto = useServerFn(getAutoReplySettings);
+  const saveAuto = useServerFn(saveAutoReplySettings);
+
+  const [newText, setNewText] = useState("");
+  const quick = useQuery({ queryKey: ["quick-replies-settings"], queryFn: () => fetchQuick() });
+  const auto = useQuery({ queryKey: ["autoreply-settings"], queryFn: () => fetchAuto() });
+
+  const [autoForm, setAutoForm] = useState({
+    autoreply_enabled: false,
+    autoreply_text: "",
+    work_hours_from: 9,
+    work_hours_to: 21,
+  });
+  useEffect(() => {
+    if (auto.data) setAutoForm(auto.data);
+  }, [auto.data]);
+
+  const addQuick = async () => {
+    const text = newText.trim();
+    if (!text) return;
+    try {
+      await saveQuick({ data: { text } });
+      setNewText("");
+      qc.invalidateQueries({ queryKey: ["quick-replies-settings"] });
+      qc.invalidateQueries({ queryKey: ["quick-replies"] });
+      toast.success("Шаблон добавлен");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const delQuick = async (id: string) => {
+    try {
+      await removeQuick({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["quick-replies-settings"] });
+      qc.invalidateQueries({ queryKey: ["quick-replies"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const persistAuto = async () => {
+    try {
+      await saveAuto({ data: autoForm });
+      qc.invalidateQueries({ queryKey: ["autoreply-settings"] });
+      toast.success("Настройки автоответа сохранены");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border bg-card overflow-hidden">
+      <header className="px-5 py-4 border-b flex items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-brand" />
+        <h2 className="font-semibold">Сообщения покупателям</h2>
+      </header>
+      <div className="p-5 space-y-6">
+        {/* Быстрые ответы */}
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">Быстрые ответы</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Шаблоны доступны в чате по кнопке с молнией — отвечайте в один клик.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(quick.data ?? []).map((qr) => (
+              <span
+                key={qr.id}
+                className="inline-flex max-w-full items-center gap-2 rounded-full border bg-background px-3 py-1.5 text-xs"
+              >
+                <span className="truncate">{qr.text}</span>
+                <button
+                  type="button"
+                  onClick={() => void delQuick(qr.id)}
+                  className="text-muted-foreground hover:text-red-600"
+                  aria-label="Удалить шаблон"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ))}
+            {(quick.data ?? []).length === 0 && !quick.isLoading && (
+              <p className="text-xs text-muted-foreground">Шаблонов пока нет.</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              maxLength={300}
+              placeholder="Например: Здравствуйте! Товар в наличии, отправим сегодня."
+              className="h-10 flex-1 rounded-xl border px-3 text-sm outline-none focus:border-brand"
+            />
+            <button
+              type="button"
+              onClick={() => void addQuick()}
+              className="h-10 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              Добавить
+            </button>
+          </div>
+        </div>
+
+        {/* Автоответ */}
+        <div className="space-y-3 border-t pt-5">
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={autoForm.autoreply_enabled}
+              onChange={(e) => setAutoForm((f) => ({ ...f, autoreply_enabled: e.target.checked }))}
+            />
+            Автоответ вне рабочих часов
+          </label>
+          <textarea
+            rows={3}
+            maxLength={500}
+            value={autoForm.autoreply_text}
+            onChange={(e) => setAutoForm((f) => ({ ...f, autoreply_text: e.target.value }))}
+            placeholder="Спасибо за сообщение! Мы работаем с 9:00 до 21:00 и ответим утром."
+            className="w-full resize-none rounded-xl border p-3 text-sm outline-none focus:border-brand"
+          />
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <label className="flex items-center gap-2">
+              С
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={autoForm.work_hours_from}
+                onChange={(e) =>
+                  setAutoForm((f) => ({ ...f, work_hours_from: Number(e.target.value) || 0 }))
+                }
+                className="h-9 w-16 rounded-lg border px-2 text-center outline-none focus:border-brand"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              до
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={autoForm.work_hours_to}
+                onChange={(e) =>
+                  setAutoForm((f) => ({ ...f, work_hours_to: Number(e.target.value) || 0 }))
+                }
+                className="h-9 w-16 rounded-lg border px-2 text-center outline-none focus:border-brand"
+              />
+            </label>
+            <span className="text-xs text-muted-foreground">по московскому времени</span>
+            <button
+              type="button"
+              onClick={() => void persistAuto()}
+              className="ml-auto h-9 rounded-xl border px-4 text-sm font-medium hover:border-brand"
+            >
+              Сохранить автоответ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
