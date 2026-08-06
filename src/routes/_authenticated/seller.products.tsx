@@ -291,12 +291,23 @@ function SellerProductsPage() {
   const outCount = all.filter((p) => p.stock === 0).length;
 
   // Клиентская фильтрация: поиск + категория + низкий остаток
-  const filtered = all.filter((p) => {
-    if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
-    if (filterCat && p.category_id !== filterCat) return false;
-    if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
-    return true;
-  });
+  const filtered = all
+    .filter((p) => {
+      if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
+      if (filterCat && p.category_id !== filterCat) return false;
+      if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "sold") return (stats.sold[b.id] ?? 0) - (stats.sold[a.id] ?? 0);
+      if (sortBy === "views") return (stats.views[b.id] ?? 0) - (stats.views[a.id] ?? 0);
+      if (sortBy === "price") return b.price_kopecks - a.price_kopecks;
+      if (sortBy === "stock") return a.stock - b.stock;
+      return 0;
+    });
+
+  const allSelected = filtered.length > 0 && filtered.every((p) => selected.includes(p.id));
+
 
   return (
     <div>
