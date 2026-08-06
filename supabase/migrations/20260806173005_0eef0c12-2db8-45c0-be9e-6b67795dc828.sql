@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.log_order_item_status() FROM PUBLIC, anon, authenticated;
