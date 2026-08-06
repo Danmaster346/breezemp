@@ -114,7 +114,9 @@ function ProductPage() {
       seller_id: product.seller_id,
       stock: product.stock,
     });
+    trackProduct(product.id, "add_to_cart");
     toast.success("Товар добавлен в корзину");
+
   };
   const writeSeller = async () => {
     if (!product) return;
