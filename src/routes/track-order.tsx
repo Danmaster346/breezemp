@@ -206,7 +206,6 @@ function TrackOrderPage() {
                               height={96}
                               loading="lazy"
                               decoding="async"
-                              loading="lazy"
                               className="h-full w-full object-cover"
                             />
                           ) : (
