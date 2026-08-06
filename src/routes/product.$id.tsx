@@ -88,9 +88,14 @@ function ProductPage() {
     queryFn: () => fetchSeller({ data: { id: product!.seller_id } }),
   });
 
+  // Статистика просмотров карточки для аналитики продавца
+  useEffect(() => {
+    if (product?.id) trackProduct(product.id, "view");
+  }, [product?.id]);
 
   const addToCart = () => {
     if (!product) return;
+
     if (!user) {
       // Гость — сохраняем намерение и открываем модалку входа
       setPendingAdd({ productId: product.id, qty: 1 });
