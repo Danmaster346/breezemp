@@ -90,38 +90,25 @@ export const sellerResolveReturn = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
     }
 
-    // Пишем сообщение в чат покупатель-продавец
+    // Системное сообщение в диалог покупатель — продавец
     const { data: order } = await supabaseAdmin
       .from("orders")
       .select("buyer_id")
       .eq("id", item.order_id)
       .maybeSingle();
     if (order) {
-      const { data: chat } = await supabaseAdmin
-        .from("chats")
-        .upsert(
-          {
-            buyer_id: order.buyer_id,
-            seller_id: item.seller_id,
-            product_id: item.product_id,
-            order_id: item.order_id,
-          },
-          { onConflict: "buyer_id,seller_id,product_id,order_id", ignoreDuplicates: false },
-        )
-        .select("id")
-        .maybeSingle();
-      if (chat) {
-        const label =
-          data.action === "approve"
-            ? `Возврат одобрен по позиции «${item.title_snapshot}».`
-            : `Возврат отклонён по позиции «${item.title_snapshot}».`;
-        const body = data.comment ? `${label}\nКомментарий: ${data.comment}` : label;
-        await supabaseAdmin.from("chat_messages").insert({
-          chat_id: chat.id,
-          sender_id: context.userId,
-          body,
-        });
-      }
+      const { postSystemMessage } = await import("@/lib/messaging/system.server");
+      const label =
+        data.action === "approve"
+          ? `Возврат одобрен по позиции «${item.title_snapshot}».`
+          : `Возврат отклонён по позиции «${item.title_snapshot}».`;
+      await postSystemMessage({
+        buyerId: order.buyer_id,
+        sellerId: item.seller_id,
+        senderId: context.userId,
+        orderId: item.order_id,
+        body: data.comment ? `${label}\nКомментарий: ${data.comment}` : label,
+      });
     }
 
     return { ok: true };
