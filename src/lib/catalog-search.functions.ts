@@ -53,7 +53,7 @@ const filterSchema = z.object({
     ])
     .optional()
     .default("relevance"),
-  limit: z.number().int().min(1).max(240).optional().default(120),
+  limit: z.number().int().min(1).max(120).optional().default(60),
 });
 
 function safeIlike(s: string) {
