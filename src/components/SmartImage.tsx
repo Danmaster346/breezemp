@@ -18,6 +18,15 @@ export type SmartImageProps = {
   fallback?: React.ReactNode;
 };
 
+function optimizeImageUrl(src: string | null | undefined, width: number): string | null | undefined {
+  if (!src) return src;
+  if (src.includes("supabase.co/storage")) {
+    const separator = src.includes("?") ? "&" : "?";
+    return `${src}${separator}width=${width}&quality=75&format=webp`;
+  }
+  return src;
+}
+
 export function SmartImage({
   src,
   alt,
@@ -63,7 +72,7 @@ export function SmartImage({
       {src ? (
         visible ? (
           <img
-            src={src}
+            src={optimizeImageUrl(src, width) ?? ""}
             alt={alt}
             width={width}
             height={height}
