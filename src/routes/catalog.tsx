@@ -74,10 +74,10 @@ export const Route = createFileRoute("/catalog")({
         content: "Тысячи товаров для дома, отдыха и стиля с фильтрами и удобным поиском.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://breezemp.lovable.app/catalog" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/catalog" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/catalog" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/catalog" }],
   }),
   component: CatalogPage,
 });

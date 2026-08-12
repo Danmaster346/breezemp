@@ -25,10 +25,10 @@ export const Route = createFileRoute("/")({
         content: "Покупайте и продавайте товары на Kupiks. Доставка по всей России.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://breezemp.lovable.app/" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/" }],
   }),
   component: HomePage,
 });
