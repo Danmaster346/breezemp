@@ -40,7 +40,7 @@ type NavItem = {
   to: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  badge?: "cart" | "unread";
+  badge?: "cart" | "unread" | "favorites";
   exact?: boolean;
 };
 
@@ -48,9 +48,10 @@ const buyerMobileNav: readonly NavItem[] = [
   { to: "/", label: "Главная", icon: Home, exact: true },
   { to: "/catalog", label: "Каталог", icon: LayoutGrid },
   { to: "/cart", label: "Корзина", icon: ShoppingCart, badge: "cart" },
-  { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
-  { to: "/account", label: "Кабинет", icon: User },
+  { to: "/favorites", label: "Избранное", icon: Heart, badge: "favorites" },
+  { to: "/account", label: "Профиль", icon: User },
 ];
+
 
 const sellerMobileNav: readonly NavItem[] = [
   { to: "/seller/products", label: "Товары", icon: Package },
