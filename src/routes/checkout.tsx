@@ -24,6 +24,7 @@ import {
 } from "@/lib/checkout-draft";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { toastOrderPlaced } from "@/lib/toasts";
 import {
   CheckCircle2,
   CreditCard,
@@ -211,7 +212,7 @@ function CheckoutPage() {
       });
       clear();
       savePromoCode(null);
-      toast.success("Тестовая оплата прошла успешно!");
+      toastOrderPlaced(res.id);
       navigate({ to: "/order-success/$id", params: { id: res.id } });
     } catch (err) {
       toast.error((err as Error).message);

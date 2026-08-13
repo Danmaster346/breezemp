@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useMemo } from "react";
 import { toast } from "sonner";
+import { toastFavorite } from "@/lib/toasts";
 import { supabase } from "@/integrations/supabase/client";
 import { listFavoriteIds, toggleFavorite } from "@/lib/favorites.functions";
 
@@ -40,7 +41,7 @@ export function useToggleFavorite() {
       toast.error("Не удалось обновить избранное. Войдите, чтобы сохранять товары.");
     },
     onSuccess: (res) => {
-      toast.success(res.favored ? "Добавлено в избранное" : "Убрано из избранного");
+      toastFavorite(res.favored);
       qc.invalidateQueries({ queryKey: ["favorites"] });
     },
   });

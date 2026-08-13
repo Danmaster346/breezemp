@@ -109,7 +109,7 @@ export function NotificationsPanel() {
                   <li key={n.id}>
                     {n.link ? (
                       <Link
-                        to={n.link}
+                        to={n.link as never}
                         onClick={() => {
                           onOpen();
                           close();

@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { Heart, Plus, ShoppingCart, Star } from "lucide-react";
 import { toast } from "sonner";
+import { toastAddedToCart } from "@/lib/toasts";
 import { formatPrice } from "@/lib/format";
 import { useFavoriteHandler, useIsFavorite } from "@/lib/favorites-client";
 import { SmartImage } from "@/components/SmartImage";
@@ -113,7 +114,7 @@ export function ProductCard(p: ProductCardProps) {
       },
       1,
     );
-    toast.success("Товар добавлен в корзину", { description: p.title });
+    toastAddedToCart(p.title, () => router.navigate({ to: "/cart" }));
   };
 
   return (

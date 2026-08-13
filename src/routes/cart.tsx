@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { toastRemovedFromCart } from "@/lib/toasts";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
@@ -57,6 +58,18 @@ function CartPage() {
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const setQty = useCart((s) => s.setQty);
+  const addBack = useCart((s) => s.add);
+
+  // Удаление позиции с возможностью отмены (5 секунд)
+  const removeWithUndo = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    remove(id);
+    if (!item) return;
+    toastRemovedFromCart(item.title, () => {
+      const { quantity, ...rest } = item;
+      addBack(rest, quantity);
+    });
+  };
   const subtotal = useCart((s) => s.totalKopecks());
   const qtyTotal = items.reduce((s, i) => s + i.quantity, 0);
   const { user } = useAuth();
@@ -399,7 +412,7 @@ function CartPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(i.id)}
+                    onClick={() => removeWithUndo(i.id)}
                     className="self-start p-2 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition"
                     aria-label="Удалить"
                   >
