@@ -1,15 +1,18 @@
-// Карточка товара — Askona-style + кнопка «В избранное»
+// Карточка товара — Askona-style: бейджи скидки/новинки, рейтинг,
+// избранное и быстрое добавление в корзину (hover на десктопе, «+» на мобиле).
 // Оптимизации: ленивое изображение (IntersectionObserver + width/height)
 // и prefetch данных страницы товара при наведении.
 // На мобиле свайп влево открывает быстрое действие «В избранное».
 import { Link, useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart, Plus, ShoppingCart, Star } from "lucide-react";
+import { toast } from "sonner";
 import { formatPrice } from "@/lib/format";
 import { useFavoriteHandler, useIsFavorite } from "@/lib/favorites-client";
 import { SmartImage } from "@/components/SmartImage";
 import { productQueryOptions } from "@/lib/product-query";
+import { useCart } from "@/lib/cart-store";
 
 export type ProductCardProps = {
   id: string;
@@ -17,11 +20,19 @@ export type ProductCardProps = {
   price_kopecks: number;
   image_url: string | null;
   stock: number;
+  /** Старая цена — для бейджа скидки */
+  compare_at_price_kopecks?: number | null;
+  /** Дата создания — для бейджа «NEW» (младше 7 дней) */
+  created_at?: string | null;
+  rating?: number;
+  reviews_count?: number;
+  seller_id?: string;
   /** LCP-карточка (первые в сетке) — грузим фото сразу */
   priority?: boolean;
 };
 
 const SWIPE_WIDTH = 92; // ширина открывающегося действия
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function ProductCard(p: ProductCardProps) {
   const out = p.stock === 0;
@@ -29,6 +40,20 @@ export function ProductCard(p: ProductCardProps) {
   const { toggle, isPending } = useFavoriteHandler(p.id);
   const qc = useQueryClient();
   const router = useRouter();
+  const addToCart = useCart((s) => s.add);
+
+  // Бейджи
+  const oldPrice = p.compare_at_price_kopecks ?? 0;
+  const discountPercent =
+    oldPrice > p.price_kopecks
+      ? Math.round(((oldPrice - p.price_kopecks) / oldPrice) * 100)
+      : 0;
+  const isNew = p.created_at
+    ? Date.now() - new Date(p.created_at).getTime() < WEEK_MS
+    : false;
+
+  const rating = p.rating ?? 0;
+  const reviewsCount = p.reviews_count ?? 0;
 
   // Свайп влево (только сенсорные устройства)
   const [offset, setOffset] = useState(0);
@@ -71,6 +96,25 @@ export function ProductCard(p: ProductCardProps) {
     qc.prefetchQuery(productQueryOptions(p.id));
     void router.preloadRoute({ to: "/product/$id", params: { id: p.id } }).catch(() => {});
   }, [qc, router, p.id]);
+
+  // Быстрое добавление в корзину
+  const quickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (out) return;
+    addToCart(
+      {
+        id: p.id,
+        title: p.title,
+        price_kopecks: p.price_kopecks,
+        image_url: p.image_url,
+        seller_id: p.seller_id ?? "",
+        stock: p.stock,
+      },
+      1,
+    );
+    toast.success("Товар добавлен в корзину", { description: p.title });
+  };
 
   return (
     <div className="relative">
@@ -125,6 +169,21 @@ export function ProductCard(p: ProductCardProps) {
             wrapperClassName="h-full w-full"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
           />
+
+          {/* Бейджи скидки и новинки */}
+          <div className="absolute top-2 left-2 flex flex-col items-start gap-1.5">
+            {discountPercent > 0 && (
+              <span className="rounded-full bg-destructive px-2 py-0.5 text-[11px] font-bold text-destructive-foreground shadow-sm">
+                −{discountPercent}%
+              </span>
+            )}
+            {isNew && (
+              <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                NEW
+              </span>
+            )}
+          </div>
+
           {/* Кнопка избранного */}
           <button
             type="button"
@@ -140,6 +199,30 @@ export function ProductCard(p: ProductCardProps) {
           >
             <Heart className={`h-4 w-4 ${favored ? "fill-current" : ""}`} />
           </button>
+
+          {/* Быстрое добавление: снекбар снизу (десктоп, hover) */}
+          {!out && (
+            <button
+              type="button"
+              onClick={quickAdd}
+              className="hidden md:flex absolute inset-x-2 bottom-2 h-10 items-center justify-center gap-2 rounded-xl bg-brand text-brand-foreground text-sm font-semibold shadow-lg translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-brand/90"
+            >
+              <ShoppingCart className="h-4 w-4" />В корзину
+            </button>
+          )}
+
+          {/* Быстрое добавление: «+» (мобила) */}
+          {!out && (
+            <button
+              type="button"
+              onClick={quickAdd}
+              aria-label="Добавить в корзину"
+              className="md:hidden absolute bottom-2 right-2 h-9 w-9 grid place-items-center rounded-full bg-brand text-brand-foreground shadow-md active:scale-95 transition"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          )}
+
           {out && (
             <div className="absolute inset-0 bg-card/70 flex items-center justify-center">
               <span className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-destructive shadow-sm">
@@ -150,12 +233,26 @@ export function ProductCard(p: ProductCardProps) {
         </div>
         {/* Инфо */}
         <div className="pt-3 pb-1 px-1 flex flex-col gap-1">
-          <div className="text-lg md:text-xl font-extrabold text-foreground tracking-tight leading-none">
-            {formatPrice(p.price_kopecks)}
+          <div className="flex items-baseline gap-2">
+            <div className="text-lg md:text-xl font-extrabold text-foreground tracking-tight leading-none">
+              {formatPrice(p.price_kopecks)}
+            </div>
+            {discountPercent > 0 && (
+              <div className="text-xs text-muted-foreground line-through">
+                {formatPrice(oldPrice)}
+              </div>
+            )}
           </div>
           <div className="text-sm text-foreground/80 line-clamp-2 min-h-[2.5rem] leading-snug">
             {p.title}
           </div>
+          {rating > 0 && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              <span className="font-semibold text-foreground/70">{rating.toFixed(1)}</span>
+              {reviewsCount > 0 && <span>({reviewsCount})</span>}
+            </div>
+          )}
         </div>
       </Link>
     </div>
