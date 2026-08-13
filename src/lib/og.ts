@@ -12,6 +12,8 @@ export function toAbsoluteImageUrl(src?: string | null): string | null {
   if (!src) return null;
   const v = src.trim();
   if (!v || v.startsWith("data:") || v.startsWith("blob:")) return null;
+  // Подписанные ссылки хранилища истекают — соцсети кэшируют превью и оно ломается
+  if (v.includes("/object/sign/") || /[?&]token=/.test(v)) return null;
   if (/^https:\/\//i.test(v)) return v;
   // http → https, чтобы соцсети не отбрасывали небезопасный ресурс
   if (/^http:\/\//i.test(v)) return `https://${v.slice(7)}`;

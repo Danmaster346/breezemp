@@ -29,6 +29,9 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://kupiks-marketplace.ru/" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:image", content: "https://kupiks-marketplace.ru/og-default.jpg" },
+      { property: "og:image:alt", content: "Kupiks — маркетплейс" },
+      { name: "twitter:image", content: "https://kupiks-marketplace.ru/og-default.jpg" },
     ],
     links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/" }],
     scripts: [
@@ -39,6 +42,7 @@ export const Route = createFileRoute("/")({
           "@type": "Organization",
           name: "Kupiks",
           url: "https://kupiks-marketplace.ru",
+          logo: "https://kupiks-marketplace.ru/og-default.jpg",
           description: "Маркетплейс товаров для дома, отдыха и стиля",
         }),
       },
