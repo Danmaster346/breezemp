@@ -41,6 +41,7 @@ import { Route as AuthenticatedSellerAnalyticsRouteImport } from './routes/_auth
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages_.$conversationId'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminReviewReportsRouteImport } from './routes/_authenticated/admin/review-reports'
 import { Route as AuthenticatedAdminReviewAbuseRouteImport } from './routes/_authenticated/admin/review-abuse'
@@ -223,6 +224,12 @@ const AuthenticatedAdminSupportRoute =
     path: '/support',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminReviewsRoute =
   AuthenticatedAdminReviewsRouteImport.update({
     id: '/reviews',
@@ -327,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -371,6 +379,7 @@ export interface FileRoutesByTo {
   '/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -418,6 +427,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/_authenticated/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/messages_/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -465,6 +475,7 @@ export interface FileRouteTypes {
     | '/admin/review-abuse'
     | '/admin/review-reports'
     | '/admin/reviews'
+    | '/admin/settings'
     | '/admin/support'
     | '/admin/users'
     | '/messages/$conversationId'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/admin/review-abuse'
     | '/admin/review-reports'
     | '/admin/reviews'
+    | '/admin/settings'
     | '/admin/support'
     | '/admin/users'
     | '/messages/$conversationId'
@@ -555,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/review-abuse'
     | '/_authenticated/admin/review-reports'
     | '/_authenticated/admin/reviews'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/users'
     | '/_authenticated/messages_/$conversationId'
@@ -815,6 +828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/reviews': {
       id: '/_authenticated/admin/reviews'
       path: '/reviews'
@@ -913,6 +933,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminReviewAbuseRoute: typeof AuthenticatedAdminReviewAbuseRoute
   AuthenticatedAdminReviewReportsRoute: typeof AuthenticatedAdminReviewReportsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -931,6 +952,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminReviewAbuseRoute: AuthenticatedAdminReviewAbuseRoute,
     AuthenticatedAdminReviewReportsRoute: AuthenticatedAdminReviewReportsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
+    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
