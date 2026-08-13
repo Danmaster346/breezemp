@@ -346,8 +346,9 @@ function CatalogPage() {
           <div className="flex items-end justify-between gap-3 mb-3">
             <div>
               <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
-                Каталог
+                {activeCat ? activeCat.name : search.q ? `Поиск: «${search.q}»` : "Каталог"}
               </h1>
+
               <p className="text-sm text-muted-foreground mt-1">
                 {productsQuery.isLoading
                   ? "Ищем товары…"
