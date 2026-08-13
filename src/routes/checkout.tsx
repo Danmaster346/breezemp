@@ -6,7 +6,11 @@ import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { createOrder } from "@/lib/orders.functions";
-import { validatePromoCode, type PromoValidationResult } from "@/lib/promo.functions";
+import {
+  computeDiscountKopecks,
+  validatePromoCode,
+  type PromoValidationResult,
+} from "@/lib/promo.functions";
 import {
   SHIPPING_OPTIONS,
   calcShippingCost,
@@ -114,6 +118,7 @@ function CheckoutPage() {
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<PromoValidationResult | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Подставляем сохранённые данные получателя и промокод
@@ -145,36 +150,105 @@ function CheckoutPage() {
     name.trim().length > 1 && isPhoneComplete(phone) && city.trim() && address.trim();
   const step: 1 | 2 | 3 = submitting ? 3 : deliveryFilled ? 2 : 1;
 
-  const applyPromo = async () => {
-    const code = promoInput.trim().toUpperCase();
-    if (!code) return;
+  /** Быстрая проверка формата на клиенте — до обращения к серверу. */
+  const localPromoError = (code: string): string | null => {
+    if (!code) return "Введите промокод";
+    if (code.length < 3) return "Промокод слишком короткий — минимум 3 символа";
+    if (code.length > 32) return "Промокод слишком длинный — максимум 32 символа";
+    if (!/^[A-Z0-9_-]+$/.test(code))
+      return "Только латинские буквы, цифры, дефис и подчёркивание";
+    if (subtotal <= 0) return "Добавьте товары в корзину, чтобы применить промокод";
+    return null;
+  };
+
+  /**
+   * Проверяет промокод на сервере и применяет его.
+   * silent=true — авто-проверка при вводе (без всплывающих уведомлений).
+   */
+  const applyPromo = async (rawCode?: string, silent = false) => {
+    const code = (rawCode ?? promoInput).trim().toUpperCase();
+    const localErr = localPromoError(code);
+    if (localErr) {
+      setPromo(null);
+      savePromoCode(null);
+      setPromoError(localErr);
+      if (!silent && code) toast.error(localErr);
+      return false;
+    }
     setPromoChecking(true);
+    setPromoError(null);
     try {
       const res = await validatePromoFn({ data: { code, subtotal_kopecks: subtotal } });
       setPromo(res);
       savePromoCode(res.code);
-      toast.success(`Промокод «${res.code}» применён`);
+      setPromoError(null);
+      if (!silent) toast.success(`Промокод «${res.code}» применён`);
+      return true;
     } catch (err) {
+      const msg = (err as Error).message || "Промокод не действует";
       setPromo(null);
       savePromoCode(null);
-      toast.error((err as Error).message || "Промокод не действует");
+      setPromoError(msg);
+      if (!silent) toast.error(msg);
+      return false;
     } finally {
       setPromoChecking(false);
     }
   };
 
-  // Автоматически применяем промокод, перенесённый из корзины
+  // Автопроверка промокода при вводе (с задержкой) — итог пересчитывается сразу
   useEffect(() => {
-    if (promoInput && !promo && !promoChecking && subtotal > 0 && loadPromoCode() === promoInput) {
-      void applyPromo();
+    const code = promoInput.trim().toUpperCase();
+    if (!code) {
+      setPromoError(null);
+      if (promo) {
+        setPromo(null);
+        savePromoCode(null);
+      }
+      return;
     }
-    // применяем один раз для восстановленного кода
+    if (promo?.code === code) return;
+    const localErr = localPromoError(code);
+    if (localErr) {
+      setPromoError(code.length >= 3 ? localErr : null);
+      if (promo) {
+        setPromo(null);
+        savePromoCode(null);
+      }
+      return;
+    }
+    const t = setTimeout(() => void applyPromo(code, true), 600);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [promoInput, subtotal]);
+
+  // Пересчёт применённой скидки при изменении суммы корзины
+  useEffect(() => {
+    if (!promo) return;
+    if (subtotal <= 0) {
+      setPromo(null);
+      savePromoCode(null);
+      setPromoError("Корзина пуста — промокод снят");
+      return;
+    }
+    if (subtotal < promo.min_order_kopecks) {
+      setPromo(null);
+      setPromoError(
+        `Промокод действует от суммы ${formatPrice(promo.min_order_kopecks)} — скидка снята`,
+      );
+      return;
+    }
+    const recomputed = computeDiscountKopecks(promo, subtotal);
+    if (recomputed !== promo.discount_kopecks) {
+      setPromo({ ...promo, discount_kopecks: recomputed });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
 
   const removePromo = () => {
     setPromo(null);
     setPromoInput("");
+    setPromoError(null);
     savePromoCode(null);
   };
 
@@ -426,21 +500,47 @@ function CheckoutPage() {
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <input
-                    value={promoInput}
-                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                    placeholder="Введите промокод"
-                    className={`${inputCls} mt-0 uppercase`}
-                  />
-                  <button
-                    type="button"
-                    onClick={applyPromo}
-                    disabled={promoChecking || !promoInput.trim()}
-                    className="h-11 shrink-0 rounded-xl border border-brand bg-white px-4 text-sm font-semibold text-brand hover:bg-brand-soft disabled:opacity-50"
-                  >
-                    {promoChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Применить"}
-                  </button>
+                <div>
+                  <div className="flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={(e) =>
+                        setPromoInput(e.target.value.toUpperCase().replace(/\s+/g, "").slice(0, 32))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void applyPromo();
+                        }
+                      }}
+                      maxLength={32}
+                      aria-invalid={!!promoError}
+                      aria-describedby="promo-hint"
+                      placeholder="Введите промокод"
+                      className={`${inputCls} mt-0 uppercase ${
+                        promoError ? "border-red-300 focus:border-red-400 focus:ring-red-100" : ""
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void applyPromo()}
+                      disabled={promoChecking || !promoInput.trim()}
+                      className="h-11 shrink-0 rounded-xl border border-brand bg-white px-4 text-sm font-semibold text-brand hover:bg-brand-soft disabled:opacity-50"
+                    >
+                      {promoChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Применить"}
+                    </button>
+                  </div>
+                  <p id="promo-hint" className="mt-2 text-xs min-h-4">
+                    {promoChecking ? (
+                      <span className="text-muted-foreground">Проверяем промокод…</span>
+                    ) : promoError ? (
+                      <span className="text-red-600">{promoError}</span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Скидка применится автоматически после проверки
+                      </span>
+                    )}
+                  </p>
                 </div>
               )}
               <p className="text-xs text-muted-foreground">
