@@ -10,6 +10,11 @@ import { formatPrice } from "@/lib/format";
 import { getSellerTasks } from "@/lib/seller/tasks.functions";
 import { getSellerDashboardSummary } from "@/lib/seller/dashboard.functions";
 import { SellerDashboardHome } from "@/components/seller/DashboardHome";
+import {
+  SellerCommandPalette,
+  SellerSearchButton,
+  useCommandPaletteHotkey,
+} from "@/components/seller/SellerCommandPalette";
 import { usePanels } from "@/lib/panels-store";
 import {
   Plus,
@@ -67,6 +72,7 @@ function SellerLayout() {
   const fetchSummary = useServerFn(getSellerDashboardSummary);
   const fetchTasks = useServerFn(getSellerTasks);
   const openMessages = usePanels((s) => s.openMessages);
+  const palette = useCommandPaletteHotkey();
   useForceSellerMode();
 
   const summary = useQuery({
@@ -131,6 +137,7 @@ function SellerLayout() {
 
   return (
     <AppLayout>
+      <SellerCommandPalette open={palette.open} onOpenChange={palette.setOpen} />
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Breadcrumbs items={[{ label: "Кабинет продавца" }]} className="mb-4" />
 
@@ -148,6 +155,7 @@ function SellerLayout() {
                 <p className="text-sm text-muted-foreground">Товары, заказы и общая статистика</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <SellerSearchButton onClick={() => palette.setOpen(true)} />
                 <button
                   onClick={() => navigate({ to: "/seller/products", search: { new: 1 } })}
                   className="inline-flex items-center gap-2 h-11 px-4 rounded-full bg-brand text-brand-foreground text-sm font-semibold hover:opacity-90 ui-transition"
