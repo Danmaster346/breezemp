@@ -638,21 +638,42 @@ function CatalogPage() {
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-brand">
               <Search className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-semibold mb-1">Ничего не найдено</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Попробуйте изменить фильтры или запрос.
+            <h2 className="text-lg font-semibold mb-1">
+              {search.q ? `По запросу «${search.q}» ничего не найдено` : "Ничего не найдено"}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Попробуйте изменить запрос или посмотрите популярные категории.
             </p>
+
+            {/* Популярные категории */}
+            {(catsQuery.data?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-5">
+                {catsQuery.data!.slice(0, 8).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => upd({ q: undefined, category: c.slug })}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground/80 hover:border-brand hover:text-brand transition"
+                  >
+                    <span aria-hidden>{getCategoryEmoji(c.slug, c.name)}</span>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {hasFilters && (
               <button
                 type="button"
                 onClick={resetAll}
-                className="inline-flex items-center gap-1 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
               >
-                Сбросить фильтры
+                <RotateCcw className="h-4 w-4" /> Сбросить фильтры
               </button>
             )}
           </div>
         )}
+
       </div>
 
       {/* Мобильный Bottom Sheet: фильтры */}
