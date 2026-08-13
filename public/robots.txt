@@ -2,9 +2,17 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /account
-Disallow: /seller/
 Disallow: /checkout
 Disallow: /cart
 Disallow: /messages
+Disallow: /auth
+Disallow: /order-success/
+Disallow: /seller/analytics
+Disallow: /seller/balance
+Disallow: /seller/orders
+Disallow: /seller/products
+Disallow: /seller/returns
+Disallow: /seller/reviews
+Disallow: /seller/settings
 
 Sitemap: https://kupiks-marketplace.ru/sitemap.xml
