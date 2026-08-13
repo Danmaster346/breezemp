@@ -192,13 +192,14 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             )}
 
             {!sellerModeUi && user && (
-              <Link
-                to="/favorites"
+              <button
+                type="button"
+                onClick={openFavorites}
                 className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Избранное"
               >
                 <Heart className="h-5 w-5" strokeWidth={1.75} />
-              </Link>
+              </button>
             )}
 
             {!sellerModeUi && (
@@ -217,9 +218,10 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             )}
 
             {user && (
-              <Link
-                to="/messages"
-                className="relative hidden md:inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
+              <button
+                type="button"
+                onClick={() => openMessages()}
+                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Сообщения"
               >
                 <MessageCircle className="h-5 w-5" strokeWidth={1.75} />
@@ -228,8 +230,9 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
                     {unreadChats > 9 ? "9+" : unreadChats}
                   </span>
                 )}
-              </Link>
+              </button>
             )}
+
 
             <Link
               to={user ? accountHref : "/auth"}
