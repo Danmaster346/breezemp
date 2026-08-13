@@ -1,13 +1,27 @@
-// Оформление заказа — доставка, промокод, детализированный итог
+// Оформление заказа — шаги, доставка, промокод, детализированный итог
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { createOrder } from "@/lib/orders.functions";
 import { validatePromoCode, type PromoValidationResult } from "@/lib/promo.functions";
-import { SHIPPING_OPTIONS, calcShippingCost, type ShippingMethod } from "@/lib/shipping";
+import {
+  SHIPPING_OPTIONS,
+  calcShippingCost,
+  getShippingOption,
+  DEFAULT_SHIPPING_METHOD,
+  type ShippingMethod,
+} from "@/lib/shipping";
+import {
+  loadDraft,
+  saveDraft,
+  loadPromoCode,
+  savePromoCode,
+  formatPhone,
+  isPhoneComplete,
+} from "@/lib/checkout-draft";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -23,9 +37,62 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [{ title: "Оформление заказа — Kupiks" }] }),
+  head: () => ({
+    meta: [
+      { title: "Оформление заказа — Kupiks" },
+      {
+        name: "description",
+        content: "Оформите заказ на Kupiks: данные получателя, доставка, промокод и оплата.",
+      },
+      { name: "robots", content: "noindex,follow" },
+      { property: "og:title", content: "Оформление заказа — Kupiks" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: CheckoutPage,
 });
+
+// Прогресс-бар шагов оформления
+function StepBar({ step }: { step: 1 | 2 | 3 }) {
+  const steps = ["Доставка", "Оплата", "Подтверждение"];
+  return (
+    <ol className="mb-6 flex items-center gap-2 md:gap-3">
+      {steps.map((label, idx) => {
+        const n = idx + 1;
+        const done = n < step;
+        const active = n === step;
+        return (
+          <li key={label} className="flex flex-1 items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold transition ${
+                  done
+                    ? "bg-emerald-600 text-white"
+                    : active
+                      ? "bg-brand text-brand-foreground"
+                      : "bg-surface text-muted-foreground border border-border"
+                }`}
+              >
+                {done ? <CheckCircle2 className="h-4 w-4" /> : n}
+              </span>
+              <span
+                className={`truncate text-xs md:text-sm ${
+                  active ? "font-semibold text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {n < steps.length && (
+              <span className="hidden sm:block h-px flex-1 bg-border" aria-hidden />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 function CheckoutPage() {
   const items = useCart((s) => s.items);
@@ -38,36 +105,76 @@ function CheckoutPage() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
-  const [method, setMethod] = useState<ShippingMethod>("pickup");
+  const [zip, setZip] = useState("");
+  const [comment, setComment] = useState("");
+  const [method, setMethod] = useState<ShippingMethod>(DEFAULT_SHIPPING_METHOD);
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<PromoValidationResult | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Подставляем сохранённые данные получателя и промокод
+  useEffect(() => {
+    const d = loadDraft();
+    setName(d.name);
+    setPhone(d.phone);
+    setCity(d.city);
+    setAddress(d.address);
+    setZip(d.zip);
+    setComment(d.comment);
+    if (SHIPPING_OPTIONS.some((o) => o.id === d.method)) {
+      setMethod(d.method as ShippingMethod);
+    }
+    const savedPromo = loadPromoCode();
+    if (savedPromo) setPromoInput(savedPromo);
+  }, []);
+
+  // Сохраняем черновик при изменениях
+  useEffect(() => {
+    saveDraft({ name, phone, city, address, zip, comment, method });
+  }, [name, phone, city, address, zip, comment, method]);
+
   const shippingCost = useMemo(() => calcShippingCost(method, subtotal), [method, subtotal]);
   const discount = promo?.discount_kopecks ?? 0;
   const total = Math.max(0, subtotal - discount) + shippingCost;
 
+  const deliveryFilled =
+    name.trim().length > 1 && isPhoneComplete(phone) && city.trim() && address.trim();
+  const step: 1 | 2 | 3 = submitting ? 3 : deliveryFilled ? 2 : 1;
+
   const applyPromo = async () => {
-    const code = promoInput.trim();
+    const code = promoInput.trim().toUpperCase();
     if (!code) return;
     setPromoChecking(true);
     try {
       const res = await validatePromoFn({ data: { code, subtotal_kopecks: subtotal } });
       setPromo(res);
+      savePromoCode(res.code);
       toast.success(`Промокод «${res.code}» применён`);
     } catch (err) {
       setPromo(null);
+      savePromoCode(null);
       toast.error((err as Error).message || "Промокод не действует");
     } finally {
       setPromoChecking(false);
     }
   };
 
+  // Автоматически применяем промокод, перенесённый из корзины
+  useEffect(() => {
+    if (promoInput && !promo && !promoChecking && subtotal > 0 && loadPromoCode() === promoInput) {
+      void applyPromo();
+    }
+    // применяем один раз для восстановленного кода
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promoInput, subtotal]);
+
   const removePromo = () => {
     setPromo(null);
     setPromoInput("");
+    savePromoCode(null);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -81,20 +188,29 @@ function CheckoutPage() {
       toast.error("Корзина пуста");
       return;
     }
+    if (!isPhoneComplete(phone)) {
+      toast.error("Укажите телефон полностью: +7 (999) 000-00-00");
+      return;
+    }
+    // Собираем адрес в одну строку для сохранения в заказе
+    const fullAddress = [zip.trim(), city.trim(), address.trim(), comment.trim() ? `Комментарий: ${comment.trim()}` : ""]
+      .filter(Boolean)
+      .join(", ");
     setSubmitting(true);
     try {
       const res = await createOrderFn({
         data: {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-          shipping_name: name,
-          shipping_phone: phone,
-          shipping_address: address,
+          shipping_name: name.trim(),
+          shipping_phone: phone.trim(),
+          shipping_address: fullAddress,
           shipping_method: method,
           promo_code: promo?.code ?? null,
           paid: true,
         },
       });
       clear();
+      savePromoCode(null);
       toast.success("Тестовая оплата прошла успешно!");
       navigate({ to: "/order-success/$id", params: { id: res.id } });
     } catch (err) {
@@ -107,15 +223,17 @@ function CheckoutPage() {
   const inputCls =
     "mt-1.5 w-full h-11 px-4 rounded-xl border border-border bg-white text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20";
 
-  const selectedOption = SHIPPING_OPTIONS.find((o) => o.id === method)!;
+  const selectedOption = getShippingOption(method);
 
   return (
     <AppLayout>
-      <div className="mx-auto max-w-5xl px-4 py-6 md:py-10">
+      <div className="mx-auto max-w-5xl px-4 py-6 md:py-10 pb-32 md:pb-10">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-2">Оформление заказа</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Выберите способ доставки, введите промокод и подтвердите заказ.
+          Заполните данные доставки, выберите способ и подтвердите заказ.
         </p>
+
+        <StepBar step={step} />
 
         {!loading && !user && (
           <div className="rounded-2xl border border-brand/20 bg-brand-soft p-4 mb-6 text-sm animate-fade-in">
@@ -132,27 +250,23 @@ function CheckoutPage() {
 
         <div className="grid md:grid-cols-[1fr_380px] gap-6">
           {/* Форма */}
-          <form
-            id="checkout-form"
-            onSubmit={onSubmit}
-            className="space-y-5"
-          >
-            {/* Контактные данные */}
+          <form id="checkout-form" onSubmit={onSubmit} className="space-y-5">
+            {/* Данные получателя */}
             <section className="rounded-2xl border border-border bg-white p-5 md:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2">
                 <div className="grid h-9 w-9 place-items-center rounded-full bg-brand-soft text-brand">
                   <MapPin className="h-4 w-4" />
                 </div>
-                <h2 className="font-semibold text-lg">Получатель</h2>
+                <h2 className="font-semibold text-lg">Данные доставки</h2>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">Имя получателя</label>
+                  <label className="text-sm font-medium">ФИО получателя</label>
                   <input
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Иван Иванов"
+                    placeholder="Иванов Иван Иванович"
                     autoComplete="name"
                     className={inputCls}
                   />
@@ -162,15 +276,67 @@ function CheckoutPage() {
                   <input
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+7 999 000 00 00"
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    onFocus={() => {
+                      if (!phone) setPhone("+7 (");
+                    }}
+                    placeholder="+7 (___) ___-__-__"
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel"
                     className={inputCls}
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium">Город</label>
+                  <input
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="Москва"
+                    autoComplete="address-level2"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Индекс</label>
+                  <input
+                    value={zip}
+                    onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="123456"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium">{selectedOption.addressLabel}</label>
+                  <input
+                    required
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder={selectedOption.addressPlaceholder}
+                    autoComplete="street-address"
+                    className={inputCls}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium">
+                    Комментарий к заказу{" "}
+                    <span className="text-muted-foreground font-normal">(необязательно)</span>
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={3}
+                    placeholder="Код домофона, удобное время доставки…"
+                    className="mt-1.5 w-full px-4 py-3 rounded-xl border border-border bg-white text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 resize-none"
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Данные сохраняются на этом устройстве и подставятся при следующем заказе.
+              </p>
             </section>
 
             {/* Способ доставки */}
@@ -179,7 +345,7 @@ function CheckoutPage() {
                 <div className="grid h-9 w-9 place-items-center rounded-full bg-brand-soft text-brand">
                   <Truck className="h-4 w-4" />
                 </div>
-                <h2 className="font-semibold text-lg">Доставка</h2>
+                <h2 className="font-semibold text-lg">Способ доставки</h2>
               </div>
               <div className="grid gap-3">
                 {SHIPPING_OPTIONS.map((opt) => {
@@ -204,7 +370,10 @@ function CheckoutPage() {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="font-medium">{opt.label}</div>
+                          <div className="font-medium">
+                            <span className="mr-1.5">{opt.emoji}</span>
+                            {opt.label}
+                          </div>
                           <div className="text-sm font-semibold shrink-0">
                             {cost === 0 ? (
                               <span className="text-emerald-600">Бесплатно</span>
@@ -214,23 +383,12 @@ function CheckoutPage() {
                           </div>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {opt.description} · срок {opt.eta}
+                          {opt.description} · {opt.eta}
                         </div>
                       </div>
                     </label>
                   );
                 })}
-              </div>
-              <div>
-                <label className="text-sm font-medium">{selectedOption.addressLabel}</label>
-                <textarea
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  rows={3}
-                  placeholder={selectedOption.addressPlaceholder}
-                  className="mt-1.5 w-full px-4 py-3 rounded-xl border border-border bg-white text-sm outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 resize-none"
-                />
               </div>
             </section>
 
@@ -249,7 +407,8 @@ function CheckoutPage() {
                     <div>
                       <div className="font-semibold text-emerald-700">{promo.code}</div>
                       <div className="text-xs text-emerald-700/80">
-                        Скидка {promo.discount_type === "percent"
+                        Скидка{" "}
+                        {promo.discount_type === "percent"
                           ? `${promo.discount_value}%`
                           : formatPrice(promo.discount_value)}{" "}
                         · −{formatPrice(promo.discount_kopecks)}
@@ -291,7 +450,7 @@ function CheckoutPage() {
             <button
               type="submit"
               disabled={submitting || items.length === 0}
-              className="hidden md:inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand px-4 py-3.5 text-base font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
+              className="hidden md:inline-flex w-full items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-4 text-base font-bold text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md transition"
             >
               {submitting ? (
                 <>
@@ -344,13 +503,17 @@ function CheckoutPage() {
                 </div>
               )}
               <div className="flex justify-between text-muted-foreground">
-                <span>Доставка · {selectedOption.label}</span>
-                <span className={shippingCost === 0 ? "text-emerald-600 font-medium" : "text-foreground"}>
+                <span>
+                  Доставка · {selectedOption.emoji} {selectedOption.label}
+                </span>
+                <span
+                  className={shippingCost === 0 ? "text-emerald-600 font-medium" : "text-foreground"}
+                >
                   {shippingCost === 0 ? "Бесплатно" : formatPrice(shippingCost)}
                 </span>
               </div>
               <div className="flex justify-between items-baseline pt-3 border-t">
-                <span className="font-semibold">Итого</span>
+                <span className="font-bold">ИТОГО</span>
                 <span className="text-2xl font-extrabold tracking-tight text-foreground">
                   {formatPrice(total)}
                 </span>
@@ -371,7 +534,7 @@ function CheckoutPage() {
             type="submit"
             form="checkout-form"
             disabled={submitting || items.length === 0}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 shadow-sm transition"
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm transition"
           >
             {submitting ? (
               <>
@@ -388,4 +551,3 @@ function CheckoutPage() {
     </AppLayout>
   );
 }
-
