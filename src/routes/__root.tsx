@@ -99,10 +99,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Kupiks — маркетплейс товаров от проверенных продавцов" },
       { name: "twitter:description", content: "Тысячи товаров, честные цены и быстрая доставка." },
+      // PWA
+      { name: "theme-color", content: "#ff6b35" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "Kupiks" },
+      { name: "mobile-web-app-capable", content: "yes" },
     ],
+
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       // Предзагрузка основного шрифта (font-display: swap уже в URL)

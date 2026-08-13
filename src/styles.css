@@ -45,7 +45,7 @@
   --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Sora", "Manrope", system-ui, sans-serif;
 
-  --bottom-nav-h: 64px;
+  --bottom-nav-h: 60px;
   --sab: env(safe-area-inset-bottom);
   --sat: env(safe-area-inset-top);
 }
@@ -130,7 +130,8 @@
     text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
   }
-  html, body { overflow-x: hidden; }
+  html, body { overflow-x: hidden; max-width: 100%; }
+  body { overscroll-behavior-y: contain; }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

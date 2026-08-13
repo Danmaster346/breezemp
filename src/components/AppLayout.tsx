@@ -22,6 +22,8 @@ import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { useFavoriteIds } from "@/lib/favorites-client";
+
 import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
@@ -40,7 +42,7 @@ type NavItem = {
   to: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  badge?: "cart" | "unread";
+  badge?: "cart" | "unread" | "favorites";
   exact?: boolean;
 };
 
@@ -48,9 +50,10 @@ const buyerMobileNav: readonly NavItem[] = [
   { to: "/", label: "Главная", icon: Home, exact: true },
   { to: "/catalog", label: "Каталог", icon: LayoutGrid },
   { to: "/cart", label: "Корзина", icon: ShoppingCart, badge: "cart" },
-  { to: "/messages", label: "Чаты", icon: MessageCircle, badge: "unread" },
-  { to: "/account", label: "Кабинет", icon: User },
+  { to: "/favorites", label: "Избранное", icon: Heart, badge: "favorites" },
+  { to: "/account", label: "Профиль", icon: User },
 ];
+
 
 const sellerMobileNav: readonly NavItem[] = [
   { to: "/seller/products", label: "Товары", icon: Package },
@@ -91,6 +94,9 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
   const unreadChats = mounted ? rawUnread : 0;
+  const { data: favoriteIds } = useFavoriteIds();
+  const favoritesCount = mounted ? (favoriteIds?.length ?? 0) : 0;
+
 
   useEffect(() => {
     if (!isSeller && mode === "seller") setMode("buyer");
@@ -345,7 +351,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
 
       {/* Мобильная нижняя навигация */}
       {!hideMobileBottomNav && (
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-pb">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.14)] safe-pb">
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
@@ -356,15 +362,22 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
               ? pathname === item.to
               : pathname === item.to || pathname.startsWith(item.to + "/");
             const badgeN =
-              item.badge === "cart" ? count : item.badge === "unread" ? unreadChats : 0;
+              item.badge === "cart"
+                ? count
+                : item.badge === "unread"
+                  ? unreadChats
+                  : item.badge === "favorites"
+                    ? favoritesCount
+                    : 0;
             return (
               <Link
                 key={`${item.to}-${i}`}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium ui-transition touch-target ${
+                className={`flex flex-col items-center justify-center gap-1 h-[60px] text-[11px] font-medium ui-transition ${
                   active ? "text-brand" : "text-foreground/70 hover:text-foreground"
                 }`}
               >
+
                 <div className="relative">
                   <Icon
                     className={`h-6 w-6 transition-transform ${active ? "scale-110" : ""}`}
