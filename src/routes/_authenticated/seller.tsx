@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
 import { getSellerTasks } from "@/lib/seller/tasks.functions";
 import { getSellerDashboardSummary } from "@/lib/seller/dashboard.functions";
+import { SellerDashboardHome } from "@/components/seller/DashboardHome";
 import { usePanels } from "@/lib/panels-store";
 import {
   Plus,
@@ -185,88 +186,7 @@ function SellerLayout() {
             </div>
 
             {/* Задачи, требующие внимания */}
-            {isDashboard && taskCards.length > 0 && (
-              <div className="mb-6">
-                <h2 className="mb-2 text-sm font-bold flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-brand" /> Требует внимания
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {taskCards.map((c) => {
-                    const Icon = c.icon;
-                    return (
-                      <Link
-                        key={c.key}
-                        to={c.to}
-                        className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold ui-transition hover:opacity-90 ${c.tone}`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {c.label}
-                        <span className="rounded-full bg-white/70 px-1.5 tabular-nums">
-                          {c.count}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Виджеты статистики */}
-            {isDashboard && (
-              <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <Widget
-                  icon={Wallet}
-                  label="💰 Выручка"
-                  loading={summary.isLoading}
-                  value={s ? formatPrice(s.revenueToday) : "—"}
-                  hint={
-                    s
-                      ? `неделя: ${formatPrice(s.revenueWeek)} · месяц: ${formatPrice(s.revenueMonth)}`
-                      : "за сегодня"
-                  }
-                />
-                <Widget
-                  icon={Clock}
-                  label="📦 Заказов в обработке"
-                  loading={summary.isLoading}
-                  value={s ? String(s.processingOrders) : "—"}
-                  hint="перейти к заказам"
-                  to="/seller/orders"
-                />
-                <Widget
-                  icon={Star}
-                  label="⭐ Средний рейтинг"
-                  loading={summary.isLoading}
-                  value={s && s.reviewsCount > 0 ? s.avgRating.toFixed(1) : "—"}
-                  hint={s ? `${s.reviewsCount} отзывов` : undefined}
-                  to="/seller/reviews"
-                />
-                <Widget
-                  icon={Eye}
-                  label="👁️ Просмотры за 7 дней"
-                  loading={summary.isLoading}
-                  value={s ? String(s.views7d) : "—"}
-                  hint="карточки товаров"
-                />
-                <div className="rounded-2xl bg-card hairline p-4 sm:col-span-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                      📈 Выручка за 14 дней
-                    </div>
-                    {s && (
-                      <div className="text-sm font-bold tabular-nums">
-                        {formatPrice(s.spark.reduce((sum, d) => sum + d.value, 0))}
-                      </div>
-                    )}
-                  </div>
-                  {s ? (
-                    <Sparkline data={s.spark} />
-                  ) : (
-                    <div className="mt-2 h-10 rounded-lg bg-surface animate-pulse" />
-                  )}
-                </div>
-              </div>
-            )}
+            {isDashboard && <SellerDashboardHome summary={s} />}
 
             <Outlet />
           </div>
