@@ -3,12 +3,15 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ShoppingBag, Heart, MessageCircle, User, Store, LogOut, Package, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { usePanels } from "@/lib/panels-store";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
 type Item = {
   to: string;
+  /** Открывает всплывающую панель вместо перехода на страницу. */
+  panel?: boolean;
   label: string;
   icon: LucideIcon;
   badge?: number;
@@ -24,7 +27,7 @@ export function BuyerSidebar() {
   const items: Item[] = [
     { to: "/account", label: "Мои заказы", icon: ShoppingBag },
     { to: "/favorites", label: "Избранное", icon: Heart },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/track-order", label: "Отследить заказ", icon: Truck },
   ];
 
@@ -115,7 +118,7 @@ export function BuyerTabs() {
   const items: Item[] = [
     { to: "/account", label: "Заказы", icon: Package },
     { to: "/favorites", label: "Избранное", icon: Heart },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/track-order", label: "Отследить", icon: Truck },
   ];
   return (

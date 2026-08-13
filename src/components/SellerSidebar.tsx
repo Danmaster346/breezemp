@@ -17,10 +17,13 @@ import type { LucideIcon } from "lucide-react";
 import { useMode } from "@/lib/mode-store";
 import { useAuth } from "@/lib/use-auth";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { usePanels } from "@/lib/panels-store";
 import { supabase } from "@/integrations/supabase/client";
 
 type Item = {
   to: string;
+  /** Открывает всплывающую панель вместо перехода на страницу. */
+  panel?: boolean;
   label: string;
   icon: LucideIcon;
   badge?: number;
@@ -48,7 +51,7 @@ export function SellerSidebar() {
     { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
     { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
     { to: "/seller/balance", label: "Баланс", icon: Wallet },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/seller/settings", label: "Настройки", icon: Settings },
   ];
 
@@ -137,7 +140,7 @@ export function SellerTabs() {
     { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
     { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
     { to: "/seller/balance", label: "Баланс", icon: Wallet },
-    { to: "/messages", label: "Чаты", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Чаты", icon: MessageCircle, badge: unread, panel: true },
     { to: "/seller/settings", label: "Настройки", icon: Settings },
   ];
   return (
