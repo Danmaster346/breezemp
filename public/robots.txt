@@ -1,9 +1,10 @@
 User-agent: *
 Allow: /
-Disallow: /seller/
+Disallow: /admin/
 Disallow: /account
+Disallow: /seller/
 Disallow: /checkout
 Disallow: /cart
 Disallow: /messages
 
-Sitemap: https://breezemp.lovable.app/sitemap.xml
+Sitemap: https://kupiks-marketplace.ru/sitemap.xml

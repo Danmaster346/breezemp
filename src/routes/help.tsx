@@ -50,10 +50,10 @@ export const Route = createFileRoute("/help")({
         content: "Доставка, оплата, промокоды и возврат товаров — всё в одном разделе.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://breezemp.lovable.app/help" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/help" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/help" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/help" }],
     scripts: [
       {
         type: "application/ld+json",

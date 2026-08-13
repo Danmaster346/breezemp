@@ -19,7 +19,7 @@ https://breeze-market-app.lovable.app/
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://breezemp.lovable.app
+**Live app**: https://kupiks-marketplace.ru
 
 ## Build with Lovable
 

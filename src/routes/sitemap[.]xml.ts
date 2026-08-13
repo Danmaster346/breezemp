@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const BASE_URL = "https://breezemp.lovable.app";
+const BASE_URL = "https://kupiks-marketplace.ru";
 
 interface SitemapEntry {
   path: string;

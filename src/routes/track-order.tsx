@@ -29,9 +29,9 @@ export const Route = createFileRoute("/track-order")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { property: "og:url", content: "https://breezemp.lovable.app/track-order" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/track-order" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/track-order" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/track-order" }],
   }),
   component: TrackOrderPage,
 });

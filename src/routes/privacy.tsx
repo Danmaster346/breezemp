@@ -11,9 +11,9 @@ export const Route = createFileRoute("/privacy")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "index,follow" },
-      { property: "og:url", content: "https://breezemp.lovable.app/privacy" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/privacy" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/privacy" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/privacy" }],
   }),
   component: PrivacyPage,
 });
