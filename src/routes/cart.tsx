@@ -456,7 +456,7 @@ function CartPage() {
                         </button>
                         <span className="w-8 text-center text-sm font-semibold">{i.quantity}</span>
                         <button
-                          onClick={() => setQty(i.id, i.quantity + 1)}
+                          onClick={() => changeQty(i.id, i.quantity + 1)}
                           disabled={i.quantity >= i.stock}
                           className="h-8 w-8 grid place-items-center rounded-full hover:bg-white disabled:opacity-40 transition"
                           aria-label="Увеличить"
