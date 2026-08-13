@@ -61,46 +61,114 @@ const PAGE_SIZE = 20;
 const SORT_STORAGE_KEY = "kupiks:catalog-sort";
 
 
+const SITE_URL = "https://kupiks-marketplace.ru";
+
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
-  loaderDeps: ({ search }) => ({ category: search.category }),
+  // Мета-данные зависят от выбранной категории, поискового запроса и страницы
+  loaderDeps: ({ search }) => ({
+    category: search.category,
+    q: search.q,
+    page: search.page,
+    hasFilters: Boolean(
+      search.min || search.max || search.rating || search.seller || search.in_stock || search.discount,
+    ),
+  }),
   loader: async ({ deps, context }) => {
-    if (!deps.category) return { categoryName: null as string | null, categorySlug: null as string | null };
-    const cats = await context.queryClient
-      .ensureQueryData(categoriesQueryOptions())
-      .catch(() => null);
-    const found = cats?.find((c) => c.slug === deps.category);
-    return { categoryName: found?.name ?? null, categorySlug: found?.slug ?? null };
+    let categoryName: string | null = null;
+    let categorySlug: string | null = null;
+    if (deps.category) {
+      const cats = await context.queryClient
+        .ensureQueryData(categoriesQueryOptions())
+        .catch(() => null);
+      const found = cats?.find((c) => c.slug === deps.category);
+      categoryName = found?.name ?? null;
+      categorySlug = found?.slug ?? null;
+    }
+    return {
+      categoryName,
+      categorySlug,
+      q: deps.q ?? null,
+      page: deps.page ?? 1,
+      hasFilters: deps.hasFilters,
+    };
   },
   head: ({ loaderData }) => {
-    // Если выбрана категория — делаем мета-теги под неё
     const catName = loaderData?.categoryName ?? null;
     const slug = loaderData?.categorySlug ?? null;
+    const q = loaderData?.q ?? null;
+    const page = loaderData?.page ?? 1;
+    const hasFilters = loaderData?.hasFilters ?? false;
 
-
-    const title = catName ? `Купить ${catName} — Kupiks` : "Каталог товаров — Kupiks";
+    // Заголовок и описание строим по выбранной категории / запросу
+    const pageSuffix = page > 1 ? ` — страница ${page}` : "";
+    const title = catName
+      ? `${catName} — купить с доставкой${pageSuffix} | Kupiks`
+      : q
+        ? `Поиск «${q}» в каталоге${pageSuffix} | Kupiks`
+        : `Каталог товаров${pageSuffix} — Kupiks`;
     const description = catName
-      ? `Лучшие ${catName.toLowerCase()} с доставкой по России. Фильтры по цене, рейтингу и наличию на Kupiks.`
-      : "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.";
-    const url = slug
-      ? `https://kupiks-marketplace.ru/catalog?category=${encodeURIComponent(slug)}`
-      : "https://kupiks-marketplace.ru/catalog";
+      ? `${catName} на Kupiks: подборка проверенных предложений с доставкой по России. Фильтры по цене, рейтингу, наличию и скидкам, отзывы покупателей.`
+      : q
+        ? `Результаты поиска «${q}» в каталоге Kupiks: цены, рейтинги продавцов и доставка по России.`
+        : "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.";
+
+    // Canonical всегда указывает на чистый URL категории (без фильтров и пагинации)
+    const canonical = slug
+      ? `${SITE_URL}/catalog?category=${encodeURIComponent(slug)}`
+      : `${SITE_URL}/catalog`;
+
+    // Страницы с поиском, фильтрами и пагинацией не индексируем, но ссылки обходим
+    const noindex = Boolean(q) || hasFilters || page > 1;
+
+    const breadcrumbs = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Главная", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Каталог", item: `${SITE_URL}/catalog` },
+        ...(catName && slug
+          ? [{ "@type": "ListItem", position: 3, name: catName, item: canonical }]
+          : []),
+      ],
+    };
+
     return {
       meta: [
         { title },
         { name: "description", content: description },
+        ...(catName ? [{ name: "keywords", content: `${catName}, купить ${catName.toLowerCase()}, Kupiks, маркетплейс` }] : []),
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: url },
+        { property: "og:url", content: canonical },
+        { property: "og:site_name", content: "Kupiks" },
         { name: "twitter:card", content: "summary" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(noindex ? [{ name: "robots", content: "noindex,follow" }] : []),
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [{ rel: "canonical", href: canonical }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: catName ?? "Каталог товаров",
+            description,
+            url: canonical,
+            isPartOf: { "@type": "WebSite", name: "Kupiks", url: SITE_URL },
+          }),
+        },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumbs) },
+      ],
     };
   },
 
   component: CatalogPage,
 });
+
 
 function CatalogPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -278,8 +346,9 @@ function CatalogPage() {
           <div className="flex items-end justify-between gap-3 mb-3">
             <div>
               <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight">
-                Каталог
+                {activeCat ? activeCat.name : search.q ? `Поиск: «${search.q}»` : "Каталог"}
               </h1>
+
               <p className="text-sm text-muted-foreground mt-1">
                 {productsQuery.isLoading
                   ? "Ищем товары…"
