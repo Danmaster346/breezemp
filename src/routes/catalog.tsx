@@ -61,25 +61,31 @@ const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
-  head: () => ({
-    meta: [
-      { title: "Каталог товаров — Kupiks" },
-      {
-        name: "description",
-        content:
-          "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.",
-      },
-      { property: "og:title", content: "Каталог товаров — Kupiks" },
-      {
-        property: "og:description",
-        content: "Тысячи товаров для дома, отдыха и стиля с фильтрами и удобным поиском.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://kupiks-marketplace.ru/catalog" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/catalog" }],
-  }),
+  head: ({ search }) => {
+    // Если выбрана категория — делаем мета-теги под неё
+    const slug = search?.category;
+    const catName = slug ? CATEGORY_TITLES[slug] ?? prettifySlug(slug) : null;
+    const title = catName ? `Купить ${catName} — Kupiks` : "Каталог товаров — Kupiks";
+    const description = catName
+      ? `Лучшие ${catName.toLowerCase()} с доставкой по России. Фильтры по цене, рейтингу и наличию на Kupiks.`
+      : "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.";
+    const url = slug
+      ? `https://kupiks-marketplace.ru/catalog?category=${encodeURIComponent(slug)}`
+      : "https://kupiks-marketplace.ru/catalog";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
+
   component: CatalogPage,
 });
 
