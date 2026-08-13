@@ -204,6 +204,11 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
         )}
       </Card>
 
+      {/* Уведомления и алерты */}
+      <SellerAlerts counters={c} />
+
+
+
       {/* KPI-виджеты */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
