@@ -109,7 +109,15 @@ function CatalogPage() {
   const doSearch = useServerFn(searchCatalog);
   const loadSellers = useServerFn(listCatalogSellers);
 
-  const upd = (patch: Partial<SearchParams>) =>
+  const upd = (patch: Partial<SearchParams>) => {
+    // Запоминаем сортировку между визитами
+    if (patch.sort && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(SORT_STORAGE_KEY, patch.sort);
+      } catch {
+        /* приватный режим — игнорируем */
+      }
+    }
     navigate({
       search: (prev: SearchParams) => ({
         ...prev,
@@ -118,6 +126,26 @@ function CatalogPage() {
         page: "page" in patch ? patch.page : 1,
       }),
     });
+  };
+
+  // При первом визите без sort в URL — применяем сохранённую сортировку
+  useEffect(() => {
+    if (search.sort) return;
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(SORT_STORAGE_KEY);
+    } catch {
+      saved = null;
+    }
+    if (!saved || !SORT_KEYS.includes(saved as SortKey) || saved === "relevance") return;
+    navigate({
+      search: (prev: SearchParams) => ({ ...prev, sort: saved as SortKey, page: 1 }),
+      replace: true,
+      resetScroll: false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   // Локальные значения цены — применяем по blur/Enter
   const [minInput, setMinInput] = useState(search.min?.toString() ?? "");
