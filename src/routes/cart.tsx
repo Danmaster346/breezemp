@@ -1,11 +1,31 @@
-// Страница корзины — премиальный e-commerce стиль с мобильной sticky-панелью
+// Страница корзины — сводка заказа, промокод, недавно просмотренные
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useSignInDialog } from "@/lib/pending-cart";
 import { formatPrice } from "@/lib/format";
-import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { getRecentlyViewed } from "@/lib/recently-viewed";
+import { loadPromoCode, savePromoCode } from "@/lib/checkout-draft";
+import { validatePromoCode, type PromoValidationResult } from "@/lib/promo.functions";
+import { FREE_SHIPPING_FROM_KOPECKS } from "@/lib/shipping";
+import {
+  Trash2,
+  Minus,
+  Plus,
+  ShoppingCart,
+  ArrowRight,
+  LogIn,
+  Tag,
+  Loader2,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -24,14 +44,110 @@ export const Route = createFileRoute("/cart")({
   component: CartPage,
 });
 
+const COURIER_COST_KOPECKS = 30000;
+
+type MiniProduct = {
+  id: string;
+  title: string;
+  price_kopecks: number;
+  image_url: string | null;
+};
+
 function CartPage() {
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const setQty = useCart((s) => s.setQty);
-  const total = useCart((s) => s.totalKopecks());
+  const subtotal = useCart((s) => s.totalKopecks());
   const qtyTotal = items.reduce((s, i) => s + i.quantity, 0);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const validatePromoFn = useServerFn(validatePromoCode);
+
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<PromoValidationResult | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+
+  // Имена продавцов для позиций корзины
+  const sellerIds = useMemo(
+    () => Array.from(new Set(items.map((i) => i.seller_id).filter(Boolean))),
+    [items],
+  );
+  const sellersQuery = useQuery({
+    queryKey: ["cart-sellers", sellerIds.join(",")],
+    enabled: sellerIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seller_profiles")
+        .select("user_id, shop_name")
+        .in("user_id", sellerIds);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const row of data ?? []) {
+        if (row.shop_name) map[row.user_id] = row.shop_name;
+      }
+      return map;
+    },
+  });
+  const sellerNames = sellersQuery.data ?? {};
+
+  // Недавно просмотренные — только для пустой корзины
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => {
+    setRecentIds(getRecentlyViewed());
+  }, []);
+  const recentQuery = useQuery({
+    queryKey: ["cart-recently-viewed", recentIds.join(",")],
+    enabled: recentIds.length > 0 && items.length === 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, title, price_kopecks, image_url")
+        .in("id", recentIds)
+        .eq("is_active", true);
+      if (error) throw error;
+      const rows = (data ?? []) as MiniProduct[];
+      return recentIds
+        .map((rid) => rows.find((r) => r.id === rid))
+        .filter((r): r is MiniProduct => !!r);
+    },
+  });
+
+  // Восстановление ранее применённого промокода
+  useEffect(() => {
+    const saved = loadPromoCode();
+    if (saved) setPromoInput(saved);
+  }, []);
+
+  const discount = promo?.discount_kopecks ?? 0;
+  const afterDiscount = Math.max(0, subtotal - discount);
+  const shipping = afterDiscount >= FREE_SHIPPING_FROM_KOPECKS ? 0 : COURIER_COST_KOPECKS;
+  const total = afterDiscount + shipping;
+
+  const applyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoChecking(true);
+    try {
+      const res = await validatePromoFn({ data: { code, subtotal_kopecks: subtotal } });
+      setPromo(res);
+      savePromoCode(res.code);
+      toast.success(`Промокод «${res.code}» применён`);
+    } catch (err) {
+      setPromo(null);
+      savePromoCode(null);
+      toast.error((err as Error).message || "Промокод не действует");
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
+  const removePromo = () => {
+    setPromo(null);
+    setPromoInput("");
+    savePromoCode(null);
+  };
 
   // Клик по «Оформить заказ»: гость → модалка входа, иначе → чекаут
   const goCheckout = () => {
@@ -46,6 +162,100 @@ function CartPage() {
     navigate({ to: "/checkout" });
   };
 
+  // Блок сводки заказа (используется и на десктопе, и на мобиле)
+  const summary = (
+    <div className="rounded-2xl border border-border bg-white p-5 md:p-6 shadow-sm">
+      <h2 className="font-semibold text-lg mb-4">Сводка заказа</h2>
+      <div className="space-y-2.5 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Товары ({qtyTotal})</span>
+          <span className="font-medium">{formatPrice(subtotal)}</span>
+        </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-emerald-600">
+            <span>Скидка ({promo?.code})</span>
+            <span>−{formatPrice(discount)}</span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Доставка</span>
+          <span className={shipping === 0 ? "text-emerald-600 font-medium" : "font-medium"}>
+            {shipping === 0 ? "Бесплатно" : formatPrice(shipping)}
+          </span>
+        </div>
+        {shipping > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Бесплатная доставка от {formatPrice(FREE_SHIPPING_FROM_KOPECKS)} — добавьте товаров ещё
+            на {formatPrice(FREE_SHIPPING_FROM_KOPECKS - afterDiscount)}
+          </p>
+        )}
+      </div>
+
+      <div className="flex justify-between items-baseline border-t pt-4 mt-4">
+        <span className="font-bold">ИТОГО</span>
+        <span className="text-2xl font-extrabold tracking-tight">{formatPrice(total)}</span>
+      </div>
+
+      {/* Промокод */}
+      <div className="mt-5">
+        {promo ? (
+          <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <div className="flex items-center gap-2 text-sm text-emerald-700">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="font-semibold">{promo.code}</span>
+            </div>
+            <button
+              type="button"
+              onClick={removePromo}
+              className="p-1.5 rounded-full hover:bg-emerald-100 text-emerald-700"
+              aria-label="Удалить промокод"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={promoInput}
+                onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                placeholder="Промокод"
+                className="w-full h-11 pl-9 pr-3 rounded-xl border border-border bg-white text-sm uppercase outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={applyPromo}
+              disabled={promoChecking || !promoInput.trim()}
+              className="h-11 shrink-0 rounded-xl border border-brand bg-white px-4 text-sm font-semibold text-brand hover:bg-brand-soft disabled:opacity-50"
+            >
+              {promoChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Применить"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {!user && (
+        <div className="mt-4 rounded-xl border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs text-foreground/80 flex items-start gap-2">
+          <LogIn className="h-4 w-4 text-brand mt-0.5 shrink-0" />
+          <span>Чтобы оформить заказ, войдите в аккаунт.</span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={goCheckout}
+        className="mt-4 w-full flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-4 text-base font-bold text-white hover:bg-emerald-700 shadow-sm hover:shadow-md transition"
+      >
+        {user ? "Оформить заказ" : "Войти и оформить"} <ArrowRight className="h-4 w-4" />
+      </button>
+      <p className="mt-3 text-xs text-muted-foreground text-center">
+        Демо-оплата: реальные средства не списываются
+      </p>
+    </div>
+  );
+
   return (
     <AppLayout>
       <div className="mx-auto max-w-5xl px-4 py-6 md:py-10 pb-32 md:pb-10">
@@ -54,29 +264,68 @@ function CartPage() {
           {items.length > 0 && (
             <p className="mt-1 text-sm text-muted-foreground">
               {qtyTotal} {qtyTotal === 1 ? "товар" : "товара(ов)"} на сумму{" "}
-              <span className="font-semibold text-foreground">{formatPrice(total)}</span>
+              <span className="font-semibold text-foreground">{formatPrice(subtotal)}</span>
             </p>
           )}
         </div>
 
         {items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-white p-10 md:p-16 text-center animate-fade-in">
-            <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-brand-soft">
-              <ShoppingBag className="h-7 w-7 text-brand" />
+          <div className="animate-fade-in">
+            <div className="rounded-2xl border border-dashed border-border bg-white p-10 md:p-16 text-center">
+              <div className="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full bg-brand-soft">
+                <ShoppingCart className="h-11 w-11 text-brand" />
+              </div>
+              <h2 className="text-xl md:text-2xl font-bold">Корзина пуста</h2>
+              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+                Найдите что-нибудь подходящее в каталоге — тысячи товаров от продавцов со всей
+                России.
+              </p>
+              <Link
+                to="/catalog"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
+              >
+                Перейти в каталог <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <h2 className="text-lg font-semibold">В корзине пока пусто</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground max-w-sm mx-auto">
-              Найдите что-нибудь подходящее в каталоге — тысячи товаров от продавцов со всей России.
-            </p>
-            <Link
-              to="/catalog"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
-            >
-              Открыть каталог <ArrowRight className="h-4 w-4" />
-            </Link>
+
+            {(recentQuery.data?.length ?? 0) > 0 && (
+              <section className="mt-10">
+                <h2 className="text-lg font-bold mb-4">Недавно просмотренные</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  {recentQuery.data!.map((p) => (
+                    <Link
+                      key={p.id}
+                      to="/product/$id"
+                      params={{ id: p.id }}
+                      className="group rounded-2xl border border-border bg-white overflow-hidden hover:border-brand/40 hover:shadow-md transition"
+                    >
+                      <div className="aspect-square bg-surface overflow-hidden">
+                        {p.image_url ? (
+                          <img
+                            src={p.image_url}
+                            alt={p.title}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                        ) : (
+                          <div className="h-full w-full grid place-items-center text-3xl opacity-40">
+                            🛍️
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <div className="text-sm line-clamp-2 min-h-10">{p.title}</div>
+                        <div className="mt-1 font-bold">{formatPrice(p.price_kopecks)}</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-[1fr_340px] gap-6">
+          <div className="grid md:grid-cols-[1fr_360px] gap-6">
             {/* Список позиций */}
             <div className="space-y-3">
               {items.map((i) => (
@@ -93,14 +342,16 @@ function CartPage() {
                       <img
                         src={i.image_url}
                         alt={i.title}
-                        width={96}
-                        height={96}
+                        width={112}
+                        height={112}
                         loading="lazy"
                         decoding="async"
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-2xl opacity-40">🛍️</div>
+                      <div className="h-full w-full flex items-center justify-center text-2xl opacity-40">
+                        🛍️
+                      </div>
                     )}
                   </Link>
                   <div className="flex-1 min-w-0 flex flex-col">
@@ -114,6 +365,15 @@ function CartPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">
                       {formatPrice(i.price_kopecks)} / шт
                     </div>
+                    {sellerNames[i.seller_id] && (
+                      <Link
+                        to="/seller/$id"
+                        params={{ id: i.seller_id }}
+                        className="text-xs text-muted-foreground mt-0.5 hover:text-brand transition w-fit"
+                      >
+                        Продавец: {sellerNames[i.seller_id]}
+                      </Link>
+                    )}
                     <div className="mt-auto pt-2 flex items-center justify-between gap-2">
                       <div className="inline-flex items-center rounded-full border border-border bg-surface">
                         <button
@@ -147,42 +407,13 @@ function CartPage() {
                   </button>
                 </div>
               ))}
+
+              {/* Сводка на мобиле — под списком товаров */}
+              <div className="md:hidden pt-3">{summary}</div>
             </div>
 
-            {/* Сводка (desktop) */}
-            <div className="hidden md:block rounded-2xl border border-border bg-white p-6 h-fit sticky top-24 shadow-sm">
-              <h2 className="font-semibold text-lg mb-4">Ваш заказ</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Товары ({qtyTotal})</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Доставка</span>
-                  <span className="text-emerald-600 font-medium">Бесплатно</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-baseline border-t pt-4 mt-4">
-                <span className="font-semibold">Итого</span>
-                <span className="text-2xl font-extrabold tracking-tight">{formatPrice(total)}</span>
-              </div>
-              {!user && (
-                <div className="mt-5 rounded-xl border border-brand/20 bg-brand-soft px-3 py-2.5 text-xs text-foreground/80 flex items-start gap-2">
-                  <LogIn className="h-4 w-4 text-brand mt-0.5 shrink-0" />
-                  <span>Чтобы оформить заказ, войдите в аккаунт.</span>
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={goCheckout}
-                className="mt-3 w-full flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm hover:shadow-md transition"
-              >
-                {user ? "Оформить заказ" : "Войти и оформить"} <ArrowRight className="h-4 w-4" />
-              </button>
-              <p className="mt-3 text-xs text-muted-foreground text-center">
-                Демо-оплата: реальные средства не списываются
-              </p>
-            </div>
+            {/* Сводка на десктопе — правая колонка */}
+            <div className="hidden md:block h-fit sticky top-24">{summary}</div>
           </div>
         )}
       </div>
@@ -198,7 +429,7 @@ function CartPage() {
             <button
               type="button"
               onClick={goCheckout}
-              className="flex-1 flex items-center justify-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
+              className="flex-1 flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 shadow-sm transition"
             >
               {user ? "Оформить" : "Войти"} <ArrowRight className="h-4 w-4" />
             </button>
