@@ -58,6 +58,8 @@ const searchSchema = z.object({
 type SearchParams = z.infer<typeof searchSchema>;
 
 const PAGE_SIZE = 20;
+const SORT_STORAGE_KEY = "kupiks:catalog-sort";
+
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
@@ -109,7 +111,15 @@ function CatalogPage() {
   const doSearch = useServerFn(searchCatalog);
   const loadSellers = useServerFn(listCatalogSellers);
 
-  const upd = (patch: Partial<SearchParams>) =>
+  const upd = (patch: Partial<SearchParams>) => {
+    // Запоминаем сортировку между визитами
+    if (patch.sort && typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(SORT_STORAGE_KEY, patch.sort);
+      } catch {
+        /* приватный режим — игнорируем */
+      }
+    }
     navigate({
       search: (prev: SearchParams) => ({
         ...prev,
@@ -118,6 +128,26 @@ function CatalogPage() {
         page: "page" in patch ? patch.page : 1,
       }),
     });
+  };
+
+  // При первом визите без sort в URL — применяем сохранённую сортировку
+  useEffect(() => {
+    if (search.sort) return;
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(SORT_STORAGE_KEY);
+    } catch {
+      saved = null;
+    }
+    if (!saved || !SORT_KEYS.includes(saved as SortKey) || saved === "relevance") return;
+    navigate({
+      search: (prev: SearchParams) => ({ ...prev, sort: saved as SortKey, page: 1 }),
+      replace: true,
+      resetScroll: false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   // Локальные значения цены — применяем по blur/Enter
   const [minInput, setMinInput] = useState(search.min?.toString() ?? "");
@@ -167,7 +197,7 @@ function CatalogPage() {
           in_stock: search.in_stock || undefined,
           discount: search.discount || undefined,
           sort: (search.sort ?? "relevance") as SortKey,
-          limit: 240,
+          limit: 120,
         },
       }),
     placeholderData: (prev) => prev,
@@ -198,7 +228,7 @@ function CatalogPage() {
           });
         }
       },
-      { rootMargin: "600px 0px" },
+      { rootMargin: "300px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -532,16 +562,29 @@ function CatalogPage() {
         </div>
 
 
+        {/* Счётчик результатов */}
+        <div className="mb-3">
+          {productsQuery.isLoading ? (
+            <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Найдено {total.toLocaleString("ru-RU")}{" "}
+              {plural(total, ["товар", "товара", "товаров"])}
+            </div>
+          )}
+        </div>
+
         {/* Сетка */}
         {productsQuery.isLoading ? (
+
           <ProductGridSkeleton count={10} />
         ) : items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
             {items.map((p, i) => (
               <div key={p.id} className="flex flex-col">
                 <ProductCard {...p} priority={i < 5} />
-                {(p.reviews_count > 0 || p.seller_name) && (
-                  <div className="px-1 pt-1 pb-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                {p.seller_name && (
+                  <div className="px-1 pt-1 pb-2 text-[11px] text-muted-foreground">
                     <Link
                       to="/seller/$id"
                       params={{ id: p.seller_id }}
@@ -550,16 +593,9 @@ function CatalogPage() {
                     >
                       {p.seller_name}
                     </Link>
-                    {p.reviews_count > 0 && (
-                      <span className="inline-flex items-center gap-0.5 shrink-0">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        <span className="font-semibold text-foreground/80">
-                          {p.rating.toFixed(1)}
-                        </span>
-                      </span>
-                    )}
                   </div>
                 )}
+
               </div>
             ))}
           </div>
@@ -595,21 +631,42 @@ function CatalogPage() {
             <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-brand-soft text-brand">
               <Search className="h-6 w-6" />
             </div>
-            <h2 className="text-lg font-semibold mb-1">Ничего не найдено</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Попробуйте изменить фильтры или запрос.
+            <h2 className="text-lg font-semibold mb-1">
+              {search.q ? `По запросу «${search.q}» ничего не найдено` : "Ничего не найдено"}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Попробуйте изменить запрос или посмотрите популярные категории.
             </p>
+
+            {/* Популярные категории */}
+            {(catsQuery.data?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap justify-center gap-2 mb-5">
+                {catsQuery.data!.slice(0, 8).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => upd({ q: undefined, category: c.slug })}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-foreground/80 hover:border-brand hover:text-brand transition"
+                  >
+                    <span aria-hidden>{getCategoryEmoji(c.slug, c.name)}</span>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {hasFilters && (
               <button
                 type="button"
                 onClick={resetAll}
-                className="inline-flex items-center gap-1 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 shadow-sm transition"
               >
-                Сбросить фильтры
+                <RotateCcw className="h-4 w-4" /> Сбросить фильтры
               </button>
             )}
           </div>
         )}
+
       </div>
 
       {/* Мобильный Bottom Sheet: фильтры */}
