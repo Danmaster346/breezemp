@@ -129,7 +129,7 @@ export const patchWarehouseItem = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!product) throw new Error("Товар не найден");
 
-    const patch: Record<string, unknown> = {};
+    const patch: { stock?: number; min_stock?: number; sku?: string | null } = {};
     if (data.stock !== undefined) patch.stock = data.stock;
     if (data.min_stock !== undefined) patch.min_stock = data.min_stock;
     if (data.sku !== undefined) patch.sku = data.sku || null;
@@ -199,7 +199,7 @@ export const importWarehouseCsv = createServerFn({ method: "POST" })
         skipped.push(row.sku || row.title || "—");
         continue;
       }
-      const patch: Record<string, unknown> = {};
+      const patch: { stock?: number; price_kopecks?: number } = {};
       if (row.stock !== undefined) patch.stock = row.stock;
       if (row.price_kopecks !== undefined) patch.price_kopecks = row.price_kopecks;
       if (Object.keys(patch).length === 0) continue;
