@@ -14,6 +14,7 @@ import {
   LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useMode } from "@/lib/mode-store";
 import { useAuth } from "@/lib/use-auth";
 import { useUnreadChats } from "@/lib/use-unread-chats";
@@ -87,9 +88,9 @@ export function SellerSidebar() {
           const Icon = it.icon;
           const active = pathname === it.to || pathname.startsWith(it.to + "/");
           return (
-            <Link
+            <Row
               key={it.to}
-              to={it.to}
+              it={it}
               className={`flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium ui-transition ${
                 active
                   ? "bg-brand text-brand-foreground"
@@ -103,7 +104,7 @@ export function SellerSidebar() {
                   {it.badge > 9 ? "9+" : it.badge}
                 </span>
               ) : null}
-            </Link>
+            </Row>
           );
         })}
       </nav>
@@ -150,9 +151,9 @@ export function SellerTabs() {
           const Icon = it.icon;
           const active = pathname === it.to || pathname.startsWith(it.to + "/");
           return (
-            <Link
+            <Row
               key={it.to}
-              to={it.to}
+              it={it}
               className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-semibold ui-transition ${
                 active
                   ? "bg-brand text-brand-foreground"
@@ -166,10 +167,34 @@ export function SellerTabs() {
                   {it.badge > 9 ? "9+" : it.badge}
                 </span>
               ) : null}
-            </Link>
+            </Row>
           );
         })}
       </div>
     </div>
+  );
+}
+
+/** Ряд навигации: обычная ссылка либо кнопка открытия всплывающей панели. */
+function Row({
+  it,
+  className,
+  children,
+}: {
+  it: Item;
+  className: string;
+  children: ReactNode;
+}) {
+  const openMessages = usePanels((s) => s.openMessages);
+  if (it.panel)
+    return (
+      <button type="button" onClick={() => openMessages()} className={className}>
+        {children}
+      </button>
+    );
+  return (
+    <Link to={it.to} className={className}>
+      {children}
+    </Link>
   );
 }
