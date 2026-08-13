@@ -507,6 +507,8 @@ export const sendMessage = createServerFn({ method: "POST" })
         reply_to_id: data.reply_to_id ?? null,
         context_type: data.context_type ?? null,
         context_id: data.context_id ?? null,
+        // Сообщение сразу помечаем доставленным на сервер.
+        delivered_at: new Date().toISOString(),
       })
       .select(MESSAGE_COLUMNS)
       .single();

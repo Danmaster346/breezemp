@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { ChatMessage } from "@/lib/messaging/types";
 import { EDIT_WINDOW_MS } from "@/lib/messaging/types";
-import { Check, CheckCheck, Clock, Flag, Pencil, Reply, Trash2 } from "lucide-react";
+import { CheckCheck, Clock, Flag, Pencil, Reply, Trash2 } from "lucide-react";
 
 function money(k: number | null) {
   if (k == null) return "";
