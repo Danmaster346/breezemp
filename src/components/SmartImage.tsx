@@ -92,6 +92,7 @@ export function SmartImage({
         visible ? (
           <img
             src={optimizeImageUrl(src, width) ?? ""}
+            srcSet={buildSrcSet(src, width)}
             alt={alt}
             width={width}
             height={height}
