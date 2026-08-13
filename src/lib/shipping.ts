@@ -3,6 +3,7 @@ export type ShippingMethod = "pickup" | "cdek" | "yandex";
 
 export interface ShippingOption {
   id: ShippingMethod;
+  emoji: string;
   label: string;
   description: string;
   eta: string;
@@ -13,40 +14,47 @@ export interface ShippingOption {
   addressPlaceholder: string;
 }
 
+// Порог бесплатной доставки курьером — 3000 ₽
+export const FREE_SHIPPING_FROM_KOPECKS = 300000;
+
 export const SHIPPING_OPTIONS: ShippingOption[] = [
   {
-    id: "pickup",
-    label: "Доставка по Иваново — бесплатно",
-    description: "Курьер бесплатно привезёт по адресу в пределах города Иваново",
-    eta: "1–2 дня",
-    baseKopecks: 0,
+    id: "cdek",
+    emoji: "🚚",
+    label: "Курьер",
+    description: "Курьер привезёт заказ по указанному адресу",
+    eta: "2–5 дней",
+    baseKopecks: 30000,
+    freeFromKopecks: FREE_SHIPPING_FROM_KOPECKS,
     needsAddress: true,
-    addressLabel: "Адрес доставки в Иваново",
+    addressLabel: "Адрес доставки",
     addressPlaceholder: "Улица, дом, квартира",
   },
   {
-    id: "cdek",
-    label: "СДЭК до двери",
-    description: "Курьер СДЭК привезёт по адресу",
-    eta: "2–5 дней",
-    baseKopecks: 39900,
-    freeFromKopecks: 500000,
+    id: "pickup",
+    emoji: "📦",
+    label: "Пункт выдачи",
+    description: "Получите заказ в удобном пункте выдачи",
+    eta: "3–7 дней",
+    baseKopecks: 15000,
     needsAddress: true,
-    addressLabel: "Адрес доставки",
-    addressPlaceholder: "Город, улица, дом, квартира, индекс",
+    addressLabel: "Адрес пункта выдачи",
+    addressPlaceholder: "Город, улица, дом",
   },
   {
     id: "yandex",
-    label: "Яндекс Доставка",
-    description: "Быстрая доставка курьером",
-    eta: "1–3 дня",
-    baseKopecks: 49900,
-    freeFromKopecks: 700000,
+    emoji: "📮",
+    label: "Почта России",
+    description: "Доставка в отделение Почты России",
+    eta: "7–14 дней",
+    baseKopecks: 20000,
     needsAddress: true,
-    addressLabel: "Адрес доставки",
-    addressPlaceholder: "Город, улица, дом, квартира, индекс",
+    addressLabel: "Адрес отделения",
+    addressPlaceholder: "Город, улица, дом, индекс",
   },
 ];
+
+export const DEFAULT_SHIPPING_METHOD: ShippingMethod = "cdek";
 
 export function getShippingOption(id: string): ShippingOption {
   return SHIPPING_OPTIONS.find((o) => o.id === id) ?? SHIPPING_OPTIONS[0];
