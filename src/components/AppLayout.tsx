@@ -17,6 +17,11 @@ import {
   LayoutGrid,
   ShoppingBag,
   Bell,
+  Send,
+  Mail,
+  CreditCard,
+  Truck,
+  Smartphone,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
@@ -371,16 +376,85 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
           <div>
             <div className="text-foreground font-semibold mb-3">Kupiks</div>
             <ul className="space-y-1.5 text-muted-foreground">
-              <li><Link to="/privacy" className="hover:text-brand ui-transition">Политика конфиденциальности</Link></li>
               <li><Link to="/help" className="hover:text-brand ui-transition">Помощь</Link></li>
               <li><Link to="/contacts" className="hover:text-brand ui-transition">Контакты</Link></li>
+              <li><Link to="/privacy" className="hover:text-brand ui-transition">Политика конфиденциальности</Link></li>
+              <li><Link to="/privacy" className="hover:text-brand ui-transition">Пользовательское соглашение</Link></li>
+              <li><a href="/sitemap.xml" className="hover:text-brand ui-transition">Карта сайта</a></li>
             </ul>
+            <div className="mt-4 flex items-center gap-2">
+              {[
+                { label: "Telegram", href: "https://t.me/", icon: Send },
+                { label: "WhatsApp", href: "https://wa.me/", icon: MessageCircle },
+                { label: "Почта", href: "mailto:support@kupiks-marketplace.ru", icon: Mail },
+              ].map((s) => {
+                const Icon = s.icon;
+                return (
+                  <a
+                    key={s.label}
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.label}
+                    className="grid h-9 w-9 place-items-center rounded-full bg-surface text-muted-foreground hover:text-brand ui-transition"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                );
+              })}
+            </div>
           </div>
         </div>
+
+        {/* Оплата, доставка и приложения */}
+        <div className="mx-auto max-w-7xl px-4 pb-8 grid grid-cols-3 gap-8 text-xs text-muted-foreground">
+          <div>
+            <div className="mb-2 font-semibold text-foreground">Способы оплаты</div>
+            <div className="flex flex-wrap gap-2">
+              {["Картой онлайн", "СБП", "При получении"].map((p) => (
+                <span
+                  key={p}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <CreditCard className="h-3.5 w-3.5" /> {p}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 font-semibold text-foreground">Доставка</div>
+            <div className="flex flex-wrap gap-2">
+              {["Курьер", "Пункт выдачи", "Постамат", "Самовывоз"].map((d) => (
+                <span
+                  key={d}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <Truck className="h-3.5 w-3.5" /> {d}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-2 font-semibold text-foreground">Приложение</div>
+            <div className="flex flex-wrap gap-2">
+              {["App Store — скоро", "Google Play — скоро"].map((a) => (
+                <span
+                  key={a}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <Smartphone className="h-3.5 w-3.5" /> {a}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+
         <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Kupiks Marketplace
         </div>
       </footer>
+
 
       {/* Мобильная нижняя навигация */}
       {!hideMobileBottomNav && (
