@@ -60,7 +60,7 @@ const MAX_IMAGES = 5;
 const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 
 function SellerProductsPage() {
-  const { user, isSeller } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const search = Route.useSearch();
