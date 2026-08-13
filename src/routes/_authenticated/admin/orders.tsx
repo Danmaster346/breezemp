@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, Info } from "lucide-react";
+import { Search, Info, Download } from "lucide-react";
+import { exportCsv, csvFileName } from "@/lib/csv-export";
 
 export const Route = createFileRoute("/_authenticated/admin/orders")({
   component: OrdersPage,
@@ -59,11 +60,29 @@ function OrdersPage() {
     order_items: Array<{ id: string; title_snapshot: string; price_kopecks: number; quantity: number }>;
   }>;
 
+  const handleExport = () => {
+    const headers = ["ID", "Дата", "Покупатель", "Сумма", "Статус", "Товары/продавец"];
+    const csvRows = rows.map((o) => [
+      o.id,
+      new Date(o.created_at).toLocaleString("ru-RU"),
+      o.shipping_name ?? "—",
+      Math.round(o.total_kopecks / 100).toLocaleString("ru-RU") + " ₽",
+      o.status,
+      o.order_items.map((it) => it.title_snapshot).join(", "),
+    ]);
+    exportCsv(csvFileName("orders"), headers, csvRows);
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Заказы</h1>
-        <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Заказы</h1>
+          <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+        </div>
+        <Button variant="outline" onClick={handleExport} disabled={rows.length === 0}>
+          <Download className="h-4 w-4 mr-1" />Экспорт CSV
+        </Button>
       </div>
 
       <div className="rounded-2xl bg-white border border-border/60 p-3 flex flex-wrap gap-2">
