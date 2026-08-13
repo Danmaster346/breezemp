@@ -448,7 +448,7 @@ function CartPage() {
                     <div className="mt-auto pt-2 flex items-center justify-between gap-2">
                       <div className="inline-flex items-center rounded-full border border-border bg-surface">
                         <button
-                          onClick={() => setQty(i.id, i.quantity - 1)}
+                          onClick={() => changeQty(i.id, i.quantity - 1)}
                           className="h-8 w-8 grid place-items-center rounded-full hover:bg-white transition"
                           aria-label="Уменьшить"
                         >
