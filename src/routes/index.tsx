@@ -42,6 +42,7 @@ export const Route = createFileRoute("/")({
           "@type": "Organization",
           name: "Kupiks",
           url: "https://kupiks-marketplace.ru",
+          logo: "https://kupiks-marketplace.ru/og-default.jpg",
           description: "Маркетплейс товаров для дома, отдыха и стиля",
         }),
       },
