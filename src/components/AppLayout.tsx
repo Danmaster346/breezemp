@@ -29,6 +29,9 @@ import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { CategoryMenu, CategorySheetButton } from "@/components/CategoryMenu";
 import { ModeBadge, ModeSegmented } from "@/components/ModeSwitch";
 import { getPreferredMode, setPreferredMode } from "@/lib/ui-mode.functions";
+import { MessagesPanel } from "@/components/panels/MessagesPanel";
+import { FavoritesPanel } from "@/components/panels/FavoritesPanel";
+import { usePanels } from "@/lib/panels-store";
 
 type NavItem = {
   to: string;
@@ -66,6 +69,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const navigate = useNavigate();
   const rawUnread = useUnreadChats();
   const headerHidden = useHideOnScroll(6);
+  const openMessages = usePanels((s) => s.openMessages);
+  const openFavorites = usePanels((s) => s.openFavorites);
 
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
@@ -261,6 +266,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
 
       <main className={`flex-1 ${hideMobileBottomNav ? "" : "pb-nav"} md:pb-0`}>{children}</main>
       <SignInPromptDialog />
+      <MessagesPanel />
+      <FavoritesPanel />
 
       {/* Футер (десктоп) — единый семантический стиль под текущую тему */}
       <footer className="hidden md:block mt-12 border-t border-border bg-card">
