@@ -63,17 +63,18 @@ export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
   loaderDeps: ({ search }) => ({ category: search.category }),
   loader: async ({ deps, context }) => {
-    if (!deps.category) return { categoryName: null as string | null };
+    if (!deps.category) return { categoryName: null as string | null, categorySlug: null as string | null };
     const cats = await context.queryClient
       .ensureQueryData(categoriesQueryOptions())
       .catch(() => null);
     const found = cats?.find((c) => c.slug === deps.category);
-    return { categoryName: found?.name ?? null };
+    return { categoryName: found?.name ?? null, categorySlug: found?.slug ?? null };
   },
   head: ({ loaderData }) => {
     // Если выбрана категория — делаем мета-теги под неё
     const catName = loaderData?.categoryName ?? null;
-    const slug = catName ? undefined : undefined;
+    const slug = loaderData?.categorySlug ?? null;
+
 
     const title = catName ? `Купить ${catName} — Kupiks` : "Каталог товаров — Kupiks";
     const description = catName
