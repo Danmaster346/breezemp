@@ -33,6 +33,7 @@ import {
 import { ProductReviews } from "@/components/ProductReviews";
 import { ProductPageSkeleton } from "@/components/Skeletons";
 import { productQueryOptions } from "@/lib/product-query";
+import { ogImageUrl } from "@/lib/og";
 import { useServerFn } from "@tanstack/react-start";
 import { getProductReviews } from "@/lib/reviews.functions";
 import { getSellerProfile } from "@/lib/seller-profile.functions";
@@ -68,7 +69,8 @@ export const Route = createFileRoute("/product/$id")({
       (p?.description ?? "").slice(0, 160) ||
       `${p?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
     const url = `${SITE}/product/${params.id}`;
-    const image = p?.image_url ?? null;
+    // og:image всегда абсолютный, с фолбэком на брендовую картинку
+    const image = ogImageUrl(p?.image_url ?? null);
     const priceRub = p ? (p.price_kopecks / 100).toFixed(2) : null;
 
     const jsonLd = p
@@ -77,7 +79,7 @@ export const Route = createFileRoute("/product/$id")({
           "@type": "Product",
           name: p.title,
           description: p.description ?? undefined,
-          image: image ?? undefined,
+          image: image,
           offers: {
             "@type": "Offer",
             url,
@@ -146,12 +148,9 @@ export const Route = createFileRoute("/product/$id")({
               { property: "product:price:currency", content: "RUB" },
             ]
           : []),
-        ...(image && /^https:\/\//.test(image)
-          ? [
-              { property: "og:image", content: image },
-              { name: "twitter:image", content: image },
-            ]
-          : []),
+        { property: "og:image", content: image },
+        { property: "og:image:alt", content: p?.title ?? "Kupiks" },
+        { name: "twitter:image", content: image },
       ],
       links: [{ rel: "canonical", href: url }],
       ...(jsonLd
