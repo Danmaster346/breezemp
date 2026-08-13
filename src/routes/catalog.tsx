@@ -562,8 +562,21 @@ function CatalogPage() {
         </div>
 
 
+        {/* Счётчик результатов */}
+        <div className="mb-3">
+          {productsQuery.isLoading ? (
+            <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              Найдено {total.toLocaleString("ru-RU")}{" "}
+              {plural(total, ["товар", "товара", "товаров"])}
+            </div>
+          )}
+        </div>
+
         {/* Сетка */}
         {productsQuery.isLoading ? (
+
           <ProductGridSkeleton count={10} />
         ) : items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 animate-fade-in">
