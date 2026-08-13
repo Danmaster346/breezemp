@@ -17,6 +17,8 @@ import {
   LayoutGrid,
   ShoppingBag,
   Bell,
+  Send,
+  Mail,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
