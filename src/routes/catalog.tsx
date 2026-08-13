@@ -61,25 +61,42 @@ const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
-  head: () => ({
-    meta: [
-      { title: "Каталог товаров — Kupiks" },
-      {
-        name: "description",
-        content:
-          "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.",
-      },
-      { property: "og:title", content: "Каталог товаров — Kupiks" },
-      {
-        property: "og:description",
-        content: "Тысячи товаров для дома, отдыха и стиля с фильтрами и удобным поиском.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://kupiks-marketplace.ru/catalog" },
-      { name: "twitter:card", content: "summary" },
-    ],
-    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/catalog" }],
-  }),
+  loaderDeps: ({ search }) => ({ category: search.category }),
+  loader: async ({ deps, context }) => {
+    if (!deps.category) return { categoryName: null as string | null, categorySlug: null as string | null };
+    const cats = await context.queryClient
+      .ensureQueryData(categoriesQueryOptions())
+      .catch(() => null);
+    const found = cats?.find((c) => c.slug === deps.category);
+    return { categoryName: found?.name ?? null, categorySlug: found?.slug ?? null };
+  },
+  head: ({ loaderData }) => {
+    // Если выбрана категория — делаем мета-теги под неё
+    const catName = loaderData?.categoryName ?? null;
+    const slug = loaderData?.categorySlug ?? null;
+
+
+    const title = catName ? `Купить ${catName} — Kupiks` : "Каталог товаров — Kupiks";
+    const description = catName
+      ? `Лучшие ${catName.toLowerCase()} с доставкой по России. Фильтры по цене, рейтингу и наличию на Kupiks.`
+      : "Умный поиск по товарам, продавцам и категориям маркетплейса Kupiks: фильтры по цене, рейтингу, наличию и скидкам.";
+    const url = slug
+      ? `https://kupiks-marketplace.ru/catalog?category=${encodeURIComponent(slug)}`
+      : "https://kupiks-marketplace.ru/catalog";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: url },
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
+
   component: CatalogPage,
 });
 

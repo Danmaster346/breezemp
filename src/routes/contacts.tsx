@@ -33,10 +33,10 @@ export const Route = createFileRoute("/contacts")({
         content: "Форма обратной связи и контакты службы поддержки маркетплейса Kupiks.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://breezemp.lovable.app/contacts" },
+      { property: "og:url", content: "https://kupiks-marketplace.ru/contacts" },
       { name: "twitter:card", content: "summary" },
     ],
-    links: [{ rel: "canonical", href: "https://breezemp.lovable.app/contacts" }],
+    links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/contacts" }],
   }),
   component: ContactsPage,
 });

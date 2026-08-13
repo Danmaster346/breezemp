@@ -43,17 +43,63 @@ import { useNavigate } from "@tanstack/react-router";
 const SITE = "https://kupiks-marketplace.ru";
 
 export const Route = createFileRoute("/product/$id")({
-  loader: ({ params, context }) =>
-    context.queryClient.ensureQueryData(productQueryOptions(params.id)),
+  loader: async ({ params, context }) => {
+    const product = await context.queryClient.ensureQueryData(productQueryOptions(params.id));
+    // Рейтинг и продавец нужны для JSON-LD разметки — тянем мягко, без падения страницы
+    const [reviews, seller] = await Promise.all([
+      getProductReviews({ data: { product_id: params.id } }).catch(() => null),
+      product?.seller_id
+        ? getSellerProfile({ data: { id: product.seller_id } }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+    return {
+      product,
+      rating: reviews?.avg ?? 0,
+      reviewsCount: reviews?.count ?? 0,
+      sellerName: seller?.name ?? "Kupiks",
+
+    };
+  },
   head: ({ params, loaderData }) => {
-    const title = loaderData?.title
-      ? `${loaderData.title} — купить на Kupiks`
-      : "Товар — Kupiks";
+    const p = loaderData?.product ?? null;
+    const title = p?.title ? `${p.title} — купить на Kupiks` : "Товар — Kupiks";
     const description =
-      (loaderData?.description ?? "").slice(0, 160) ||
-      `${loaderData?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
+      (p?.description ?? "").slice(0, 160) ||
+      `${p?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
     const url = `${SITE}/product/${params.id}`;
-    const image = loaderData?.image_url ?? null;
+    const image = p?.image_url ?? null;
+    const priceRub = p ? (p.price_kopecks / 100).toFixed(2) : null;
+
+    const jsonLd = p
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: p.title,
+          description: p.description ?? undefined,
+          image: image ?? undefined,
+          offers: {
+            "@type": "Offer",
+            url,
+            price: priceRub,
+            priceCurrency: "RUB",
+            availability:
+              (p.stock ?? 0) > 0
+                ? "https://schema.org/InStock"
+                : "https://schema.org/OutOfStock",
+            seller: { "@type": "Organization", name: loaderData?.sellerName ?? "Kupiks" },
+          },
+          ...((loaderData?.reviewsCount ?? 0) > 0
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: (loaderData?.rating ?? 0).toFixed(1),
+                  reviewCount: String(loaderData?.reviewsCount ?? 0),
+                },
+              }
+            : {}),
+        }
+      : null;
+
     return {
       meta: [
         { title },
@@ -63,6 +109,12 @@ export const Route = createFileRoute("/product/$id")({
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(priceRub
+          ? [
+              { property: "product:price:amount", content: priceRub },
+              { property: "product:price:currency", content: "RUB" },
+            ]
+          : []),
         ...(image && /^https:\/\//.test(image)
           ? [
               { property: "og:image", content: image },
@@ -71,8 +123,16 @@ export const Route = createFileRoute("/product/$id")({
           : []),
       ],
       links: [{ rel: "canonical", href: url }],
+      ...(jsonLd
+        ? {
+            scripts: [
+              { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+            ],
+          }
+        : {}),
     };
   },
+
   component: ProductPage,
   errorComponent: ({ error }) => (
     <AppLayout>

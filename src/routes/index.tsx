@@ -31,7 +31,34 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "https://kupiks-marketplace.ru/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Kupiks",
+          url: "https://kupiks-marketplace.ru",
+          description: "Маркетплейс товаров для дома, отдыха и стиля",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Kupiks",
+          url: "https://kupiks-marketplace.ru",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: "https://kupiks-marketplace.ru/catalog?q={search_term_string}",
+            "query-input": "required name=search_term_string",
+          },
+        }),
+      },
+    ],
   }),
+
   component: HomePage,
 });
 
