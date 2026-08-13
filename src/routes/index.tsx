@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { ProductCard } from "@/components/ProductCard";
 import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
@@ -94,8 +95,11 @@ function HomePage() {
     gcTime: 15 * 60 * 1000,
   });
 
+  const qcRefresh = useQueryClient();
+
   return (
     <AppLayout>
+     <PullToRefresh onRefresh={() => qcRefresh.refetchQueries({ type: "active" })}>
       {/* Промо-баннер(ы) Kupiks */}
       <section className="mx-auto max-w-7xl px-4 pt-2">
         {banners.length > 0 ? (
@@ -313,6 +317,7 @@ function HomePage() {
           })}
         </div>
       </section>
+     </PullToRefresh>
     </AppLayout>
   );
 }

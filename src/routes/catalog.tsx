@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogSearchBar } from "@/components/CatalogSearchBar";
@@ -211,9 +212,11 @@ function CatalogPage() {
     navigate({ search: { sort: search.sort, page: 1 } as SearchParams });
 
   const activeCat = catsQuery.data?.find((c) => c.slug === search.category);
+  const qcRefresh = useQueryClient();
 
   return (
     <AppLayout>
+     <PullToRefresh onRefresh={() => qcRefresh.refetchQueries({ type: "active" })}>
       <div className="mx-auto max-w-7xl px-4 py-6">
         <Breadcrumbs
           items={
@@ -742,6 +745,7 @@ function CatalogPage() {
           })}
         </div>
       </BottomSheet>
+     </PullToRefresh>
     </AppLayout>
   );
 }
