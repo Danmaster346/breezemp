@@ -1,5 +1,5 @@
-// Кабинет продавца — тёмная тема, боковой сайдбар, компактный дашборд.
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
+// Кабинет продавца — боковой сайдбар и дашборд с виджетами статистики.
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
@@ -7,38 +7,72 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { SellerSidebar, SellerTabs, useForceSellerMode } from "@/components/SellerSidebar";
 import { useAuth } from "@/lib/use-auth";
 import { formatPrice } from "@/lib/format";
-import { getSellerDashboardStats } from "@/lib/order-history.functions";
 import { getSellerTasks } from "@/lib/seller/tasks.functions";
+import { getSellerDashboardSummary } from "@/lib/seller/dashboard.functions";
+import { usePanels } from "@/lib/panels-store";
 import {
   Plus,
-  Boxes,
   Truck,
   Wallet,
-  CalendarDays,
   AlertTriangle,
   MessageSquare,
   PackageCheck,
   RotateCcw,
   Star,
   BarChart3,
+  Eye,
+  Clock,
+  Mail,
+  Hourglass,
 } from "lucide-react";
-
 
 export const Route = createFileRoute("/_authenticated/seller")({
   component: SellerLayout,
 });
 
+/** Мини-график выручки (sparkline) на SVG. */
+function Sparkline({ data }: { data: { day: string; value: number }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const w = 100;
+  const h = 32;
+  const step = data.length > 1 ? w / (data.length - 1) : w;
+  const points = data.map((d, i) => `${i * step},${h - (d.value / max) * (h - 4) - 2}`);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-10 w-full" preserveAspectRatio="none">
+      <polyline
+        points={points.join(" ")}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        className="text-brand"
+        vectorEffect="non-scaling-stroke"
+      />
+      <polyline
+        points={`0,${h} ${points.join(" ")} ${w},${h}`}
+        className="fill-brand/10"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
 function SellerLayout() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const fetchStats = useServerFn(getSellerDashboardStats);
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const isDashboard = pathname === "/seller" || pathname === "/seller/";
+  const fetchSummary = useServerFn(getSellerDashboardSummary);
   const fetchTasks = useServerFn(getSellerTasks);
+  const openMessages = usePanels((s) => s.openMessages);
   useForceSellerMode();
 
-  const stats = useQuery({
-    queryKey: ["seller-stats", user?.id],
+  const summary = useQuery({
+    queryKey: ["seller-summary", user?.id],
     enabled: !!user,
-    queryFn: () => fetchStats(),
+    queryFn: () => fetchSummary(),
+    refetchInterval: 120_000,
   });
 
   const tasks = useQuery({
@@ -49,6 +83,8 @@ function SellerLayout() {
   });
 
   const t = tasks.data;
+  const s = summary.data;
+
   const taskCards = [
     {
       key: "orders",
@@ -65,14 +101,6 @@ function SellerLayout() {
       icon: Truck,
       to: "/seller/orders" as const,
       tone: "bg-sky-50 text-sky-800 border-sky-200",
-    },
-    {
-      key: "messages",
-      label: "Новые сообщения",
-      count: t?.unread ?? 0,
-      icon: MessageSquare,
-      to: "/messages" as const,
-      tone: "bg-indigo-50 text-indigo-800 border-indigo-200",
     },
     {
       key: "stock",
@@ -95,42 +123,10 @@ function SellerLayout() {
       label: "Низкие оценки",
       count: t?.lowRated ?? 0,
       icon: Star,
-      to: "/seller/analytics" as const,
+      to: "/seller/reviews" as const,
       tone: "bg-muted text-foreground border-border",
     },
   ].filter((c) => c.count > 0);
-
-  const cards = [
-
-    {
-      label: "Всего товаров",
-      value: stats.data ? String(stats.data.products) : "—",
-      icon: Boxes,
-    },
-    {
-      label: "Активные заказы",
-      value: stats.data ? String(stats.data.active) : "—",
-      icon: Truck,
-    },
-    {
-      label: "Сумма продаж",
-      value: stats.data ? formatPrice(stats.data.totalSales) : "—",
-      hint: "заплатили покупатели",
-      icon: Wallet,
-    },
-    {
-      label: "К получению",
-      value: stats.data ? formatPrice(stats.data.totalPayout) : "—",
-      hint: "после комиссии 10%",
-      icon: Wallet,
-    },
-    {
-      label: "Заказов за неделю",
-      value: stats.data ? String(stats.data.week) : "—",
-      hint: stats.data ? `сегодня: ${stats.data.today}` : undefined,
-      icon: CalendarDays,
-    },
-  ];
 
   return (
     <AppLayout>
@@ -150,24 +146,46 @@ function SellerLayout() {
                 </h1>
                 <p className="text-sm text-muted-foreground">Товары, заказы и общая статистика</p>
               </div>
-              <button
-                onClick={() =>
-                  navigate({ to: "/seller/products", search: { new: 1 } })
-                }
-                className="inline-flex items-center gap-2 h-11 px-4 rounded-full bg-brand text-brand-foreground text-sm font-semibold hover:opacity-90 ui-transition"
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.25} /> Новый товар
-              </button>
-              <Link
-                to="/seller/analytics"
-                className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
-              >
-                <BarChart3 className="h-4 w-4" /> Аналитика
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => navigate({ to: "/seller/products", search: { new: 1 } })}
+                  className="inline-flex items-center gap-2 h-11 px-4 rounded-full bg-brand text-brand-foreground text-sm font-semibold hover:opacity-90 ui-transition"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.25} /> Добавить товар
+                </button>
+                <Link
+                  to="/seller/orders"
+                  className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+                >
+                  <PackageCheck className="h-4 w-4" /> Новые заказы
+                  <Badge value={s?.newOrders ?? t?.newOrders ?? 0} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => openMessages()}
+                  className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+                >
+                  <Mail className="h-4 w-4" /> Непрочитанных
+                  <Badge value={s?.unread ?? t?.unread ?? 0} />
+                </button>
+                <Link
+                  to="/seller/products"
+                  className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+                >
+                  <Hourglass className="h-4 w-4" /> На модерации
+                  <Badge value={s?.pendingModeration ?? t?.pendingModeration ?? 0} />
+                </Link>
+                <Link
+                  to="/seller/analytics"
+                  className="inline-flex items-center gap-2 h-11 px-4 rounded-full border text-sm font-semibold hover:bg-accent ui-transition"
+                >
+                  <BarChart3 className="h-4 w-4" /> Аналитика
+                </Link>
+              </div>
             </div>
 
             {/* Задачи, требующие внимания */}
-            {taskCards.length > 0 && (
+            {isDashboard && taskCards.length > 0 && (
               <div className="mb-6">
                 <h2 className="mb-2 text-sm font-bold flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-brand" /> Требует внимания
@@ -183,7 +201,9 @@ function SellerLayout() {
                       >
                         <Icon className="h-3.5 w-3.5" />
                         {c.label}
-                        <span className="rounded-full bg-white/70 px-1.5 tabular-nums">{c.count}</span>
+                        <span className="rounded-full bg-white/70 px-1.5 tabular-nums">
+                          {c.count}
+                        </span>
                       </Link>
                     );
                   })}
@@ -191,40 +211,125 @@ function SellerLayout() {
               </div>
             )}
 
-            {/* Дашборд KPI */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
-              {cards.map((c) => {
-                const Icon = c.icon;
-                return (
-                  <div
-                    key={c.label}
-                    className="rounded-2xl bg-card hairline p-4"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-                          {c.label}
-                        </div>
-                        <div className="mt-2 font-display text-xl md:text-2xl font-extrabold text-foreground break-words">
-                          {c.value}
-                        </div>
-                        {c.hint && (
-                          <div className="text-xs text-muted-foreground mt-1">{c.hint}</div>
-                        )}
-                      </div>
-                      <div className="grid h-9 w-9 place-items-center rounded-xl bg-surface shrink-0">
-                        <Icon className="h-4 w-4 text-foreground/70" strokeWidth={1.75} />
-                      </div>
+            {/* Виджеты статистики */}
+            {isDashboard && (
+              <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Widget
+                  icon={Wallet}
+                  label="💰 Выручка"
+                  loading={summary.isLoading}
+                  value={s ? formatPrice(s.revenueToday) : "—"}
+                  hint={
+                    s
+                      ? `неделя: ${formatPrice(s.revenueWeek)} · месяц: ${formatPrice(s.revenueMonth)}`
+                      : "за сегодня"
+                  }
+                />
+                <Widget
+                  icon={Clock}
+                  label="📦 Заказов в обработке"
+                  loading={summary.isLoading}
+                  value={s ? String(s.processingOrders) : "—"}
+                  hint="перейти к заказам"
+                  to="/seller/orders"
+                />
+                <Widget
+                  icon={Star}
+                  label="⭐ Средний рейтинг"
+                  loading={summary.isLoading}
+                  value={s && s.reviewsCount > 0 ? s.avgRating.toFixed(1) : "—"}
+                  hint={s ? `${s.reviewsCount} отзывов` : undefined}
+                  to="/seller/reviews"
+                />
+                <Widget
+                  icon={Eye}
+                  label="👁️ Просмотры за 7 дней"
+                  loading={summary.isLoading}
+                  value={s ? String(s.views7d) : "—"}
+                  hint="карточки товаров"
+                />
+                <div className="rounded-2xl bg-card hairline p-4 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      📈 Выручка за 14 дней
                     </div>
+                    {s && (
+                      <div className="text-sm font-bold tabular-nums">
+                        {formatPrice(s.spark.reduce((sum, d) => sum + d.value, 0))}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  {s ? (
+                    <Sparkline data={s.spark} />
+                  ) : (
+                    <div className="mt-2 h-10 rounded-lg bg-surface animate-pulse" />
+                  )}
+                </div>
+              </div>
+            )}
 
             <Outlet />
           </div>
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+function Badge({ value }: { value: number }) {
+  return (
+    <span
+      className={`min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full text-[11px] font-bold tabular-nums ${
+        value > 0 ? "bg-brand text-brand-foreground" : "bg-surface text-muted-foreground"
+      }`}
+    >
+      {value}
+    </span>
+  );
+}
+
+function Widget({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  to,
+  loading,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  value: string;
+  hint?: string;
+  to?: "/seller/orders" | "/seller/reviews";
+  loading?: boolean;
+}) {
+  const inner = (
+    <div className="rounded-2xl bg-card hairline p-4 h-full ui-transition hover:shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+            {label}
+          </div>
+          {loading ? (
+            <div className="mt-2 h-7 w-24 rounded bg-surface animate-pulse" />
+          ) : (
+            <div className="mt-2 font-display text-xl md:text-2xl font-extrabold break-words">
+              {value}
+            </div>
+          )}
+          {hint && <div className="mt-1 text-xs text-muted-foreground">{hint}</div>}
+        </div>
+        <div className="grid h-9 w-9 place-items-center rounded-xl bg-surface shrink-0">
+          <Icon className="h-4 w-4 text-foreground/70" strokeWidth={1.75} />
+        </div>
+      </div>
+    </div>
+  );
+  return to ? (
+    <Link to={to} className="block">
+      {inner}
+    </Link>
+  ) : (
+    inner
   );
 }

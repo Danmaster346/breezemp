@@ -1,7 +1,9 @@
 // Публичная страница продавца: /seller/$id
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   Star,
   Store,
@@ -16,10 +18,15 @@ import {
   Instagram,
   Users,
   Link as LinkIcon,
+  Heart,
+  MessageCircle,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { getSellerProfile, type SellerContacts } from "@/lib/seller-profile.functions";
+import { isFollowingSeller, toggleFollowSeller } from "@/lib/seller/follow.functions";
+import { openConversation } from "@/lib/messaging/messaging.functions";
+import { useAuth } from "@/lib/use-auth";
 
 export const Route = createFileRoute("/seller/$id")({
   head: () => ({
@@ -79,11 +86,59 @@ function contactItems(c: SellerContacts): ContactItem[] {
 function SellerPage() {
   const { id } = Route.useParams();
   const fetchProfile = useServerFn(getSellerProfile);
+  const checkFollow = useServerFn(isFollowingSeller);
+  const toggleFollow = useServerFn(toggleFollowSeller);
+  const openChat = useServerFn(openConversation);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [tab, setTab] = useState<"products" | "reviews" | "about">("products");
+  const [followBusy, setFollowBusy] = useState(false);
+  const isOwn = !!user && user.id === id;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: () => fetchProfile({ data: { id } }),
   });
+
+  const following = useQuery({
+    queryKey: ["seller-following", id, user?.id],
+    enabled: !!user && !isOwn,
+    queryFn: () => checkFollow({ data: { seller_id: id } }),
+  });
+
+  const onFollow = async () => {
+    if (!user) {
+      toast.error("Войдите, чтобы подписаться на магазин");
+      navigate({ to: "/auth" });
+      return;
+    }
+    setFollowBusy(true);
+    try {
+      const res = await toggleFollow({ data: { seller_id: id } });
+      toast.success(res.following ? "Вы подписались на магазин" : "Подписка отменена");
+      qc.invalidateQueries({ queryKey: ["seller-following", id] });
+      qc.invalidateQueries({ queryKey: ["seller-profile", id] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setFollowBusy(false);
+    }
+  };
+
+  const onWrite = async () => {
+    if (!user) {
+      toast.error("Войдите, чтобы написать продавцу");
+      navigate({ to: "/auth" });
+      return;
+    }
+    try {
+      const res = await openChat({ data: { seller_id: id } });
+      navigate({ to: "/messages/$conversationId", params: { conversationId: res.id } });
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   return (
     <AppLayout>
@@ -159,6 +214,13 @@ function SellerPage() {
                         {pluralProducts(data.productsCount)}
                       </span>
                     </Chip>
+                    {data.followersCount > 0 && (
+                      <Chip>
+                        <Users className="h-4 w-4 text-brand" />
+                        <span className="font-semibold">{data.followersCount}</span>
+                        <span className="text-muted-foreground">подписчиков</span>
+                      </Chip>
+                    )}
                     {data.deliveredRate > 0 && (
                       <Chip>
                         <Truck className="h-4 w-4 text-emerald-600" />
@@ -167,6 +229,32 @@ function SellerPage() {
                       </Chip>
                     )}
                   </div>
+                  {!isOwn && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={onWrite}
+                        className="inline-flex items-center gap-2 h-11 rounded-full bg-brand px-5 text-sm font-semibold text-brand-foreground hover:opacity-90 transition"
+                      >
+                        <MessageCircle className="h-4 w-4" /> Написать продавцу
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onFollow}
+                        disabled={followBusy}
+                        className={`inline-flex items-center gap-2 h-11 rounded-full px-5 text-sm font-semibold transition disabled:opacity-60 ${
+                          following.data?.following
+                            ? "bg-brand-soft text-brand border border-brand/30"
+                            : "bg-white border border-border hover:bg-surface"
+                        }`}
+                      >
+                        <Heart
+                          className={`h-4 w-4 ${following.data?.following ? "fill-brand text-brand" : ""}`}
+                        />
+                        {following.data?.following ? "Вы подписаны" : "Подписаться"}
+                      </button>
+                    </div>
+                  )}
                   {data.badges.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {data.badges.map((b) => (
@@ -183,17 +271,139 @@ function SellerPage() {
               </div>
             </section>
 
-            {/* Описание и контакты */}
-            {(data.fullDescription || contactItems(data.contacts).length > 0) && (
-              <section className="mt-6 grid gap-4 md:grid-cols-3">
-                {data.fullDescription && (
-                  <div className="md:col-span-2 rounded-2xl border bg-card p-5">
-                    <h2 className="text-sm font-semibold mb-2">О магазине</h2>
-                    <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
-                      {data.fullDescription}
-                    </p>
+            {/* Вкладки магазина */}
+            <div className="mt-6 flex gap-1 rounded-full bg-surface p-1 w-full sm:w-auto sm:inline-flex">
+              {([
+                { key: "products", label: `Товары (${data.productsCount})` },
+                { key: "reviews", label: `Отзывы (${data.reviewsCount})` },
+                { key: "about", label: "О магазине" },
+              ] as const).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTab(t.key)}
+                  className={`flex-1 sm:flex-none h-10 rounded-full px-4 text-sm font-semibold transition ${
+                    tab === t.key
+                      ? "bg-white text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Товары */}
+            {tab === "products" && (
+              <section className="mt-6">
+                {data.products.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
+                    {data.products.map((p) => (
+                      <ProductCard key={p.id} {...p} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-surface p-10 text-center text-muted-foreground">
+                    У этого продавца пока нет активных товаров.
                   </div>
                 )}
+              </section>
+            )}
+
+            {/* Отзывы */}
+            {tab === "reviews" && (
+              <section className="mt-6 space-y-3">
+                {data.reviews.length === 0 ? (
+                  <div className="rounded-2xl bg-surface p-10 text-center text-muted-foreground">
+                    У магазина пока нет отзывов.
+                  </div>
+                ) : (
+                  data.reviews.map((r) => (
+                    <article key={r.id} className="rounded-2xl border bg-card p-4 md:p-5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${
+                                i < r.rating ? "fill-amber-400 text-amber-400" : "text-muted"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-semibold">
+                          {r.author_name || "Покупатель"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleDateString("ru-RU")}
+                        </span>
+                        <Link
+                          to="/product/$id"
+                          params={{ id: r.product_id }}
+                          className="ml-auto text-xs text-brand hover:underline truncate max-w-[50%]"
+                        >
+                          {r.product_title}
+                        </Link>
+                      </div>
+                      {r.comment && (
+                        <p className="mt-2 text-sm leading-relaxed whitespace-pre-line">
+                          {r.comment}
+                        </p>
+                      )}
+                      {r.photos.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {r.photos.map((ph) => (
+                            <img
+                              key={ph}
+                              src={ph}
+                              alt="Фото к отзыву"
+                              loading="lazy"
+                              className="h-20 w-20 rounded-xl object-cover border"
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {r.seller_reply && (
+                        <div className="mt-3 rounded-xl bg-brand-soft/60 border border-brand/20 p-3">
+                          <div className="text-xs font-semibold text-brand mb-1">
+                            Ответ магазина
+                          </div>
+                          <p className="text-sm whitespace-pre-line">{r.seller_reply}</p>
+                        </div>
+                      )}
+                    </article>
+                  ))
+                )}
+              </section>
+            )}
+
+            {/* О магазине */}
+            {tab === "about" && (
+              <section className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="md:col-span-2 rounded-2xl border bg-card p-5">
+                  <h2 className="text-sm font-semibold mb-2">О магазине</h2>
+                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">
+                    {data.fullDescription || data.shortDescription || "Продавец пока не добавил описание."}
+                  </p>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-xl bg-surface p-3">
+                      <dt className="text-xs text-muted-foreground">Товаров</dt>
+                      <dd className="font-bold">{data.productsCount}</dd>
+                    </div>
+                    <div className="rounded-xl bg-surface p-3">
+                      <dt className="text-xs text-muted-foreground">Продаж</dt>
+                      <dd className="font-bold">{data.salesCount}</dd>
+                    </div>
+                    <div className="rounded-xl bg-surface p-3">
+                      <dt className="text-xs text-muted-foreground">Отзывов</dt>
+                      <dd className="font-bold">{data.reviewsCount}</dd>
+                    </div>
+                    <div className="rounded-xl bg-surface p-3">
+                      <dt className="text-xs text-muted-foreground">Подписчиков</dt>
+                      <dd className="font-bold">{data.followersCount}</dd>
+                    </div>
+                  </dl>
+                </div>
                 {contactItems(data.contacts).length > 0 && (
                   <div className="rounded-2xl border bg-card p-5">
                     <h2 className="text-sm font-semibold mb-3">Контакты</h2>
@@ -231,29 +441,6 @@ function SellerPage() {
                 )}
               </section>
             )}
-
-            {/* Товары */}
-            <section className="mt-8">
-              <div className="flex items-baseline justify-between mb-4">
-                <h2 className="text-lg md:text-xl font-extrabold tracking-tight">
-                  Товары магазина
-                </h2>
-                <span className="text-sm text-muted-foreground">
-                  {data.productsCount} {pluralProducts(data.productsCount)}
-                </span>
-              </div>
-              {data.products.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
-                  {data.products.map((p) => (
-                    <ProductCard key={p.id} {...p} />
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-surface p-10 text-center text-muted-foreground">
-                  У этого продавца пока нет активных товаров.
-                </div>
-              )}
-            </section>
           </>
         )}
       </div>

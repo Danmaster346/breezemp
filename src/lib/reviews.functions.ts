@@ -24,6 +24,8 @@ export type ReviewRow = {
   photos: string[];
   author_name: string | null;
   created_at: string;
+  seller_reply?: string | null;
+  seller_reply_at?: string | null;
 };
 
 // Публично: отзывы товара + средний рейтинг (только видимые)
@@ -33,11 +35,12 @@ export const getProductReviews = createServerFn({ method: "GET" })
     const supa = publicClient();
     const { data: rows, error } = await supa
       .from("reviews")
-      .select("id, product_id, order_item_id, user_id, rating, comment, photos, author_name, created_at")
+      .select("id, product_id, order_item_id, user_id, rating, comment, photos, author_name, created_at, seller_reply, seller_reply_at")
       .eq("product_id", data.product_id)
       .eq("is_hidden", false)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
+
     const reviews = (rows ?? []) as ReviewRow[];
     const count = reviews.length;
     const avg = count ? reviews.reduce((s, r) => s + r.rating, 0) / count : 0;
