@@ -101,6 +101,36 @@ export const Route = createFileRoute("/product/$id")({
         }
       : null;
 
+    // Хлебные крошки для поиска: Главная → Каталог → [Категория] → Товар
+    const cat = (p as { categories?: { name?: string | null; slug?: string | null } | null } | null)
+      ?.categories ?? null;
+    const breadcrumbs = p
+      ? {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Главная", item: SITE },
+            { "@type": "ListItem", position: 2, name: "Каталог", item: `${SITE}/catalog` },
+            ...(cat?.name && cat?.slug
+              ? [
+                  {
+                    "@type": "ListItem",
+                    position: 3,
+                    name: cat.name,
+                    item: `${SITE}/catalog?category=${encodeURIComponent(cat.slug)}`,
+                  },
+                ]
+              : []),
+            {
+              "@type": "ListItem",
+              position: cat?.name && cat?.slug ? 4 : 3,
+              name: p.title,
+              item: url,
+            },
+          ],
+        }
+      : null;
+
     return {
       meta: [
         { title },
@@ -128,11 +158,15 @@ export const Route = createFileRoute("/product/$id")({
         ? {
             scripts: [
               { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+              ...(breadcrumbs
+                ? [{ type: "application/ld+json", children: JSON.stringify(breadcrumbs) }]
+                : []),
             ],
           }
         : {}),
     };
   },
+
 
   component: ProductPage,
   errorComponent: ({ error }) => (
