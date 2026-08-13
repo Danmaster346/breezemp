@@ -1,7 +1,7 @@
 // Главная страница — Askona-style: промо-баннер, круговые категории,
 // «Подборщик»-плитки с картинкой в углу, витрина новинок.
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { PullToRefresh } from "@/components/PullToRefresh";
