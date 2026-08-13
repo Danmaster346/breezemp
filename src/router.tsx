@@ -24,7 +24,6 @@ export const getRouter = () => {
     },
   });
 
-
   const router = createRouter({
     routeTree,
     context: { queryClient },

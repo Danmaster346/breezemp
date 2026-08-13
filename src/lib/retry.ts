@@ -7,9 +7,7 @@ export function isClientError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error ?? "");
   const status = (error as { status?: number } | null)?.status;
   if (typeof status === "number") return status >= 400 && status < 500;
-  return /\b(400|401|403|404|409|422)\b|unauthorized|forbidden|not found/i.test(
-    msg,
-  );
+  return /\b(400|401|403|404|409|422)\b|unauthorized|forbidden|not found/i.test(msg);
 }
 
 /**
@@ -24,8 +22,7 @@ export function backoffDelay(attempt: number, maxMs = 8000): number {
  * Политика повторов для React Query: до `max` попыток, но не для 4xx.
  */
 export function queryRetry(max = 2) {
-  return (failureCount: number, error: unknown) =>
-    !isClientError(error) && failureCount < max;
+  return (failureCount: number, error: unknown) => !isClientError(error) && failureCount < max;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -35,10 +32,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * @param fn операция (должна быть идемпотентной)
  * @param retries сколько раз повторить после первой неудачи
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  retries = 2,
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {

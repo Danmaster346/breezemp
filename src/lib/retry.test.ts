@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  backoffDelay,
-  errorMessage,
-  isClientError,
-  queryRetry,
-  withRetry,
-} from "./retry";
+import { backoffDelay, errorMessage, isClientError, queryRetry, withRetry } from "./retry";
 
 describe("isClientError", () => {
   it("определяет 4xx по полю status", () => {

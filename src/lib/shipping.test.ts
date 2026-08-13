@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  FREE_SHIPPING_FROM_KOPECKS,
-  calcShippingCost,
-  getShippingOption,
-} from "./shipping";
+import { FREE_SHIPPING_FROM_KOPECKS, calcShippingCost, getShippingOption } from "./shipping";
 
 describe("getShippingOption", () => {
   it("находит способ по id", () => {
@@ -27,8 +23,6 @@ describe("calcShippingCost", () => {
   });
 
   it("для ПВЗ порога нет", () => {
-    expect(calcShippingCost("pickup", 10_000_00)).toBe(
-      getShippingOption("pickup").baseKopecks,
-    );
+    expect(calcShippingCost("pickup", 10_000_00)).toBe(getShippingOption("pickup").baseKopecks);
   });
 });
