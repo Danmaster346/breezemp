@@ -876,6 +876,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_status: string
           price_kopecks: number
+          search_tsv: unknown
           seller_id: string
           sku: string | null
           stock: number
@@ -898,6 +899,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks: number
+          search_tsv?: unknown
           seller_id: string
           sku?: string | null
           stock?: number
@@ -920,6 +922,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks?: number
+          search_tsv?: unknown
           seller_id?: string
           sku?: string | null
           stock?: number

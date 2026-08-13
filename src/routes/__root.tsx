@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { registerServiceWorker } from "@/lib/register-sw";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -151,6 +152,9 @@ function RootShell({ children }: { children: ReactNode }) {
 // Провайдер React Query + слот дочерних маршрутов + всплывающие уведомления
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

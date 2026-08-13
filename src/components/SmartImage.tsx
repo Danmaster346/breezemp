@@ -32,6 +32,16 @@ function optimizeImageUrl(src: string | null | undefined, width: number): string
   return src;
 }
 
+// Набор ширин под разные экраны/плотности пикселей (только для трансформируемых ссылок)
+function buildSrcSet(src: string | null | undefined, width: number): string | undefined {
+  if (!src || !src.includes("supabase.co/storage")) return undefined;
+  const widths = Array.from(
+    new Set([Math.round(width / 2), width, Math.round(width * 1.5), width * 2]),
+  ).filter((w) => w >= 80 && w <= 2000);
+  return widths.map((w) => `${optimizeImageUrl(src, w)} ${w}w`).join(", ");
+}
+
+
 export function SmartImage({
   src,
   alt,
@@ -82,6 +92,7 @@ export function SmartImage({
         visible ? (
           <img
             src={optimizeImageUrl(src, width) ?? ""}
+            srcSet={buildSrcSet(src, width)}
             alt={alt}
             width={width}
             height={height}
