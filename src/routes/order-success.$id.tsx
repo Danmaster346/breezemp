@@ -84,7 +84,7 @@ type Order = {
 function OrderSuccessPage() {
   const { id } = Route.useParams();
   const fetchOrder = useServerFn(getOrderById);
-  const { data: order } = useSuspenseQuery({
+  const { data: order } = useQuery({
     queryKey: ["order-success", id],
     queryFn: () => fetchOrder({ data: { id } }),
     staleTime: 5 * 60 * 1000,
