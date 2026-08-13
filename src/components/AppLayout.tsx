@@ -409,8 +409,11 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             <div className="mb-2 font-semibold text-foreground">Способы оплаты</div>
             <div className="flex flex-wrap gap-2">
               {["Картой онлайн", "СБП", "При получении"].map((p) => (
-                <span key={p} className="rounded-lg bg-surface px-2.5 py-1.5 font-medium">
-                  💳 {p}
+                <span
+                  key={p}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <CreditCard className="h-3.5 w-3.5" /> {p}
                 </span>
               ))}
             </div>
@@ -419,8 +422,11 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             <div className="mb-2 font-semibold text-foreground">Доставка</div>
             <div className="flex flex-wrap gap-2">
               {["Курьер", "Пункт выдачи", "Постамат", "Самовывоз"].map((d) => (
-                <span key={d} className="rounded-lg bg-surface px-2.5 py-1.5 font-medium">
-                  🚚 {d}
+                <span
+                  key={d}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <Truck className="h-3.5 w-3.5" /> {d}
                 </span>
               ))}
             </div>
@@ -428,15 +434,18 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
           <div>
             <div className="mb-2 font-semibold text-foreground">Приложение</div>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-lg bg-surface px-2.5 py-1.5 font-medium">
-                 App Store — скоро
-              </span>
-              <span className="rounded-lg bg-surface px-2.5 py-1.5 font-medium">
-                ▶ Google Play — скоро
-              </span>
+              {["App Store — скоро", "Google Play — скоро"].map((a) => (
+                <span
+                  key={a}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-2.5 py-1.5 font-medium"
+                >
+                  <Smartphone className="h-3.5 w-3.5" /> {a}
+                </span>
+              ))}
             </div>
           </div>
         </div>
+
 
         <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
           © {new Date().getFullYear()} Kupiks Marketplace
