@@ -870,12 +870,14 @@ export type Database = {
           image_url: string | null
           image_urls: string[]
           is_active: boolean
+          min_stock: number
           moderated_at: string | null
           moderated_by: string | null
           moderation_reason: string | null
           moderation_status: string
           price_kopecks: number
           seller_id: string
+          sku: string | null
           stock: number
           title: string
         }
@@ -890,12 +892,14 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          min_stock?: number
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks: number
           seller_id: string
+          sku?: string | null
           stock?: number
           title: string
         }
@@ -910,12 +914,14 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          min_stock?: number
           moderated_at?: string | null
           moderated_by?: string | null
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks?: number
           seller_id?: string
+          sku?: string | null
           stock?: number
           title?: string
         }
@@ -1215,6 +1221,8 @@ export type Database = {
           full_description: string | null
           instagram: string | null
           logo_path: string | null
+          low_stock_channel: string
+          low_stock_threshold: number
           other_social: string | null
           phone: string | null
           shop_name: string | null
@@ -1241,6 +1249,8 @@ export type Database = {
           full_description?: string | null
           instagram?: string | null
           logo_path?: string | null
+          low_stock_channel?: string
+          low_stock_threshold?: number
           other_social?: string | null
           phone?: string | null
           shop_name?: string | null
@@ -1267,6 +1277,8 @@ export type Database = {
           full_description?: string | null
           instagram?: string | null
           logo_path?: string | null
+          low_stock_channel?: string
+          low_stock_threshold?: number
           other_social?: string | null
           phone?: string | null
           shop_name?: string | null
@@ -1307,6 +1319,119 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          kind: string
+          product_id: string | null
+          reason: string | null
+          seller_id: string
+          stock_after: number
+          stock_before: number
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          kind?: string
+          product_id?: string | null
+          reason?: string | null
+          seller_id: string
+          stock_after: number
+          stock_before: number
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          kind?: string
+          product_id?: string | null
+          reason?: string | null
+          seller_id?: string
+          stock_after?: number
+          stock_before?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplies: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          seller_id: string
+          supplied_at: string
+          total_qty: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          seller_id: string
+          supplied_at?: string
+          total_qty?: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          seller_id?: string
+          supplied_at?: string
+          total_qty?: number
+        }
+        Relationships: []
+      }
+      supply_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          quantity: number
+          supply_id: string
+          title_snapshot: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          quantity: number
+          supply_id: string
+          title_snapshot?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          supply_id?: string
+          title_snapshot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supply_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supply_items_supply_id_fkey"
+            columns: ["supply_id"]
+            isOneToOne: false
+            referencedRelation: "supplies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_notifications: {
         Row: {
