@@ -91,6 +91,7 @@ const PICKS = [
 ];
 
 function HomePage() {
+  const router = useRouter();
   // Загружаем категории
   const categoriesQuery = useQuery(categoriesQueryOptions());
 
