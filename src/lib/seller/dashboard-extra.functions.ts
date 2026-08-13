@@ -70,7 +70,7 @@ export const getSellerDashboardExtra = createServerFn({ method: "GET" })
         .eq("seller_id", sellerId),
       db
         .from("order_items")
-        .select("id, order_id, price_kopecks, quantity, quantity, status, title_snapshot, orders(created_at)")
+        .select("id, order_id, price_kopecks, quantity, status, title_snapshot, orders(created_at)")
         .eq("seller_id", sellerId)
         .order("id", { ascending: false })
         .limit(500),
@@ -268,8 +268,7 @@ export const getSellerSalesSeries = createServerFn({ method: "GET" })
     const { data: rows, error } = await db
       .from("order_items")
       .select("order_id, price_kopecks, quantity, status, orders(created_at)")
-      .eq("seller_id", context.userId)
-      .gte("orders.created_at", new Date(from).toISOString());
+      .eq("seller_id", context.userId);
     if (error) throw new Error(error.message);
 
     const monthly = data.range === "3m" || data.range === "1y";
