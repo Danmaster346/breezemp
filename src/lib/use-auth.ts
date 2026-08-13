@@ -8,6 +8,8 @@ export type AuthState = {
   isSeller: boolean;
   isAdmin: boolean;
   loading: boolean;
+  /** true пока роли пользователя ещё не загружены */
+  rolesLoading: boolean;
 };
 
 export function useAuth(): AuthState {
@@ -15,6 +17,7 @@ export function useAuth(): AuthState {
   const [isSeller, setIsSeller] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +34,7 @@ export function useAuth(): AuthState {
       const roles = data?.map((r) => r.role) ?? [];
       setIsSeller(roles.includes("seller"));
       setIsAdmin(roles.includes("admin"));
+      setRolesLoading(false);
     };
 
     // onAuthStateChange сразу выстрелит INITIAL_SESSION, что покроет случай при монтировании.
@@ -44,6 +48,7 @@ export function useAuth(): AuthState {
         lastLoadedFor = null;
         setIsSeller(false);
         setIsAdmin(false);
+        setRolesLoading(false);
       }
     });
 
@@ -53,5 +58,5 @@ export function useAuth(): AuthState {
     };
   }, []);
 
-  return { user, isSeller, isAdmin, loading };
+  return { user, isSeller, isAdmin, loading, rolesLoading };
 }

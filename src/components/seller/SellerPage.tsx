@@ -9,9 +9,9 @@ import { useAuth } from "@/lib/use-auth";
  * Пока роли загружаются — показываем скелетон, покупателю — предложение стать продавцом.
  */
 export function SellerGuard({ children }: { children: ReactNode }) {
-  const { user, isSeller, loading } = useAuth();
+  const { user, isSeller, loading, rolesLoading } = useAuth();
 
-  if (loading || (user && !isSeller && !isRolesResolved())) {
+  if (loading || rolesLoading) {
     return <SellerPageSkeleton />;
   }
 
@@ -50,11 +50,6 @@ export function SellerGuard({ children }: { children: ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-// Роли грузятся отдельным запросом после сессии; отдельного флага нет — считаем разрешёнными сразу.
-function isRolesResolved() {
-  return true;
 }
 
 /** Скелетон загрузки страницы кабинета. */
