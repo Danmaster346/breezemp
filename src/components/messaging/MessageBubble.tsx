@@ -207,14 +207,23 @@ export function MessageBubble({
           >
             {m.edited_at && <span>изменено</span>}
             <span>{time(m.created_at)}</span>
-            {mine &&
-              (m.read_at ? (
-                <CheckCheck className="h-3.5 w-3.5" />
-              ) : m.delivered_at ? (
-                <Check className="h-3.5 w-3.5" />
-              ) : (
-                <Clock className="h-3 w-3" />
-              ))}
+            {mine && (
+              <span className="flex items-center gap-0.5 ml-0.5">
+                {m.read_at ? (
+                  <span title="Прочитано" className="flex items-center gap-0.5">
+                    <CheckCheck className="h-4 w-4 text-blue-300" />
+                  </span>
+                ) : m.delivered_at ? (
+                  <span title="Доставлено" className="flex items-center gap-0.5">
+                    <CheckCheck className="h-4 w-4 opacity-70" />
+                  </span>
+                ) : (
+                  <span title="Отправляется..." className="flex items-center gap-0.5">
+                    <Clock className="h-3.5 w-3.5 opacity-60" />
+                  </span>
+                )}
+              </span>
+            )}
           </div>
         </div>
       </div>
