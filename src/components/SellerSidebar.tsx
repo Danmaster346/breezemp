@@ -13,6 +13,10 @@ import {
   Undo2,
   Star,
   LogOut,
+  LayoutDashboard,
+  Bell,
+  Plus,
+  ExternalLink,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -25,11 +29,15 @@ import { supabase } from "@/integrations/supabase/client";
 type Item = {
   to: string;
   /** Открывает всплывающую панель вместо перехода на страницу. */
-  panel?: boolean;
+  panel?: "messages" | "notifications";
+  /** Переход с query-параметром (например, форма нового товара). */
+  search?: Record<string, unknown>;
   label: string;
   icon: LucideIcon;
   badge?: number;
 };
+
+type Group = { title: string; items: Item[] };
 
 /** Форсит режим продавца — используется корневым макетом кабинета. */
 export function useForceSellerMode() {
@@ -40,24 +48,53 @@ export function useForceSellerMode() {
   }, [isSeller, setMode]);
 }
 
+/** Группы навигации кабинета продавца. */
+export function useSellerNavGroups(unread: number): Group[] {
+  return [
+    {
+      title: "Главное",
+      items: [
+        { to: "/seller", label: "Дашборд", icon: LayoutDashboard },
+        { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: "messages" },
+        { to: "/notifications", label: "Уведомления", icon: Bell, panel: "notifications" },
+      ],
+    },
+    {
+      title: "Товары",
+      items: [
+        { to: "/seller/products", label: "Мои товары", icon: Package },
+        { to: "/seller/products", label: "Добавить товар", icon: Plus, search: { new: 1 } },
+      ],
+    },
+    {
+      title: "Продажи",
+      items: [
+        { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
+        { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
+        { to: "/seller/reviews", label: "Отзывы", icon: Star },
+      ],
+    },
+    {
+      title: "Финансы",
+      items: [
+        { to: "/seller/balance", label: "Баланс и выплаты", icon: Wallet },
+        { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
+      ],
+    },
+    {
+      title: "Магазин",
+      items: [{ to: "/seller/settings", label: "Профиль и настройки", icon: Settings }],
+    },
+  ];
+}
+
 export function SellerSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user } = useAuth();
   const navigate = useNavigate();
   const setMode = useMode((s) => s.setMode);
   const unread = useUnreadChats();
-
-  const items: Item[] = [
-    { to: "/seller/products", label: "Мои товары", icon: Package },
-    { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
-    { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
-    { to: "/seller/reviews", label: "Отзывы", icon: Star },
-    { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
-    { to: "/seller/balance", label: "Баланс", icon: Wallet },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
-    { to: "/seller/settings", label: "Настройки", icon: Settings },
-
-  ];
+  const groups = useSellerNavGroups(unread);
 
   const displayName =
     (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
@@ -86,33 +123,60 @@ export function SellerSidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-col gap-0.5">
-        {items.map((it) => {
-          const Icon = it.icon;
-          const active = pathname === it.to || pathname.startsWith(it.to + "/");
-          return (
-            <Row
-              key={it.to}
-              it={it}
-              className={`flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium ui-transition ${
-                active
-                  ? "bg-brand text-brand-foreground"
-                  : "text-foreground/80 hover:bg-surface hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.75} />
-              <span className="flex-1 truncate">{it.label}</span>
-              {it.badge && it.badge > 0 ? (
-                <span className={`min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full text-[11px] font-bold ${active ? "bg-brand-foreground/20 text-brand-foreground" : "bg-brand text-brand-foreground"}`}>
-                  {it.badge > 9 ? "9+" : it.badge}
-                </span>
-              ) : null}
-            </Row>
-          );
-        })}
+      <nav className="flex flex-col gap-3">
+        {groups.map((g) => (
+          <div key={g.title}>
+            <div className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              {g.title}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              {g.items.map((it) => {
+                const Icon = it.icon;
+                const exact = it.to === "/seller";
+                const active = it.panel
+                  ? false
+                  : !it.search &&
+                    (exact
+                      ? pathname === "/seller" || pathname === "/seller/"
+                      : pathname === it.to || pathname.startsWith(it.to + "/"));
+                return (
+                  <Row
+                    key={`${it.to}-${it.label}`}
+                    it={it}
+                    className={`flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium ui-transition ${
+                      active
+                        ? "bg-brand text-brand-foreground"
+                        : "text-foreground/80 hover:bg-surface hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2 : 1.75} />
+                    <span className="flex-1 truncate">{it.label}</span>
+                    {it.badge && it.badge > 0 ? (
+                      <span
+                        className={`min-w-[20px] h-5 px-1.5 grid place-items-center rounded-full text-[11px] font-bold ${active ? "bg-brand-foreground/20 text-brand-foreground" : "bg-brand text-brand-foreground"}`}
+                      >
+                        {it.badge > 9 ? "9+" : it.badge}
+                      </span>
+                    ) : null}
+                  </Row>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="mt-3 pt-3 border-t border-border space-y-1">
+        {user?.id ? (
+          <Link
+            to="/seller/$id"
+            params={{ id: user.id }}
+            className="w-full flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium text-foreground/80 hover:bg-surface hover:text-foreground ui-transition"
+          >
+            <ExternalLink className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            Посмотреть мой магазин
+          </Link>
+        ) : null}
         <button
           type="button"
           onClick={toBuyer}
@@ -139,13 +203,14 @@ export function SellerTabs() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const unread = useUnreadChats();
   const items: Item[] = [
+    { to: "/seller", label: "Дашборд", icon: LayoutDashboard },
     { to: "/seller/products", label: "Товары", icon: Package },
     { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
     { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
     { to: "/seller/reviews", label: "Отзывы", icon: Star },
     { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
     { to: "/seller/balance", label: "Баланс", icon: Wallet },
-    { to: "/messages", label: "Чаты", icon: MessageCircle, badge: unread, panel: true },
+    { to: "/messages", label: "Чаты", icon: MessageCircle, badge: unread, panel: "messages" },
     { to: "/seller/settings", label: "Настройки", icon: Settings },
   ];
   return (
@@ -153,7 +218,10 @@ export function SellerTabs() {
       <div className="flex gap-2 min-w-max">
         {items.map((it) => {
           const Icon = it.icon;
-          const active = pathname === it.to || pathname.startsWith(it.to + "/");
+          const active =
+            it.to === "/seller"
+              ? pathname === "/seller" || pathname === "/seller/"
+              : pathname === it.to || pathname.startsWith(it.to + "/");
           return (
             <Row
               key={it.to}
@@ -190,14 +258,19 @@ function Row({
   children: ReactNode;
 }) {
   const openMessages = usePanels((s) => s.openMessages);
+  const openNotifications = usePanels((s) => s.openNotifications);
   if (it.panel)
     return (
-      <button type="button" onClick={() => openMessages()} className={className}>
+      <button
+        type="button"
+        onClick={() => (it.panel === "messages" ? openMessages() : openNotifications())}
+        className={className}
+      >
         {children}
       </button>
     );
   return (
-    <Link to={it.to} className={className}>
+    <Link to={it.to} search={it.search} className={className}>
       {children}
     </Link>
   );
