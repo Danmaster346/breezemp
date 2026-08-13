@@ -8,6 +8,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ArrowRight, Truck, ShieldCheck, RotateCcw, Sparkles } from "lucide-react";
 import { getCategoryIcon } from "@/lib/category-icons";
 import { categoriesQueryOptions } from "@/lib/categories-query";
+import { listPublicBanners, type PublicBanner } from "@/lib/admin/banners.functions";
 import { ProductGridSkeleton, CategoryTilesSkeleton } from "@/components/Skeletons";
 
 export const Route = createFileRoute("/")({
@@ -65,6 +66,17 @@ function HomePage() {
   // Загружаем категории
   const categoriesQuery = useQuery(categoriesQueryOptions());
 
+  // Баннеры главной страницы (публично, без авторизации)
+  const bannersQuery = useQuery({
+    queryKey: ["public-banners"],
+    queryFn: () => listPublicBanners(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+  const banners: PublicBanner[] =
+    !bannersQuery.isError && bannersQuery.data ? bannersQuery.data : [];
+
   // Загружаем последние товары
   const productsQuery = useQuery({
     queryKey: ["home-products"],
@@ -84,36 +96,98 @@ function HomePage() {
 
   return (
     <AppLayout>
-      {/* Промо-баннер Kupiks */}
+      {/* Промо-баннер(ы) Kupiks */}
       <section className="mx-auto max-w-7xl px-4 pt-2">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fff1ec] via-[#ffe0d4] to-[#ffd0be] min-h-[220px] md:min-h-[340px] p-6 md:p-12 flex flex-col justify-between">
-          <div className="relative z-10 max-w-md">
-            <div className="inline-flex items-center rounded-full bg-white/90 backdrop-blur px-3 py-1 text-xs font-bold text-foreground/80 mb-4 shadow-sm">
-              Только сейчас
+        {banners.length > 0 ? (
+          <div
+            className={
+              banners.length === 1
+                ? ""
+                : "flex gap-4 overflow-x-auto pb-1 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible"
+            }
+          >
+            {banners.map((b) => {
+              const content = (
+                <div
+                  className="relative overflow-hidden rounded-3xl min-h-[220px] md:min-h-[340px] p-6 md:p-12 flex flex-col justify-between text-white h-full"
+                  style={{ backgroundColor: b.bg_color }}
+                >
+                  <div className="relative z-10 max-w-md">
+                    {b.promo_code && (
+                      <div className="inline-flex items-center rounded-full bg-white/20 backdrop-blur px-3 py-1 text-xs font-bold text-white mb-4 shadow-sm">
+                        Промокод {b.promo_code}
+                      </div>
+                    )}
+                    <h2 className="font-display font-extrabold tracking-tight leading-[1.05] text-2xl md:text-4xl">
+                      {b.title}
+                    </h2>
+                    {b.subtitle && (
+                      <p className="mt-3 text-sm md:text-base text-white/80 max-w-xs">
+                        {b.subtitle}
+                      </p>
+                    )}
+                    <span className="inline-flex mt-5 items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-foreground hover:bg-white/90 shadow-md transition">
+                      За покупками <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <div className="absolute -right-16 -bottom-16 h-64 w-64 md:h-96 md:w-96 rounded-full bg-white/10 blur-2xl" />
+                </div>
+              );
+              const wrapperClass =
+                banners.length === 1
+                  ? "block"
+                  : "block shrink-0 w-[85vw] sm:w-[60vw] md:w-auto snap-start";
+              if (b.link && b.link.startsWith("/")) {
+                return (
+                  <Link key={b.id} to={b.link} className={wrapperClass}>
+                    {content}
+                  </Link>
+                );
+              }
+              if (b.link) {
+                return (
+                  <a key={b.id} href={b.link} target="_blank" rel="noopener noreferrer" className={wrapperClass}>
+                    {content}
+                  </a>
+                );
+              }
+              return (
+                <div key={b.id} className={wrapperClass}>
+                  {content}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fff1ec] via-[#ffe0d4] to-[#ffd0be] min-h-[220px] md:min-h-[340px] p-6 md:p-12 flex flex-col justify-between">
+            <div className="relative z-10 max-w-md">
+              <div className="inline-flex items-center rounded-full bg-white/90 backdrop-blur px-3 py-1 text-xs font-bold text-foreground/80 mb-4 shadow-sm">
+                Только сейчас
+              </div>
+              <h1 className="font-display font-extrabold tracking-tight text-foreground leading-[0.95]">
+                <span className="block text-6xl md:text-8xl text-brand drop-shadow-sm">
+                  −15%
+                </span>
+                <span className="block text-xl md:text-3xl mt-2">
+                  на первые заказы в Kupiks
+                </span>
+              </h1>
+              <p className="mt-3 text-sm md:text-base text-foreground/70 max-w-xs">
+                Промокод <span className="font-bold text-foreground">KUPIKS</span> для новых покупателей.
+              </p>
+              <Link
+                to="/catalog"
+                className="inline-flex mt-5 items-center gap-2 rounded-full bg-foreground px-6 py-3 font-semibold text-white hover:bg-foreground/90 shadow-md transition"
+              >
+                За покупками <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <h1 className="font-display font-extrabold tracking-tight text-foreground leading-[0.95]">
-              <span className="block text-6xl md:text-8xl text-brand drop-shadow-sm">
-                −15%
-              </span>
-              <span className="block text-xl md:text-3xl mt-2">
-                на первые заказы в Kupiks
-              </span>
-            </h1>
-            <p className="mt-3 text-sm md:text-base text-foreground/70 max-w-xs">
-              Промокод <span className="font-bold text-foreground">KUPIKS</span> для новых покупателей.
-            </p>
-            <Link
-              to="/catalog"
-              className="inline-flex mt-5 items-center gap-2 rounded-full bg-foreground px-6 py-3 font-semibold text-white hover:bg-foreground/90 shadow-md transition"
-            >
-              За покупками <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="absolute -right-16 -bottom-16 h-64 w-64 md:h-96 md:w-96 rounded-full bg-white/40 blur-2xl" />
+            <div className="absolute right-8 top-8 hidden md:flex h-32 w-32 rounded-full bg-white/80 backdrop-blur items-center justify-center text-6xl shadow-sm">
+              🛍️
+            </div>
           </div>
-          <div className="absolute -right-16 -bottom-16 h-64 w-64 md:h-96 md:w-96 rounded-full bg-white/40 blur-2xl" />
-          <div className="absolute right-8 top-8 hidden md:flex h-32 w-32 rounded-full bg-white/80 backdrop-blur items-center justify-center text-6xl shadow-sm">
-            🛍️
-          </div>
-        </div>
+        )}
       </section>
 
       {/* Витрина товаров — сразу после баннера */}
