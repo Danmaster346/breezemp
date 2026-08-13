@@ -11,6 +11,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { getRecentlyViewed, pushRecentlyViewed } from "@/lib/recently-viewed";
 
 import { toast } from "sonner";
+import { toastAddedToCart, toastLinkCopied } from "@/lib/toasts";
 import {
   ShoppingCart,
   ArrowLeft,
@@ -192,7 +193,7 @@ function ShareMenu({ title }: { title: string }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("Ссылка скопирована!");
+      toastLinkCopied();
     } catch {
       toast.error("Не удалось скопировать ссылку");
     }
@@ -371,7 +372,7 @@ function ProductPage() {
       qty,
     );
     trackProduct(product.id, "add_to_cart");
-    toast.success(qty > 1 ? `Добавлено в корзину: ${qty} шт.` : "Товар добавлен в корзину");
+    toastAddedToCart(qty > 1 ? `${product.title} — ${qty} шт.` : product.title, () => navigate({ to: "/cart" }));
   };
 
   const writeSeller = async () => {

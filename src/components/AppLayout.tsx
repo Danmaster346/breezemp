@@ -16,6 +16,7 @@ import {
   Heart,
   LayoutGrid,
   ShoppingBag,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode, type ComponentType, type SVGProps } from "react";
 import { useCart } from "@/lib/cart-store";
@@ -33,6 +34,10 @@ import { ModeBadge, ModeSegmented } from "@/components/ModeSwitch";
 import { getPreferredMode, setPreferredMode } from "@/lib/ui-mode.functions";
 import { MessagesPanel } from "@/components/panels/MessagesPanel";
 import { FavoritesPanel } from "@/components/panels/FavoritesPanel";
+import { NotificationsPanel } from "@/components/panels/NotificationsPanel";
+import { PushOptInBanner } from "@/components/PushOptInBanner";
+import { useUnreadNotifications } from "@/lib/use-notifications";
+import { toastNetworkError } from "@/lib/toasts";
 import { usePanels } from "@/lib/panels-store";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -77,6 +82,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const headerHidden = useHideOnScroll(6);
   const openMessages = usePanels((s) => s.openMessages);
   const openFavorites = usePanels((s) => s.openFavorites);
+  const openNotifications = usePanels((s) => s.openNotifications);
+  const rawUnreadNotifications = useUnreadNotifications();
 
   // Мягкая проверка режима обслуживания: не блокирует админов и служебные разделы.
   const getPublicSettingsFn = useServerFn(getPublicSettings);
@@ -94,9 +101,17 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
   const unreadChats = mounted ? rawUnread : 0;
+  const unreadNotifications = mounted ? rawUnreadNotifications : 0;
   const { data: favoriteIds } = useFavoriteIds();
   const favoritesCount = mounted ? (favoriteIds?.length ?? 0) : 0;
 
+
+  // Единое уведомление о потере соединения
+  useEffect(() => {
+    const onOffline = () => toastNetworkError("Некоторые действия будут недоступны");
+    window.addEventListener("offline", onOffline);
+    return () => window.removeEventListener("offline", onOffline);
+  }, []);
 
   useEffect(() => {
     if (!isSeller && mode === "seller") setMode("buyer");
@@ -261,6 +276,22 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
             {user && (
               <button
                 type="button"
+                onClick={openNotifications}
+                className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
+                aria-label="Уведомления"
+              >
+                <Bell className="h-5 w-5" strokeWidth={1.75} />
+                {unreadNotifications > 0 && (
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] rounded-full bg-brand text-[10px] font-bold text-brand-foreground flex items-center justify-center px-1 ring-2 ring-background">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {user && (
+              <button
+                type="button"
                 onClick={() => openMessages()}
                 className="relative inline-flex items-center justify-center h-10 w-10 rounded-full text-foreground/80 hover:bg-surface ui-transition"
                 aria-label="Сообщения"
@@ -304,6 +335,8 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
       <SignInPromptDialog />
       <MessagesPanel />
       <FavoritesPanel />
+      <NotificationsPanel />
+      <PushOptInBanner />
 
       {/* Футер (десктоп) — единый семантический стиль под текущую тему */}
       <footer className="hidden md:block mt-12 border-t border-border bg-card">
