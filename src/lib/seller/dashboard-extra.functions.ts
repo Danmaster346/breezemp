@@ -27,6 +27,7 @@ export type SellerCounters = {
   rank: number | null;
   sellersTotal: number;
   lowStock: number;
+  outOfStock: number;
   noPhoto: number;
   reviewsWaiting: number;
   unread: number;
