@@ -19,7 +19,9 @@ type CartState = {
   add: (item: Omit<CartItem, "quantity">, qty?: number) => void; // добавить товар
   remove: (id: string) => void; // удалить товар
   setQty: (id: string, qty: number) => void; // изменить количество
+  syncStock: (stockById: Record<string, number>) => void; // обновить остатки с сервера
   clear: () => void; // очистить корзину
+
   totalKopecks: () => number; // итоговая сумма в копейках
   totalCount: () => number; // общее число единиц
 };
