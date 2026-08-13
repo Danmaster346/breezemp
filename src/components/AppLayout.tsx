@@ -22,6 +22,8 @@ import { useCart } from "@/lib/cart-store";
 import { useAuth } from "@/lib/use-auth";
 import { useMode } from "@/lib/mode-store";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { useFavoriteIds } from "@/lib/favorites-client";
+
 import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 
 import { SignInPromptDialog } from "@/components/SignInPromptDialog";
