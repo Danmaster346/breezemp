@@ -151,6 +151,9 @@ function RootShell({ children }: { children: ReactNode }) {
 // Провайдер React Query + слот дочерних маршрутов + всплывающие уведомления
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
