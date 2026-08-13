@@ -351,7 +351,7 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
 
       {/* Мобильная нижняя навигация */}
       {!hideMobileBottomNav && (
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-pb">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card shadow-[0_-6px_20px_-8px_rgba(0,0,0,0.14)] safe-pb">
         <div
           className="grid"
           style={{ gridTemplateColumns: `repeat(${mobileNav.length}, minmax(0, 1fr))` }}
@@ -362,15 +362,22 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
               ? pathname === item.to
               : pathname === item.to || pathname.startsWith(item.to + "/");
             const badgeN =
-              item.badge === "cart" ? count : item.badge === "unread" ? unreadChats : 0;
+              item.badge === "cart"
+                ? count
+                : item.badge === "unread"
+                  ? unreadChats
+                  : item.badge === "favorites"
+                    ? favoritesCount
+                    : 0;
             return (
               <Link
                 key={`${item.to}-${i}`}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium ui-transition touch-target ${
+                className={`flex flex-col items-center justify-center gap-1 h-[60px] text-[11px] font-medium ui-transition ${
                   active ? "text-brand" : "text-foreground/70 hover:text-foreground"
                 }`}
               >
+
                 <div className="relative">
                   <Icon
                     className={`h-6 w-6 transition-transform ${active ? "scale-110" : ""}`}
