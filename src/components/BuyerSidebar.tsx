@@ -2,13 +2,17 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ShoppingBag, Heart, MessageCircle, User, Store, LogOut, Package, Truck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { useUnreadChats } from "@/lib/use-unread-chats";
+import { usePanels } from "@/lib/panels-store";
 import { useAuth } from "@/lib/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
 type Item = {
   to: string;
+  /** Открывает всплывающую панель вместо перехода на страницу. */
+  panel?: boolean;
   label: string;
   icon: LucideIcon;
   badge?: number;
@@ -24,7 +28,7 @@ export function BuyerSidebar() {
   const items: Item[] = [
     { to: "/account", label: "Мои заказы", icon: ShoppingBag },
     { to: "/favorites", label: "Избранное", icon: Heart },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/track-order", label: "Отследить заказ", icon: Truck },
   ];
 
@@ -55,9 +59,9 @@ export function BuyerSidebar() {
           const Icon = it.icon;
           const active = pathname === it.to || pathname.startsWith(it.to + "/");
           return (
-            <Link
+            <Row
               key={it.to}
-              to={it.to}
+              it={it}
               className={`flex items-center gap-3 h-11 px-3 rounded-xl text-sm font-medium ui-transition ${
                 active
                   ? "bg-brand/10 text-brand"
@@ -71,7 +75,7 @@ export function BuyerSidebar() {
                   {it.badge > 9 ? "9+" : it.badge}
                 </span>
               ) : null}
-            </Link>
+            </Row>
           );
         })}
       </nav>
@@ -115,7 +119,7 @@ export function BuyerTabs() {
   const items: Item[] = [
     { to: "/account", label: "Заказы", icon: Package },
     { to: "/favorites", label: "Избранное", icon: Heart },
-    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread },
+    { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/track-order", label: "Отследить", icon: Truck },
   ];
   return (
@@ -125,9 +129,9 @@ export function BuyerTabs() {
           const Icon = it.icon;
           const active = pathname === it.to || pathname.startsWith(it.to + "/");
           return (
-            <Link
+            <Row
               key={it.to}
-              to={it.to}
+              it={it}
               className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-semibold ui-transition ${
                 active
                   ? "bg-brand text-brand-foreground"
@@ -141,10 +145,34 @@ export function BuyerTabs() {
                   {it.badge > 9 ? "9+" : it.badge}
                 </span>
               ) : null}
-            </Link>
+            </Row>
           );
         })}
       </div>
     </div>
+  );
+}
+
+/** Ряд навигации: обычная ссылка либо кнопка открытия всплывающей панели. */
+function Row({
+  it,
+  className,
+  children,
+}: {
+  it: Item;
+  className: string;
+  children: ReactNode;
+}) {
+  const openMessages = usePanels((s) => s.openMessages);
+  if (it.panel)
+    return (
+      <button type="button" onClick={() => openMessages()} className={className}>
+        {children}
+      </button>
+    );
+  return (
+    <Link to={it.to} className={className}>
+      {children}
+    </Link>
   );
 }
