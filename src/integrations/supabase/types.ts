@@ -44,6 +44,81 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          body: string
+          id: string
+          link: string | null
+          recipients_count: number
+          sent_at: string
+          sent_by: string
+          target: string
+          title: string
+          type: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          link?: string | null
+          recipients_count?: number
+          sent_at?: string
+          sent_by: string
+          target?: string
+          title: string
+          type?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          link?: string | null
+          recipients_count?: number
+          sent_at?: string
+          sent_by?: string
+          target?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      banners: {
+        Row: {
+          bg_color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          link: string | null
+          promo_code: string | null
+          sort_order: number
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bg_color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link?: string | null
+          promo_code?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bg_color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link?: string | null
+          promo_code?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           icon: string | null
@@ -706,6 +781,27 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       product_events: {
         Row: {
           created_at: string
@@ -1082,10 +1178,13 @@ export type Database = {
           autoreply_enabled: boolean
           autoreply_text: string | null
           badges: string[]
+          balance_frozen: boolean
           created_at: string
           default_payout_destination: string | null
           default_payout_method: string | null
           email: string | null
+          freeze_reason: string | null
+          frozen_at: string | null
           full_description: string | null
           instagram: string | null
           logo_path: string | null
@@ -1105,10 +1204,13 @@ export type Database = {
           autoreply_enabled?: boolean
           autoreply_text?: string | null
           badges?: string[]
+          balance_frozen?: boolean
           created_at?: string
           default_payout_destination?: string | null
           default_payout_method?: string | null
           email?: string | null
+          freeze_reason?: string | null
+          frozen_at?: string | null
           full_description?: string | null
           instagram?: string | null
           logo_path?: string | null
@@ -1128,10 +1230,13 @@ export type Database = {
           autoreply_enabled?: boolean
           autoreply_text?: string | null
           badges?: string[]
+          balance_frozen?: boolean
           created_at?: string
           default_payout_destination?: string | null
           default_payout_method?: string | null
           email?: string | null
+          freeze_reason?: string | null
+          frozen_at?: string | null
           full_description?: string | null
           instagram?: string | null
           logo_path?: string | null
@@ -1175,6 +1280,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          notification_id: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          notification_id?: string | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          notification_id?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
