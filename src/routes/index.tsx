@@ -273,6 +273,11 @@ function HomePage() {
                   key={c.id}
                   to="/catalog"
                   search={{ category: c.slug }}
+                  onMouseEnter={() => {
+                    void router
+                      .preloadRoute({ to: "/catalog", search: { category: c.slug } })
+                      .catch(() => {});
+                  }}
                   className="group flex flex-col items-center gap-2"
                 >
                   <div className="aspect-square w-full rounded-2xl bg-surface flex items-center justify-center ui-transition group-hover:bg-brand/10 group-hover:-translate-y-0.5 group-hover:shadow-sm">
