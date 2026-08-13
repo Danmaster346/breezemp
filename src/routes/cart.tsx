@@ -58,6 +58,8 @@ function CartPage() {
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const setQty = useCart((s) => s.setQty);
+  const syncStock = useCart((s) => s.syncStock);
+
   const addBack = useCart((s) => s.add);
 
   // Удаление позиции с возможностью отмены (5 секунд)
