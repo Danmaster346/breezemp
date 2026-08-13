@@ -26,10 +26,7 @@ export function useAuth(): AuthState {
     const loadRoles = async (uid: string) => {
       if (lastLoadedFor === uid) return;
       lastLoadedFor = uid;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", uid);
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
       if (cancelled) return;
       const roles = data?.map((r) => r.role) ?? [];
       setIsSeller(roles.includes("seller"));
