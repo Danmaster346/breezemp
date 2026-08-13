@@ -197,7 +197,7 @@ function CatalogPage() {
           in_stock: search.in_stock || undefined,
           discount: search.discount || undefined,
           sort: (search.sort ?? "relevance") as SortKey,
-          limit: 240,
+          limit: 120,
         },
       }),
     placeholderData: (prev) => prev,
