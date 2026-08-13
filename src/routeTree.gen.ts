@@ -41,16 +41,20 @@ import { Route as AuthenticatedSellerAnalyticsRouteImport } from './routes/_auth
 import { Route as AuthenticatedMessagesConversationIdRouteImport } from './routes/_authenticated/messages_.$conversationId'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin/support'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
 import { Route as AuthenticatedAdminReviewReportsRouteImport } from './routes/_authenticated/admin/review-reports'
 import { Route as AuthenticatedAdminReviewAbuseRouteImport } from './routes/_authenticated/admin/review-abuse'
 import { Route as AuthenticatedAdminReturnsRouteImport } from './routes/_authenticated/admin/returns'
 import { Route as AuthenticatedAdminPromoRouteImport } from './routes/_authenticated/admin/promo'
 import { Route as AuthenticatedAdminProductsRouteImport } from './routes/_authenticated/admin/products'
+import { Route as AuthenticatedAdminPayoutsRouteImport } from './routes/_authenticated/admin/payouts'
 import { Route as AuthenticatedAdminOrdersRouteImport } from './routes/_authenticated/admin/orders'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminMessageReportsRouteImport } from './routes/_authenticated/admin/message-reports'
 import { Route as AuthenticatedAdminLogsRouteImport } from './routes/_authenticated/admin/logs'
 import { Route as AuthenticatedAdminCategoriesRouteImport } from './routes/_authenticated/admin/categories'
+import { Route as AuthenticatedAdminBannersRouteImport } from './routes/_authenticated/admin/banners'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
@@ -223,6 +227,12 @@ const AuthenticatedAdminSupportRoute =
     path: '/support',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminReviewsRoute =
   AuthenticatedAdminReviewsRouteImport.update({
     id: '/reviews',
@@ -258,10 +268,22 @@ const AuthenticatedAdminProductsRoute =
     path: '/products',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminPayoutsRoute =
+  AuthenticatedAdminPayoutsRouteImport.update({
+    id: '/payouts',
+    path: '/payouts',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminOrdersRoute =
   AuthenticatedAdminOrdersRouteImport.update({
     id: '/orders',
     path: '/orders',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminMessageReportsRoute =
@@ -279,6 +301,12 @@ const AuthenticatedAdminCategoriesRoute =
   AuthenticatedAdminCategoriesRouteImport.update({
     id: '/categories',
     path: '/categories',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminBannersRoute =
+  AuthenticatedAdminBannersRouteImport.update({
+    id: '/banners',
+    path: '/banners',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
@@ -317,16 +345,20 @@ export interface FileRoutesByFullPath {
   '/seller/$id': typeof SellerIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/banners': typeof AuthenticatedAdminBannersRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/message-reports': typeof AuthenticatedAdminMessageReportsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/products': typeof AuthenticatedAdminProductsRoute
   '/admin/promo': typeof AuthenticatedAdminPromoRoute
   '/admin/returns': typeof AuthenticatedAdminReturnsRoute
   '/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -361,16 +393,20 @@ export interface FileRoutesByTo {
   '/seller/$id': typeof SellerIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/banners': typeof AuthenticatedAdminBannersRoute
   '/admin/categories': typeof AuthenticatedAdminCategoriesRoute
   '/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/admin/message-reports': typeof AuthenticatedAdminMessageReportsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/admin/products': typeof AuthenticatedAdminProductsRoute
   '/admin/promo': typeof AuthenticatedAdminPromoRoute
   '/admin/returns': typeof AuthenticatedAdminReturnsRoute
   '/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/messages/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -408,16 +444,20 @@ export interface FileRoutesById {
   '/seller/$id': typeof SellerIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/_authenticated/admin/banners': typeof AuthenticatedAdminBannersRoute
   '/_authenticated/admin/categories': typeof AuthenticatedAdminCategoriesRoute
   '/_authenticated/admin/logs': typeof AuthenticatedAdminLogsRoute
   '/_authenticated/admin/message-reports': typeof AuthenticatedAdminMessageReportsRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/orders': typeof AuthenticatedAdminOrdersRoute
+  '/_authenticated/admin/payouts': typeof AuthenticatedAdminPayoutsRoute
   '/_authenticated/admin/products': typeof AuthenticatedAdminProductsRoute
   '/_authenticated/admin/promo': typeof AuthenticatedAdminPromoRoute
   '/_authenticated/admin/returns': typeof AuthenticatedAdminReturnsRoute
   '/_authenticated/admin/review-abuse': typeof AuthenticatedAdminReviewAbuseRoute
   '/_authenticated/admin/review-reports': typeof AuthenticatedAdminReviewReportsRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/messages_/$conversationId': typeof AuthenticatedMessagesConversationIdRoute
@@ -455,16 +495,20 @@ export interface FileRouteTypes {
     | '/seller/$id'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/banners'
     | '/admin/categories'
     | '/admin/logs'
     | '/admin/message-reports'
+    | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/payouts'
     | '/admin/products'
     | '/admin/promo'
     | '/admin/returns'
     | '/admin/review-abuse'
     | '/admin/review-reports'
     | '/admin/reviews'
+    | '/admin/settings'
     | '/admin/support'
     | '/admin/users'
     | '/messages/$conversationId'
@@ -499,16 +543,20 @@ export interface FileRouteTypes {
     | '/seller/$id'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/banners'
     | '/admin/categories'
     | '/admin/logs'
     | '/admin/message-reports'
+    | '/admin/notifications'
     | '/admin/orders'
+    | '/admin/payouts'
     | '/admin/products'
     | '/admin/promo'
     | '/admin/returns'
     | '/admin/review-abuse'
     | '/admin/review-reports'
     | '/admin/reviews'
+    | '/admin/settings'
     | '/admin/support'
     | '/admin/users'
     | '/messages/$conversationId'
@@ -545,16 +593,20 @@ export interface FileRouteTypes {
     | '/seller/$id'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
+    | '/_authenticated/admin/banners'
     | '/_authenticated/admin/categories'
     | '/_authenticated/admin/logs'
     | '/_authenticated/admin/message-reports'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/orders'
+    | '/_authenticated/admin/payouts'
     | '/_authenticated/admin/products'
     | '/_authenticated/admin/promo'
     | '/_authenticated/admin/returns'
     | '/_authenticated/admin/review-abuse'
     | '/_authenticated/admin/review-reports'
     | '/_authenticated/admin/reviews'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/users'
     | '/_authenticated/messages_/$conversationId'
@@ -815,6 +867,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/reviews': {
       id: '/_authenticated/admin/reviews'
       path: '/reviews'
@@ -857,11 +916,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminProductsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/payouts': {
+      id: '/_authenticated/admin/payouts'
+      path: '/payouts'
+      fullPath: '/admin/payouts'
+      preLoaderRoute: typeof AuthenticatedAdminPayoutsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/orders': {
       id: '/_authenticated/admin/orders'
       path: '/orders'
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AuthenticatedAdminOrdersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/message-reports': {
@@ -885,6 +958,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCategoriesRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/banners': {
+      id: '/_authenticated/admin/banners'
+      path: '/banners'
+      fullPath: '/admin/banners'
+      preLoaderRoute: typeof AuthenticatedAdminBannersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -903,16 +983,20 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminBannersRoute: typeof AuthenticatedAdminBannersRoute
   AuthenticatedAdminCategoriesRoute: typeof AuthenticatedAdminCategoriesRoute
   AuthenticatedAdminLogsRoute: typeof AuthenticatedAdminLogsRoute
   AuthenticatedAdminMessageReportsRoute: typeof AuthenticatedAdminMessageReportsRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminOrdersRoute: typeof AuthenticatedAdminOrdersRoute
+  AuthenticatedAdminPayoutsRoute: typeof AuthenticatedAdminPayoutsRoute
   AuthenticatedAdminProductsRoute: typeof AuthenticatedAdminProductsRoute
   AuthenticatedAdminPromoRoute: typeof AuthenticatedAdminPromoRoute
   AuthenticatedAdminReturnsRoute: typeof AuthenticatedAdminReturnsRoute
   AuthenticatedAdminReviewAbuseRoute: typeof AuthenticatedAdminReviewAbuseRoute
   AuthenticatedAdminReviewReportsRoute: typeof AuthenticatedAdminReviewReportsRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -920,17 +1004,21 @@ interface AuthenticatedAdminRouteRouteChildren {
 
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
+    AuthenticatedAdminBannersRoute: AuthenticatedAdminBannersRoute,
     AuthenticatedAdminCategoriesRoute: AuthenticatedAdminCategoriesRoute,
     AuthenticatedAdminLogsRoute: AuthenticatedAdminLogsRoute,
     AuthenticatedAdminMessageReportsRoute:
       AuthenticatedAdminMessageReportsRoute,
+    AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
     AuthenticatedAdminOrdersRoute: AuthenticatedAdminOrdersRoute,
+    AuthenticatedAdminPayoutsRoute: AuthenticatedAdminPayoutsRoute,
     AuthenticatedAdminProductsRoute: AuthenticatedAdminProductsRoute,
     AuthenticatedAdminPromoRoute: AuthenticatedAdminPromoRoute,
     AuthenticatedAdminReturnsRoute: AuthenticatedAdminReturnsRoute,
     AuthenticatedAdminReviewAbuseRoute: AuthenticatedAdminReviewAbuseRoute,
     AuthenticatedAdminReviewReportsRoute: AuthenticatedAdminReviewReportsRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
+    AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
     AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

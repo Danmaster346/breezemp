@@ -32,6 +32,9 @@ import { getPreferredMode, setPreferredMode } from "@/lib/ui-mode.functions";
 import { MessagesPanel } from "@/components/panels/MessagesPanel";
 import { FavoritesPanel } from "@/components/panels/FavoritesPanel";
 import { usePanels } from "@/lib/panels-store";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getPublicSettings } from "@/lib/admin/settings.functions";
 
 type NavItem = {
   to: string;
@@ -71,6 +74,19 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const headerHidden = useHideOnScroll(6);
   const openMessages = usePanels((s) => s.openMessages);
   const openFavorites = usePanels((s) => s.openFavorites);
+
+  // Мягкая проверка режима обслуживания: не блокирует админов и служебные разделы.
+  const getPublicSettingsFn = useServerFn(getPublicSettings);
+  const { data: publicSettings } = useQuery({
+    queryKey: ["public-settings"],
+    queryFn: () => getPublicSettingsFn(),
+    staleTime: 60000,
+  });
+  const maintenanceActive =
+    publicSettings?.maintenance_mode === "1" &&
+    !isAdmin &&
+    !pathname.startsWith("/admin") &&
+    pathname !== "/auth";
 
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
@@ -131,6 +147,20 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
     if (next === "seller") navigate({ to: "/seller/products", search: {} as never });
     else navigate({ to: "/account" });
   };
+
+  if (maintenanceActive) {
+    return (
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background text-foreground px-4 text-center gap-3">
+        <span className="font-display text-3xl font-extrabold tracking-tight text-foreground">
+          kupiks<span className="text-brand">.</span>
+        </span>
+        <h1 className="text-2xl font-bold">Технические работы</h1>
+        <p className="text-foreground/70 max-w-md">
+          {publicSettings?.maintenance_message || "Мы проводим технические работы. Пожалуйста, зайдите позже."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">

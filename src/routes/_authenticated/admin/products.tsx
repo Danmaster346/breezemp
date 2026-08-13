@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, Check, X, Ban, Trash2, Undo2 } from "lucide-react";
+import { Search, Check, X, Ban, Trash2, Undo2, Download } from "lucide-react";
+import { exportCsv, csvFileName } from "@/lib/csv-export";
 
 type SearchParams = { status?: string };
 
@@ -66,11 +67,30 @@ function ProductsPage() {
     }
   };
 
+  const handleExport = () => {
+    const headers = ["ID", "Название", "Цена", "Категория", "Продавец", "Статус", "Остаток"];
+    const csvRows = rows.map((p) => [
+      p.id,
+      p.title,
+      Math.round(p.price_kopecks / 100).toLocaleString("ru-RU") + " ₽",
+      p.categories?.name ?? "—",
+      p.profiles?.full_name ?? "—",
+      p.moderation_status,
+      p.stock,
+    ]);
+    exportCsv(csvFileName("products"), headers, csvRows);
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Товары и модерация</h1>
-        <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Товары и модерация</h1>
+          <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+        </div>
+        <Button variant="outline" onClick={handleExport} disabled={rows.length === 0}>
+          <Download className="h-4 w-4 mr-1" />Экспорт CSV
+        </Button>
       </div>
 
       <div className="rounded-2xl bg-white border border-border/60 p-3 flex flex-wrap gap-2">

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Ban, ShieldCheck, Search, Info } from "lucide-react";
+import { Ban, ShieldCheck, Search, Info, Download } from "lucide-react";
+import { exportCsv, csvFileName } from "@/lib/csv-export";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
   component: UsersPage,
@@ -64,11 +65,30 @@ function UsersPage() {
 
   const rows = data?.rows ?? [];
 
+  const handleExport = () => {
+    const headers = ["ID", "Имя", "Email", "Телефон", "Роль", "Дата регистрации", "Заблокирован"];
+    const csvRows = rows.map((u) => [
+      u.id,
+      u.full_name ?? "—",
+      u.email ?? "—",
+      u.phone ?? "—",
+      u.roles.length ? u.roles.join(", ") : "buyer",
+      new Date(u.created_at).toLocaleDateString("ru-RU"),
+      u.is_blocked ? "Да" : "Нет",
+    ]);
+    exportCsv(csvFileName("users"), headers, csvRows);
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold">Пользователи</h1>
-        <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Пользователи</h1>
+          <p className="text-foreground/60 text-sm mt-1">Всего: {data?.total ?? 0}</p>
+        </div>
+        <Button variant="outline" onClick={handleExport} disabled={rows.length === 0}>
+          <Download className="h-4 w-4 mr-1" />Экспорт CSV
+        </Button>
       </div>
 
       <div className="rounded-2xl bg-white border border-border/60 p-3 flex flex-wrap gap-2">

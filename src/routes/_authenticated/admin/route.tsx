@@ -1,7 +1,7 @@
 // Админ-лейаут: sidebar + гейт по роли admin
 import { createFileRoute, Outlet, Link, useRouterState, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Package, ShoppingBag, Undo2, Star, Grid3x3, TicketPercent, ScrollText, Home, Flag, ShieldAlert, Headphones, MessageSquareWarning } from "lucide-react";
+import { LayoutDashboard, Users, Package, ShoppingBag, Undo2, Star, Grid3x3, TicketPercent, ScrollText, Home, Flag, ShieldAlert, Headphones, MessageSquareWarning, Settings, Wallet, Image as ImageIcon, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -31,6 +31,10 @@ const nav: readonly NavItem[] = [
   { to: "/admin/message-reports", label: "Чаты", icon: MessageSquareWarning },
   { to: "/admin/categories", label: "Категории", icon: Grid3x3 },
   { to: "/admin/promo", label: "Промокоды", icon: TicketPercent },
+  { to: "/admin/payouts", label: "Выплаты", icon: Wallet },
+  { to: "/admin/banners", label: "Баннеры", icon: ImageIcon },
+  { to: "/admin/notifications", label: "Рассылки", icon: Bell },
+  { to: "/admin/settings", label: "Настройки", icon: Settings },
   { to: "/admin/logs", label: "Логи", icon: ScrollText },
 ];
 
@@ -51,7 +55,7 @@ function AdminLayout() {
                 <Home className="h-4 w-4" />
               </Link>
             </div>
-            <nav className="grid md:block gap-1 overflow-x-auto md:overflow-visible" style={{ gridTemplateColumns: "repeat(13, minmax(90px, 1fr))" }}>
+            <nav className="grid md:block gap-1 overflow-x-auto md:overflow-visible" style={{ gridTemplateColumns: "repeat(17, minmax(90px, 1fr))" }}>
               {nav.map((n) => {
                 const Icon = n.icon;
                 const active = n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/");
