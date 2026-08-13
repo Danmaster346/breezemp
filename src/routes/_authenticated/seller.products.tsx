@@ -71,6 +71,11 @@ function SellerProductsPage() {
   const [searchQ, setSearchQ] = useState("");
   const [filterCat, setFilterCat] = useState<string>("");
   const [onlyLow, setOnlyLow] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "pending" | "rejected" | "nophoto" | "out"
+  >("all");
+  const [editCell, setEditCell] = useState<{ id: string; field: "price" | "stock" } | null>(null);
+  const [cellValue, setCellValue] = useState("");
   const [sortBy, setSortBy] = useState<"new" | "sold" | "views" | "price" | "stock">("new");
   const [selected, setSelected] = useState<string[]>([]);
   const [importOpen, setImportOpen] = useState(false);
@@ -270,6 +275,31 @@ function SellerProductsPage() {
     qc.invalidateQueries({ queryKey: ["seller-stats"] });
   };
 
+  // Инлайн-сохранение цены/остатка прямо в списке
+  const saveCell = async (id: string) => {
+    if (!editCell) return;
+    const field = editCell.field;
+    const raw = cellValue.trim().replace(",", ".");
+    let patch: { price_kopecks?: number; stock?: number };
+    if (field === "price") {
+      const kop = rublesToKopecks(raw);
+      if (!kop || kop <= 0) return toast.error("Цена должна быть больше 0");
+      patch = { price_kopecks: kop };
+    } else {
+      const n = parseInt(raw, 10);
+      if (isNaN(n) || n < 0) return toast.error("Некорректный остаток");
+      patch = { stock: n };
+    }
+    setStockBusy(id);
+    const { error } = await supabase.from("products").update(patch).eq("id", id);
+    setStockBusy(null);
+    setEditCell(null);
+    if (error) return toast.error(error.message);
+    toast.success(field === "price" ? "Цена обновлена" : "Остаток обновлён");
+    qc.invalidateQueries({ queryKey: ["seller-products"] });
+    qc.invalidateQueries({ queryKey: ["seller-stats"] });
+  };
+
 
   // Пользователь не продавец — предлагаем стать
   if (user && !isSeller) {
@@ -301,6 +331,12 @@ function SellerProductsPage() {
       if (searchQ && !p.title.toLowerCase().includes(searchQ.toLowerCase())) return false;
       if (filterCat && p.category_id !== filterCat) return false;
       if (onlyLow && p.stock >= LOW_STOCK_THRESHOLD) return false;
+      const mod = (p as { moderation_status?: string }).moderation_status ?? "approved";
+      if (statusFilter === "active" && !p.is_active) return false;
+      if (statusFilter === "pending" && mod !== "pending") return false;
+      if (statusFilter === "rejected" && mod !== "rejected") return false;
+      if (statusFilter === "nophoto" && (p.image_url || (p as { image_urls?: string[] }).image_urls?.length)) return false;
+      if (statusFilter === "out" && p.stock !== 0) return false;
       return true;
     })
     .sort((a, b) => {
@@ -383,6 +419,44 @@ function SellerProductsPage() {
       </div>
 
 
+      {/* Фильтры по статусу */}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {([
+          { key: "all", label: "Все", count: all.length },
+          { key: "active", label: "Активные", count: all.filter((p) => p.is_active).length },
+          {
+            key: "pending",
+            label: "На модерации",
+            count: all.filter((p) => (p as { moderation_status?: string }).moderation_status === "pending").length,
+          },
+          {
+            key: "rejected",
+            label: "Отклонённые",
+            count: all.filter((p) => (p as { moderation_status?: string }).moderation_status === "rejected").length,
+          },
+          {
+            key: "nophoto",
+            label: "Без фото",
+            count: all.filter((p) => !p.image_url && !(p as { image_urls?: string[] }).image_urls?.length).length,
+          },
+          { key: "out", label: "Нет в наличии", count: outCount },
+        ] as const).map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setStatusFilter(f.key)}
+            className={`inline-flex items-center gap-1.5 h-9 rounded-full px-3.5 text-sm font-semibold transition ${
+              statusFilter === f.key
+                ? "bg-primary text-primary-foreground"
+                : "bg-surface text-foreground/80 hover:text-foreground"
+            }`}
+          >
+            {f.label}
+            <span className="tabular-nums opacity-70">{f.count}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Итоги */}
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-surface px-3 py-1">Всего: <b className="text-foreground">{all.length}</b></span>
@@ -392,9 +466,9 @@ function SellerProductsPage() {
         {outCount > 0 && (
           <span className="rounded-full bg-rose-100 text-rose-800 px-3 py-1">Закончились: <b>{outCount}</b></span>
         )}
-        {(searchQ || filterCat || onlyLow) && (
+        {(searchQ || filterCat || onlyLow || statusFilter !== "all") && (
           <button
-            onClick={() => { setSearchQ(""); setFilterCat(""); setOnlyLow(false); }}
+            onClick={() => { setSearchQ(""); setFilterCat(""); setOnlyLow(false); setStatusFilter("all"); }}
             className="rounded-full border px-3 py-1 hover:bg-accent"
           >
             Сбросить фильтры
@@ -469,7 +543,32 @@ function SellerProductsPage() {
                       </span>
                     )}
                   </div>
-                  <div className="text-lg font-bold text-primary">{formatPrice(p.price_kopecks)}</div>
+                  {editCell?.id === p.id && editCell.field === "price" ? (
+                    <input
+                      autoFocus
+                      value={cellValue}
+                      onChange={(e) => setCellValue(e.target.value)}
+                      onBlur={() => setEditCell(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void saveCell(p.id);
+                        if (e.key === "Escape") setEditCell(null);
+                      }}
+                      className="mt-0.5 h-8 w-28 rounded-lg border bg-background px-2 text-sm font-bold"
+                      aria-label="Цена в рублях"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditCell({ id: p.id, field: "price" });
+                        setCellValue((p.price_kopecks / 100).toString());
+                      }}
+                      title="Нажмите, чтобы изменить цену"
+                      className="text-lg font-bold text-primary hover:underline decoration-dotted"
+                    >
+                      {formatPrice(p.price_kopecks)}
+                    </button>
+                  )}
                   {/* Быстрое изменение остатка */}
                   <div className="mt-1 flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">Остаток:</span>
@@ -482,9 +581,32 @@ function SellerProductsPage() {
                     >
                       <Minus className="h-3 w-3" />
                     </button>
-                    <span className="min-w-[2ch] text-center text-sm font-semibold tabular-nums">
-                      {p.stock}
-                    </span>
+                    {editCell?.id === p.id && editCell.field === "stock" ? (
+                      <input
+                        autoFocus
+                        value={cellValue}
+                        onChange={(e) => setCellValue(e.target.value)}
+                        onBlur={() => setEditCell(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void saveCell(p.id);
+                          if (e.key === "Escape") setEditCell(null);
+                        }}
+                        className="h-7 w-16 rounded-md border bg-background px-2 text-sm font-semibold tabular-nums"
+                        aria-label="Остаток"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditCell({ id: p.id, field: "stock" });
+                          setCellValue(p.stock.toString());
+                        }}
+                        title="Нажмите, чтобы изменить остаток"
+                        className="min-w-[2ch] text-center text-sm font-semibold tabular-nums hover:underline decoration-dotted"
+                      >
+                        {p.stock}
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={stockBusy === p.id}

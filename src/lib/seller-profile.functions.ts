@@ -22,6 +22,19 @@ export type SellerContacts = {
   other_social: string;
 };
 
+export type SellerPublicReview = {
+  id: string;
+  product_id: string;
+  product_title: string;
+  rating: number;
+  comment: string | null;
+  photos: string[];
+  author_name: string | null;
+  created_at: string;
+  seller_reply: string | null;
+  seller_reply_at: string | null;
+};
+
 export type SellerPublicProfile = {
   id: string;
   name: string;
@@ -34,8 +47,12 @@ export type SellerPublicProfile = {
   reviewsCount: number;
   avgRating: number;
   deliveredRate: number;
+  salesCount: number;
+  followersCount: number;
   products: SellerPublicProduct[];
+  reviews: SellerPublicReview[];
 };
+
 
 const SIGNED_TTL = 60 * 60 * 24 * 365;
 
@@ -93,6 +110,51 @@ export const getSellerProfile = createServerFn({ method: "GET" })
       ]),
     );
 
+    // Отзывы на товары продавца + количество подписчиков + продажи
+    const allProducts = await supabaseAdmin
+      .from("products")
+      .select("id, title")
+      .eq("seller_id", data.id);
+    const titleById = new Map(
+      (allProducts.data ?? []).map((p) => [(p as { id: string }).id, (p as { title: string }).title]),
+    );
+    let reviews: SellerPublicReview[] = [];
+    if (titleById.size > 0) {
+      const { data: rows } = await supabaseAdmin
+        .from("reviews")
+        .select(
+          "id, product_id, rating, comment, photos, author_name, created_at, seller_reply, seller_reply_at",
+        )
+        .in("product_id", Array.from(titleById.keys()))
+        .eq("is_hidden", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      reviews = (rows ?? []).map((r) => {
+        const row = r as unknown as Omit<SellerPublicReview, "product_title">;
+        return {
+          ...row,
+          photos: row.photos ?? [],
+          product_title: titleById.get(row.product_id) ?? "Товар",
+        };
+      });
+    }
+
+    const [{ count: followersCount }, deliveredItems] = await Promise.all([
+      supabaseAdmin
+        .from("favorites_sellers")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", data.id),
+      supabaseAdmin
+        .from("order_items")
+        .select("quantity, status")
+        .eq("seller_id", data.id)
+        .in("status", ["delivered", "received"]),
+    ]);
+    const salesCount = (deliveredItems.data ?? []).reduce(
+      (sum, it) => sum + ((it as { quantity: number }).quantity ?? 0),
+      0,
+    );
+
     return {
       id: data.id,
       name: (s?.shop_name?.trim() || profile?.full_name?.trim() || "Магазин"),
@@ -113,6 +175,10 @@ export const getSellerProfile = createServerFn({ method: "GET" })
       reviewsCount: stats.reviewsCount,
       avgRating: stats.avgRating,
       deliveredRate: stats.deliveredRate,
+      salesCount,
+      followersCount: followersCount ?? 0,
       products: (products ?? []) as SellerPublicProduct[],
+      reviews,
     };
   });
+

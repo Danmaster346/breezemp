@@ -410,6 +410,27 @@ export type Database = {
           },
         ]
       }
+      favorites_sellers: {
+        Row: {
+          created_at: string
+          id: string
+          seller_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          seller_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          seller_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_attachments: {
         Row: {
           created_at: string
@@ -1127,6 +1148,8 @@ export type Database = {
           photos: string[]
           product_id: string
           rating: number
+          seller_reply: string | null
+          seller_reply_at: string | null
           updated_at: string
           user_id: string
         }
@@ -1140,6 +1163,8 @@ export type Database = {
           photos?: string[]
           product_id: string
           rating: number
+          seller_reply?: string | null
+          seller_reply_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1153,6 +1178,8 @@ export type Database = {
           photos?: string[]
           product_id?: string
           rating?: number
+          seller_reply?: string | null
+          seller_reply_at?: string | null
           updated_at?: string
           user_id?: string
         }

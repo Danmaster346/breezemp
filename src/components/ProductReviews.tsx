@@ -771,6 +771,21 @@ export function ProductReviews({ productId }: { productId: string }) {
                 </div>
               )}
 
+              {r.seller_reply && (
+                <div className="mt-3 rounded-xl border-l-2 border-brand bg-surface p-3">
+                  <div className="text-xs font-semibold text-brand">Ответ продавца</div>
+                  <p className="mt-1 text-sm leading-relaxed whitespace-pre-line">
+                    {r.seller_reply}
+                  </p>
+                  {r.seller_reply_at && (
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      {fmtDate(r.seller_reply_at)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+
               {user && user.id !== r.user_id && (
                 <div className="mt-3 flex justify-end">
                   <button

@@ -11,6 +11,7 @@ import {
   Store,
   ArrowLeftRight,
   Undo2,
+  Star,
   LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -50,10 +51,12 @@ export function SellerSidebar() {
     { to: "/seller/products", label: "Мои товары", icon: Package },
     { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
     { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
+    { to: "/seller/reviews", label: "Отзывы", icon: Star },
     { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
     { to: "/seller/balance", label: "Баланс", icon: Wallet },
     { to: "/messages", label: "Сообщения", icon: MessageCircle, badge: unread, panel: true },
     { to: "/seller/settings", label: "Настройки", icon: Settings },
+
   ];
 
   const displayName =
@@ -139,6 +142,7 @@ export function SellerTabs() {
     { to: "/seller/products", label: "Товары", icon: Package },
     { to: "/seller/orders", label: "Заказы", icon: ClipboardList },
     { to: "/seller/returns", label: "Возвраты", icon: Undo2 },
+    { to: "/seller/reviews", label: "Отзывы", icon: Star },
     { to: "/seller/analytics", label: "Аналитика", icon: BarChart3 },
     { to: "/seller/balance", label: "Баланс", icon: Wallet },
     { to: "/messages", label: "Чаты", icon: MessageCircle, badge: unread, panel: true },
