@@ -72,10 +72,10 @@ export const Route = createFileRoute("/")({
 });
 
 const ADVANTAGES = [
-  { icon: Truck, title: "🚚 Быстрая доставка", hint: "по всей России, от 3000 ₽ — бесплатно" },
-  { icon: BadgePercent, title: "💰 Лучшие цены", hint: "честные цены без скрытых наценок" },
-  { icon: ShieldCheck, title: "✅ Гарантия качества", hint: "модерация каждого товара" },
-  { icon: RotateCcw, title: "🔄 Лёгкий возврат", hint: "обмен и возврат 14 дней" },
+  { icon: Truck, title: "Быстрая доставка", hint: "по всей России, от 3000 ₽ — бесплатно" },
+  { icon: BadgePercent, title: "Лучшие цены", hint: "честные цены без скрытых наценок" },
+  { icon: ShieldCheck, title: "Гарантия качества", hint: "модерация каждого товара" },
+  { icon: RotateCcw, title: "Лёгкий возврат", hint: "обмен и возврат 14 дней" },
 ];
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
