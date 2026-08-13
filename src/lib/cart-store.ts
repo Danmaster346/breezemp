@@ -55,7 +55,17 @@ export const useCart = create<CartState>()(
             i.id === id ? { ...i, quantity: Math.max(1, Math.min(qty, i.stock)) } : i,
           ),
         })),
+      // Обновляем остатки по данным сервера и подрезаем количество
+      syncStock: (stockById) =>
+        set((s) => ({
+          items: s.items.map((i) => {
+            const stock = stockById[i.id];
+            if (typeof stock !== "number") return i;
+            return { ...i, stock, quantity: Math.max(1, Math.min(i.quantity, Math.max(stock, 1))) };
+          }),
+        })),
       clear: () => set({ items: [] }),
+
       // Считаем сумму по всем позициям
       totalKopecks: () => get().items.reduce((s, i) => s + i.price_kopecks * i.quantity, 0),
       // Считаем количество единиц
