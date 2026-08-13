@@ -27,6 +27,7 @@ export type SellerCounters = {
   rank: number | null;
   sellersTotal: number;
   lowStock: number;
+  outOfStock: number;
   noPhoto: number;
   reviewsWaiting: number;
   unread: number;
@@ -189,6 +190,7 @@ export const getSellerDashboardExtra = createServerFn({ method: "GET" })
       rank,
       sellersTotal,
       lowStock: prods.filter((x) => x.stock > 0 && x.stock <= Math.max(x.min_stock ?? 5, 1)).length,
+      outOfStock: prods.filter((x) => x.stock === 0).length,
       noPhoto: prods.filter((x) => !x.image_url && (x.image_urls ?? []).length === 0).length,
       reviewsWaiting: reviews.filter((r) => !r.seller_reply).length,
       unread,

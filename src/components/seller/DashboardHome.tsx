@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { SellerAlerts } from "@/components/seller/SellerAlerts";
 import {
   Area,
   AreaChart,
@@ -203,6 +204,11 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
           </>
         )}
       </Card>
+
+      {/* Уведомления и алерты */}
+      <SellerAlerts counters={c} />
+
+
 
       {/* KPI-виджеты */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

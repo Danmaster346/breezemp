@@ -17,6 +17,7 @@ import {
   Bell,
   Plus,
   ExternalLink,
+  Warehouse,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -64,6 +65,7 @@ export function useSellerNavGroups(unread: number): Group[] {
       items: [
         { to: "/seller/products", label: "Мои товары", icon: Package },
         { to: "/seller/products", label: "Добавить товар", icon: Plus, search: { new: 1 } },
+        { to: "/seller/warehouse", label: "Склад", icon: Warehouse },
       ],
     },
     {
