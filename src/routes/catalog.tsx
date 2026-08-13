@@ -61,10 +61,20 @@ const PAGE_SIZE = 20;
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
-  head: ({ search }) => {
+  loaderDeps: ({ search }) => ({ category: search.category }),
+  loader: async ({ deps, context }) => {
+    if (!deps.category) return { categoryName: null as string | null };
+    const cats = await context.queryClient
+      .ensureQueryData(categoriesQueryOptions())
+      .catch(() => null);
+    const found = cats?.find((c) => c.slug === deps.category);
+    return { categoryName: found?.name ?? null };
+  },
+  head: ({ loaderData }) => {
     // Если выбрана категория — делаем мета-теги под неё
-    const slug = search?.category;
-    const catName = slug ? CATEGORY_TITLES[slug] ?? prettifySlug(slug) : null;
+    const catName = loaderData?.categoryName ?? null;
+    const slug = catName ? undefined : undefined;
+
     const title = catName ? `Купить ${catName} — Kupiks` : "Каталог товаров — Kupiks";
     const description = catName
       ? `Лучшие ${catName.toLowerCase()} с доставкой по России. Фильтры по цене, рейтингу и наличию на Kupiks.`
