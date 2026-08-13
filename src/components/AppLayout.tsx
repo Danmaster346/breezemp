@@ -92,6 +92,9 @@ export function AppLayout({ children, hideMobileBottomNav = false }: { children:
   const count = mounted ? rawCount : 0;
   const mode = mounted ? rawMode : "buyer";
   const unreadChats = mounted ? rawUnread : 0;
+  const { data: favoriteIds } = useFavoriteIds();
+  const favoritesCount = mounted ? (favoriteIds?.length ?? 0) : 0;
+
 
   useEffect(() => {
     if (!isSeller && mode === "seller") setMode("buyer");
