@@ -12,6 +12,7 @@ import { CatalogSearchBar } from "@/components/CatalogSearchBar";
 import { BottomSheet } from "@/components/BottomSheet";
 import { formatPrice } from "@/lib/format";
 import { getCategoryEmoji } from "@/lib/category-emoji";
+import { DEFAULT_OG_IMAGE } from "@/lib/og";
 import { categoriesQueryOptions } from "@/lib/categories-query";
 import { ProductGridSkeleton } from "@/components/Skeletons";
 import {
@@ -143,7 +144,11 @@ export const Route = createFileRoute("/catalog")({
         { property: "og:type", content: "website" },
         { property: "og:url", content: canonical },
         { property: "og:site_name", content: "Kupiks" },
-        { name: "twitter:card", content: "summary" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { property: "og:image", content: DEFAULT_OG_IMAGE },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { name: "twitter:image", content: DEFAULT_OG_IMAGE },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         ...(noindex ? [{ name: "robots", content: "noindex,follow" }] : []),
