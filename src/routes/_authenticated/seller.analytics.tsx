@@ -44,10 +44,12 @@ import {
   getSellerAnalytics,
   exportSellerOrdersCsv,
   exportSellerProductsCsv,
+  type SellerAnalytics,
 } from "@/lib/seller-analytics.functions";
 import {
   getSellerAnalyticsExtra,
   type ProductAnalyticsRow,
+  type SellerAnalyticsExtra,
 } from "@/lib/seller/analytics-extra.functions";
 import { getSellerReviews, replyToReview } from "@/lib/seller/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
@@ -302,11 +304,8 @@ function SellerAnalyticsPage() {
 
 /* ================= ПРОДАЖИ ================= */
 
-type Base = NonNullable<ReturnType<typeof useAnalyticsType>>;
-function useAnalyticsType() {
-  return undefined as unknown as Awaited<ReturnType<typeof getSellerAnalytics>> | undefined;
-}
-type Extra = Awaited<ReturnType<typeof getSellerAnalyticsExtra>> | undefined;
+type Base = SellerAnalytics;
+type Extra = SellerAnalyticsExtra | undefined;
 
 function SalesTab({
   a,
@@ -523,7 +522,7 @@ function SalesTab({
         {extraLoading || !x ? (
           <ChartSkeleton h={80} />
         ) : (
-          <div className="grid grid-cols-12 gap-1 md:grid-cols-24">
+          <div className="grid grid-cols-8 gap-1 sm:grid-cols-12">
             {x.hourly.map((h) => {
               const intensity = h.orders / maxHour;
               return (
