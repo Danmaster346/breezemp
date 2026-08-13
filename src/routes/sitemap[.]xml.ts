@@ -25,12 +25,27 @@ export const Route = createFileRoute("/sitemap.xml")({
         ];
 
         try {
+          // Страницы категорий каталога — теперь у них свои мета-данные
+          const { data: categories } = await supabaseAdmin
+            .from("categories")
+            .select("slug")
+            .limit(200);
+          for (const c of categories ?? []) {
+            if (!c.slug) continue;
+            entries.push({
+              path: `/catalog?category=${encodeURIComponent(c.slug)}`,
+              changefreq: "daily",
+              priority: "0.8",
+            });
+          }
+
           const { data: products } = await supabaseAdmin
             .from("products")
             .select("id")
             .eq("is_active", true)
             .eq("moderation_status", "approved")
             .limit(2000);
+
           for (const p of products ?? []) {
             entries.push({ path: `/product/${p.id}`, changefreq: "weekly", priority: "0.8" });
           }
