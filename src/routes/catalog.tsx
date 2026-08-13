@@ -58,6 +58,8 @@ const searchSchema = z.object({
 type SearchParams = z.infer<typeof searchSchema>;
 
 const PAGE_SIZE = 20;
+const SORT_STORAGE_KEY = "kupiks:catalog-sort";
+
 
 export const Route = createFileRoute("/catalog")({
   validateSearch: (s) => searchSchema.parse(s),
