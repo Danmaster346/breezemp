@@ -876,6 +876,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_status: string
           price_kopecks: number
+          search_tsv: unknown
           seller_id: string
           sku: string | null
           stock: number
@@ -898,6 +899,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks: number
+          search_tsv?: unknown
           seller_id: string
           sku?: string | null
           stock?: number
@@ -920,6 +922,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string
           price_kopecks?: number
+          search_tsv?: unknown
           seller_id?: string
           sku?: string | null
           stock?: number
@@ -1521,6 +1524,8 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "buyer" | "seller" | "admin"
