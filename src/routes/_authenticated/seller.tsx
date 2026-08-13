@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/format";
 import { getSellerTasks } from "@/lib/seller/tasks.functions";
 import { getSellerDashboardSummary } from "@/lib/seller/dashboard.functions";
 import { SellerDashboardHome } from "@/components/seller/DashboardHome";
+import { SellerGuard } from "@/components/seller/SellerPage";
 import {
   SellerCommandPalette,
   SellerSearchButton,
@@ -193,10 +194,11 @@ function SellerLayout() {
               </div>
             </div>
 
-            {/* Задачи, требующие внимания */}
-            {isDashboard && <SellerDashboardHome summary={s} />}
-
-            <Outlet />
+            {/* Раздел доступен только продавцам */}
+            <SellerGuard>
+              {isDashboard && <SellerDashboardHome summary={s} />}
+              <Outlet />
+            </SellerGuard>
           </div>
         </div>
       </div>

@@ -22,6 +22,7 @@ import {
 } from "@/lib/order-status.functions";
 import { openConversation } from "@/lib/messaging/messaging.functions";
 import { toast } from "sonner";
+import { SellerPageHeader } from "@/components/seller/SellerPage";
 
 export const Route = createFileRoute("/_authenticated/seller/orders")({
   head: () => ({ meta: [{ title: "Мои заказы — продавец — Kupiks" }] }),
@@ -120,6 +121,11 @@ function SellerOrdersPage() {
 
   return (
     <div>
+      <SellerPageHeader
+        title="Заказы"
+        description="Сборка, отправка и статусы позиций"
+        loading={q.isFetching}
+      />
       {all.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-1.5">
           <button
