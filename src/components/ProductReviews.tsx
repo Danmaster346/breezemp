@@ -11,6 +11,7 @@ import {
   updateReview,
 } from "@/lib/reviews.functions";
 import { useAuth } from "@/lib/use-auth";
+import { useCooldown } from "@/lib/use-cooldown";
 import { Star, Camera, X, Loader2, Plus, Flag, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,6 +128,7 @@ function ReviewFormModal({
   const create = useServerFn(createReview);
   const update = useServerFn(updateReview);
 
+  const cooldown = useCooldown(2000);
   const mutation = useMutation({
     mutationFn: async () => {
       if (rating < 1) throw new Error("Поставьте оценку от 1 до 5 звёзд");
@@ -151,6 +153,7 @@ function ReviewFormModal({
       });
     },
     onSuccess: () => {
+      cooldown.start();
       toast.success(isEdit ? "Отзыв обновлён" : "Спасибо за отзыв!");
       onDone();
       onClose();
@@ -461,16 +464,21 @@ function ReviewFormModal({
 
           <button
             type="button"
-            disabled={mutation.isPending || uploading || rating < 1}
-            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || uploading || rating < 1 || cooldown.active}
+            onClick={() => {
+              if (cooldown.active) return;
+              mutation.mutate();
+            }}
             className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {uploading
               ? "Загружаем фото…"
-              : isEdit
-                ? "Сохранить изменения"
-                : "Опубликовать отзыв"}
+              : cooldown.active
+                ? `Подождите (${cooldown.seconds}с)`
+                : isEdit
+                  ? "Сохранить изменения"
+                  : "Опубликовать отзыв"}
           </button>
 
         </div>

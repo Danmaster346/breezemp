@@ -18,6 +18,11 @@ export type SmartImageProps = {
   fallback?: React.ReactNode;
 };
 
+// 1x1 серый пиксель как blur-плейсхолдер под изображением
+const BLUR_PLACEHOLDER =
+  "data:image/svg+xml;base64," +
+  "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNlNWU3ZWIiLz48L3N2Zz4=";
+
 function optimizeImageUrl(src: string | null | undefined, width: number): string | null | undefined {
   if (!src) return src;
   if (src.includes("supabase.co/storage")) {
@@ -67,7 +72,11 @@ export function SmartImage({
     <div ref={wrapRef} className={`relative overflow-hidden ${wrapperClassName}`}>
       {/* Скелетон, пока картинка не отрисована */}
       {!loaded && (
-        <div className="absolute inset-0 skeleton-shimmer" aria-hidden />
+        <div
+          className="absolute inset-0 skeleton-shimmer bg-cover bg-center blur-sm scale-110"
+          style={{ backgroundImage: `url("${BLUR_PLACEHOLDER}")` }}
+          aria-hidden
+        />
       )}
       {src ? (
         visible ? (

@@ -1,6 +1,8 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { ErrorScreen } from "./components/ErrorBoundary";
+import { captureClientError } from "./lib/error-capture";
 
 export const getRouter = () => {
   const queryClient = new QueryClient({
@@ -21,6 +23,11 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    // Любая ошибка рендеринга/загрузчика маршрута — дружелюбный экран вместо белого
+    defaultErrorComponent: ({ error }) => {
+      captureClientError(error);
+      return <ErrorScreen error={error} />;
+    },
   });
 
   return router;

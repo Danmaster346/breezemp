@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { setTyping } from "@/lib/messaging/messaging.functions";
 import type { ChatMessage } from "@/lib/messaging/types";
 import { Loader2, Paperclip, Send, X, Zap } from "lucide-react";
+import { useCooldown } from "@/lib/use-cooldown";
 
 const MAX_FILES = 5;
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -47,6 +48,7 @@ export function ChatComposer({
   const [text, setText] = useState("");
   const [files, setFiles] = useState<LocalFile[]>([]);
   const [sending, setSending] = useState(false);
+  const cooldown = useCooldown(2000);
   const [showQuick, setShowQuick] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -124,6 +126,7 @@ export function ChatComposer({
   };
 
   const submit = async () => {
+    if (sending || cooldown.active) return;
     const body = text.trim();
     if (editing) {
       if (!body) return;
@@ -132,6 +135,7 @@ export function ChatComposer({
         await onSaveEdit(body);
         setText("");
         onCancelEdit();
+        cooldown.start();
       } finally {
         setSending(false);
       }
@@ -149,6 +153,7 @@ export function ChatComposer({
       setText("");
       setFiles([]);
       onCancelReply();
+      cooldown.start();
     } finally {
       setSending(false);
     }
@@ -289,11 +294,18 @@ export function ChatComposer({
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={sending}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
-          aria-label="Отправить"
+          disabled={sending || cooldown.active}
+          className="grid h-10 min-w-10 shrink-0 place-items-center rounded-full bg-brand px-2 text-brand-foreground transition hover:opacity-90 disabled:opacity-50"
+          aria-label={cooldown.active ? `Отправить (${cooldown.seconds}с)` : "Отправить"}
+          title={cooldown.active ? `Подождите ${cooldown.seconds}с` : "Отправить"}
         >
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {sending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : cooldown.active ? (
+            <span className="text-xs font-bold tabular-nums">{cooldown.seconds}с</span>
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 // Меню категорий: десктоп-дропдаун + мобильный bottom-sheet.
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, X, LayoutGrid } from "lucide-react";
@@ -25,6 +25,12 @@ function useCategories() {
 
 /** Компактная кнопка «Каталог» с всплывающим меню (десктоп). */
 export function CategoryMenu() {
+  const router = useRouter();
+  const prefetchCategory = (slug: string) => {
+    void router
+      .preloadRoute({ to: "/catalog", search: { category: slug } as never })
+      .catch(() => {});
+  };
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const cats = useCategories();
@@ -76,6 +82,8 @@ export function CategoryMenu() {
                   key={c.id}
                   to="/catalog"
                   search={{ category: c.slug } as never}
+                  onMouseEnter={() => prefetchCategory(c.slug)}
+                  onFocus={() => prefetchCategory(c.slug)}
                   onClick={() => setOpen(false)}
                   className="flex items-center gap-2.5 h-11 px-3 rounded-xl text-sm font-medium text-foreground/85 hover:bg-brand/10 hover:text-brand ui-transition"
                 >

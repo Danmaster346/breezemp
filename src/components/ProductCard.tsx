@@ -167,6 +167,7 @@ export function ProductCard(p: ProductCardProps) {
             width={400}
             height={400}
             priority={p.priority}
+            sizes="(max-width: 640px) 50vw, 25vw"
             wrapperClassName="h-full w-full"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
           />

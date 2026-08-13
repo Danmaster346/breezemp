@@ -1,6 +1,6 @@
 // Главная страница — Askona-style: промо-баннер, круговые категории,
 // «Подборщик»-плитки с картинкой в углу, витрина новинок.
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
@@ -91,6 +91,7 @@ const PICKS = [
 ];
 
 function HomePage() {
+  const router = useRouter();
   // Загружаем категории
   const categoriesQuery = useQuery(categoriesQueryOptions());
 
@@ -273,6 +274,11 @@ function HomePage() {
                   key={c.id}
                   to="/catalog"
                   search={{ category: c.slug }}
+                  onMouseEnter={() => {
+                    void router
+                      .preloadRoute({ to: "/catalog", search: { category: c.slug } })
+                      .catch(() => {});
+                  }}
                   className="group flex flex-col items-center gap-2"
                 >
                   <div className="aspect-square w-full rounded-2xl bg-surface flex items-center justify-center ui-transition group-hover:bg-brand/10 group-hover:-translate-y-0.5 group-hover:shadow-sm">
