@@ -25,3 +25,10 @@ export function consumeLastCapturedError(): unknown {
   lastCapturedError = undefined;
   return error;
 }
+
+/** Логирование клиентских ошибок рендеринга (ErrorBoundary). */
+export function captureClientError(error: unknown, componentStack?: string) {
+  record(error);
+  if (componentStack) console.error(error, componentStack);
+  else console.error(error);
+}
