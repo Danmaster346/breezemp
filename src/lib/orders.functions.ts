@@ -22,6 +22,8 @@ const createOrderSchema = z.object({
   paid: z.boolean().optional(),
 });
 
+const orderIdSchema = z.object({ id: z.string().uuid() });
+
 // Создание заказа: валидируем цены и остатки на сервере
 export const createOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -189,3 +191,37 @@ export const createOrder = createServerFn({ method: "POST" })
     // Возвращаем идентификатор нового заказа
     return { id: order.id };
   });
+
+// Подробные данные заказа для экрана подтверждения и деталей
+export const getOrderById = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => orderIdSchema.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("*, order_items(*)")
+      .eq("id", data.id)
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error("Заказ не найден");
+
+    // Проверяем, что текущий пользователь имеет право видеть заказ
+    const userId = context.userId;
+    const isBuyer = order.buyer_id === userId;
+    const isSeller = (order.order_items ?? []).some((it: { seller_id?: string }) => it.seller_id === userId);
+    if (!isBuyer && !isSeller) {
+      // Проверка на админа через роли
+      const { data: roleRow } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      if (!roleRow) throw new Error("Нет доступа к заказу");
+    }
+
+    return order;
+  });
+
