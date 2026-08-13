@@ -12,6 +12,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy, ArrowUpDown, FileUp } from "lucide-react";
 import { compressImage } from "@/lib/image-compress";
 import { BulkBar, ImportCsvDialog } from "@/components/seller/BulkBar";
+import { SellerPageHeader } from "@/components/seller/SellerPage";
 import {
   duplicateProduct,
   getSellerProductStats,
@@ -301,26 +302,6 @@ function SellerProductsPage() {
   };
 
 
-  // Пользователь не продавец — предлагаем стать
-  if (user && !isSeller) {
-    return (
-      <div className="rounded-2xl border border-dashed p-10 text-center">
-        <p className="text-muted-foreground mb-3">Вы зарегистрированы как покупатель.</p>
-        <button
-          onClick={async () => {
-            const { becomeSeller } = await import("@/lib/roles.functions");
-            await becomeSeller();
-            toast.success("Теперь вы продавец!");
-            window.location.reload();
-          }}
-          className="rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground hover:opacity-90"
-        >
-          Стать продавцом
-        </button>
-      </div>
-    );
-  }
-
   const all = productsQuery.data ?? [];
   const lowCount = all.filter((p) => p.stock > 0 && p.stock < LOW_STOCK_THRESHOLD).length;
   const outCount = all.filter((p) => p.stock === 0).length;
@@ -352,6 +333,11 @@ function SellerProductsPage() {
 
   return (
     <div>
+      <SellerPageHeader
+        title="Мои товары"
+        description="Карточки, остатки и модерация"
+        loading={productsQuery.isFetching}
+      />
       {/* Панель управления */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
