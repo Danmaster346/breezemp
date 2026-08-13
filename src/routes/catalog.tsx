@@ -583,8 +583,8 @@ function CatalogPage() {
             {items.map((p, i) => (
               <div key={p.id} className="flex flex-col">
                 <ProductCard {...p} priority={i < 5} />
-                {(p.reviews_count > 0 || p.seller_name) && (
-                  <div className="px-1 pt-1 pb-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                {p.seller_name && (
+                  <div className="px-1 pt-1 pb-2 text-[11px] text-muted-foreground">
                     <Link
                       to="/seller/$id"
                       params={{ id: p.seller_id }}
@@ -593,16 +593,9 @@ function CatalogPage() {
                     >
                       {p.seller_name}
                     </Link>
-                    {p.reviews_count > 0 && (
-                      <span className="inline-flex items-center gap-0.5 shrink-0">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        <span className="font-semibold text-foreground/80">
-                          {p.rating.toFixed(1)}
-                        </span>
-                      </span>
-                    )}
                   </div>
                 )}
+
               </div>
             ))}
           </div>
