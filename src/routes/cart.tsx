@@ -82,7 +82,63 @@ function CartPage() {
   const [promo, setPromo] = useState<PromoValidationResult | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
 
+  // Актуальные остатки по товарам корзины (проверяем при изменении количества)
+  const itemIds = useMemo(() => items.map((i) => i.id).sort(), [items]);
+  const stockQuery = useQuery({
+    queryKey: ["cart-stock", itemIds.join(",")],
+    enabled: itemIds.length > 0,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, stock, is_active")
+        .in("id", itemIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const row of data ?? []) {
+        map[row.id] = row.is_active ? (row.stock ?? 0) : 0;
+      }
+      return map;
+    },
+  });
+
+  // Синхронизируем остатки в корзине, когда данные обновились
+  useEffect(() => {
+    if (stockQuery.data) syncStock(stockQuery.data);
+  }, [stockQuery.data, syncStock]);
+
+  // Изменение количества с проверкой доступного остатка и уведомлением
+  const changeQty = async (id: string, next: number) => {
+    if (next < 1) return;
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    // Берём свежий остаток из БД, при ошибке — то, что уже есть в корзине
+    let stock = item.stock;
+    const { data, error } = await supabase
+      .from("products")
+      .select("stock, is_active")
+      .eq("id", id)
+      .maybeSingle();
+    if (!error && data) {
+      stock = data.is_active ? (data.stock ?? 0) : 0;
+      syncStock({ [id]: stock });
+    }
+
+    if (stock <= 0) {
+      toast.error("Товар закончился", { description: item.title });
+      return;
+    }
+    if (next > stock) {
+      setQty(id, stock);
+      toast.warning(`Доступно только ${stock} шт.`, { description: item.title });
+      return;
+    }
+    setQty(id, next);
+  };
+
   // Имена продавцов для позиций корзины
+
   const sellerIds = useMemo(
     () => Array.from(new Set(items.map((i) => i.seller_id).filter(Boolean))),
     [items],
