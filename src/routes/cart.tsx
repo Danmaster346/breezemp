@@ -58,6 +58,8 @@ function CartPage() {
   const items = useCart((s) => s.items);
   const remove = useCart((s) => s.remove);
   const setQty = useCart((s) => s.setQty);
+  const syncStock = useCart((s) => s.syncStock);
+
   const addBack = useCart((s) => s.add);
 
   // Удаление позиции с возможностью отмены (5 секунд)
@@ -80,7 +82,63 @@ function CartPage() {
   const [promo, setPromo] = useState<PromoValidationResult | null>(null);
   const [promoChecking, setPromoChecking] = useState(false);
 
+  // Актуальные остатки по товарам корзины (проверяем при изменении количества)
+  const itemIds = useMemo(() => items.map((i) => i.id).sort(), [items]);
+  const stockQuery = useQuery({
+    queryKey: ["cart-stock", itemIds.join(",")],
+    enabled: itemIds.length > 0,
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, stock, is_active")
+        .in("id", itemIds);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const row of data ?? []) {
+        map[row.id] = row.is_active ? (row.stock ?? 0) : 0;
+      }
+      return map;
+    },
+  });
+
+  // Синхронизируем остатки в корзине, когда данные обновились
+  useEffect(() => {
+    if (stockQuery.data) syncStock(stockQuery.data);
+  }, [stockQuery.data, syncStock]);
+
+  // Изменение количества с проверкой доступного остатка и уведомлением
+  const changeQty = async (id: string, next: number) => {
+    if (next < 1) return;
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    // Берём свежий остаток из БД, при ошибке — то, что уже есть в корзине
+    let stock = item.stock;
+    const { data, error } = await supabase
+      .from("products")
+      .select("stock, is_active")
+      .eq("id", id)
+      .maybeSingle();
+    if (!error && data) {
+      stock = data.is_active ? (data.stock ?? 0) : 0;
+      syncStock({ [id]: stock });
+    }
+
+    if (stock <= 0) {
+      toast.error("Товар закончился", { description: item.title });
+      return;
+    }
+    if (next > stock) {
+      setQty(id, stock);
+      toast.warning(`Доступно только ${stock} шт.`, { description: item.title });
+      return;
+    }
+    setQty(id, next);
+  };
+
   // Имена продавцов для позиций корзины
+
   const sellerIds = useMemo(
     () => Array.from(new Set(items.map((i) => i.seller_id).filter(Boolean))),
     [items],
@@ -390,7 +448,7 @@ function CartPage() {
                     <div className="mt-auto pt-2 flex items-center justify-between gap-2">
                       <div className="inline-flex items-center rounded-full border border-border bg-surface">
                         <button
-                          onClick={() => setQty(i.id, i.quantity - 1)}
+                          onClick={() => changeQty(i.id, i.quantity - 1)}
                           className="h-8 w-8 grid place-items-center rounded-full hover:bg-white transition"
                           aria-label="Уменьшить"
                         >
@@ -398,7 +456,7 @@ function CartPage() {
                         </button>
                         <span className="w-8 text-center text-sm font-semibold">{i.quantity}</span>
                         <button
-                          onClick={() => setQty(i.id, i.quantity + 1)}
+                          onClick={() => changeQty(i.id, i.quantity + 1)}
                           disabled={i.quantity >= i.stock}
                           className="h-8 w-8 grid place-items-center rounded-full hover:bg-white disabled:opacity-40 transition"
                           aria-label="Увеличить"
