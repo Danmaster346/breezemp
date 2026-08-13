@@ -8,6 +8,8 @@ import { SellerAlerts } from "@/components/seller/SellerAlerts";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -15,6 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import {
+  AlertCircle,
   ArrowDownRight,
   ArrowUpRight,
   Camera,
@@ -31,6 +34,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import { formatPrice } from "@/lib/format";
+import { backoffDelay, errorMessage, queryRetry } from "@/lib/retry";
 import { useAuth } from "@/lib/use-auth";
 import { usePanels } from "@/lib/panels-store";
 import {
@@ -41,6 +45,7 @@ import {
 import type { SellerDashboardSummary } from "@/lib/seller/dashboard.functions";
 
 const STALE = 5 * 60 * 1000;
+const GC = 30 * 60 * 1000;
 
 const RANGES = [
   { key: "7d", label: "7 дней" },
@@ -119,6 +124,10 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
     enabled: !!user,
     queryFn: () => fetchExtra(),
     staleTime: STALE,
+    gcTime: GC,
+    retry: queryRetry(2),
+    retryDelay: backoffDelay,
+    refetchOnWindowFocus: false,
   });
 
   const series = useQuery({
@@ -126,6 +135,11 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
     enabled: !!user,
     queryFn: () => fetchSeries({ data: { range } }),
     staleTime: STALE,
+    gcTime: GC,
+    placeholderData: (prev) => prev,
+    retry: queryRetry(2),
+    retryDelay: backoffDelay,
+    refetchOnWindowFocus: false,
   });
 
   const c = extra.data?.counters;
@@ -144,7 +158,12 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
 
   const tasks = c
     ? [
-        { label: `Обработать новые заказы`, n: c.newOrdersToday, to: "/seller/orders", icon: ClipboardList },
+        {
+          label: `Обработать новые заказы`,
+          n: c.newOrdersToday,
+          to: "/seller/orders",
+          icon: ClipboardList,
+        },
         { label: "Ответить на сообщения", n: c.unread, panel: true, icon: MessageSquare },
         { label: "Товары заканчиваются", n: c.lowStock, to: "/seller/products", icon: Warehouse },
         { label: "Ожидают ответа отзывы", n: c.reviewsWaiting, to: "/seller/reviews", icon: Star },
@@ -205,10 +224,30 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
         )}
       </Card>
 
+      {/* Ошибка загрузки данных — с возможностью повторить */}
+      {(extra.isError || series.isError) && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-destructive/40">
+          <div className="flex items-start gap-2 text-sm">
+            <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+            <span>
+              Не удалось загрузить статистику: {errorMessage(extra.error ?? series.error)}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              extra.refetch();
+              series.refetch();
+            }}
+            className="h-9 rounded-full border px-4 text-xs font-semibold hover:bg-accent ui-transition"
+          >
+            Повторить
+          </button>
+        </Card>
+      )}
+
       {/* Уведомления и алерты */}
       <SellerAlerts counters={c} />
-
-
 
       {/* KPI-виджеты */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -227,7 +266,11 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
             <div
               className={`mt-1 inline-flex items-center gap-1 text-xs font-bold ${delta >= 0 ? "text-emerald-600" : "text-destructive"}`}
             >
-              {delta >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+              {delta >= 0 ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
               {delta > 0 ? "+" : ""}
               {delta}% к вчера
             </div>
@@ -338,7 +381,9 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
                   <YAxis tick={{ fontSize: 11 }} width={56} />
                   <Tooltip
                     formatter={(v: number, name) =>
-                      name === "rub" ? [`${v.toLocaleString("ru-RU")} ₽`, "Выручка"] : [v, "Заказов"]
+                      name === "rub"
+                        ? [`${v.toLocaleString("ru-RU")} ₽`, "Выручка"]
+                        : [v, "Заказов"]
                     }
                     labelFormatter={(l) => `Период: ${l}`}
                   />
@@ -354,6 +399,36 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
               </ResponsiveContainer>
             </div>
           )}
+
+          {/* Заказы за тот же период */}
+          <div className="mt-5 border-t pt-4">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <ShoppingBag className="h-4 w-4 text-brand" /> Количество заказов
+            </div>
+            {series.isLoading ? (
+              <Skeleton className="mt-3 h-[160px] w-full" />
+            ) : (
+              <div className="mt-3 h-[160px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: -22, right: 8, top: 4, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.25} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+                    <YAxis tick={{ fontSize: 11 }} width={48} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(v: number) => [v, "Заказов"]}
+                      labelFormatter={(l) => `Период: ${l}`}
+                    />
+                    <Bar
+                      dataKey="orders"
+                      fill="var(--brand)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={28}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         </Card>
 
         <div className="space-y-4">
@@ -364,7 +439,9 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
             </div>
             <ul className="mt-3 space-y-1.5">
               {extra.isLoading &&
-                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+                Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
               {tasks.map((t) => {
                 const Icon = t.icon;
                 const done = t.n === 0;
@@ -416,7 +493,9 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
             <div className="text-sm font-bold">Лента активности</div>
             <ul className="mt-3 space-y-2.5">
               {extra.isLoading &&
-                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
               {extra.data?.activity.length === 0 && (
                 <li className="text-sm text-muted-foreground">Пока событий нет.</li>
               )}
