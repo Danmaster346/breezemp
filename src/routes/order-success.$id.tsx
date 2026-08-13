@@ -1,6 +1,6 @@
 // Экран подтверждения заказа: номер, сводка доставки и товаров, итоги
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppLayout } from "@/components/AppLayout";
 import { SmartImage } from "@/components/SmartImage";
