@@ -65,9 +65,12 @@ export const Route = createFileRoute("/product/$id")({
   head: ({ params, loaderData }) => {
     const p = loaderData?.product ?? null;
     const title = p?.title ? `${p.title} — купить на Kupiks` : "Товар — Kupiks";
-    const description =
-      (p?.description ?? "").slice(0, 160) ||
-      `${p?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
+    // Короткое описание дополняем шаблоном, чтобы meta description не был слишком коротким
+    const rawDesc = (p?.description ?? "").trim();
+    const suffix = `${p?.title ?? "Товар"} — купить на Kupiks с доставкой по всей России.`;
+    const description = (
+      rawDesc.length >= 70 ? rawDesc : rawDesc ? `${rawDesc}. ${suffix}` : suffix
+    ).slice(0, 300);
     const url = `${SITE}/product/${params.id}`;
     // og:image всегда абсолютный, с фолбэком на брендовую картинку
     const image = ogImageUrl(p?.image_url ?? null);
