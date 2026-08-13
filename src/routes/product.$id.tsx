@@ -49,14 +49,15 @@ export const Route = createFileRoute("/product/$id")({
     const [reviews, seller] = await Promise.all([
       getProductReviews({ data: { product_id: params.id } }).catch(() => null),
       product?.seller_id
-        ? getSellerProfile({ data: { seller_id: product.seller_id } }).catch(() => null)
+        ? getSellerProfile({ data: { id: product.seller_id } }).catch(() => null)
         : Promise.resolve(null),
     ]);
     return {
       product,
       rating: reviews?.avg ?? 0,
       reviewsCount: reviews?.count ?? 0,
-      sellerName: seller?.shop_name ?? "Kupiks",
+      sellerName: seller?.name ?? "Kupiks",
+
     };
   },
   head: ({ params, loaderData }) => {
