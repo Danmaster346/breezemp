@@ -145,7 +145,7 @@ export function SellerDashboardHome({ summary }: { summary?: SellerDashboardSumm
     ? [
         { label: `Обработать новые заказы`, n: c.newOrdersToday, to: "/seller/orders", icon: ClipboardList },
         { label: "Ответить на сообщения", n: c.unread, panel: true, icon: MessageSquare },
-        { label: "Товары заканчиваются", n: c.lowStock, to: "/seller/warehouse", icon: Warehouse },
+        { label: "Товары заканчиваются", n: c.lowStock, to: "/seller/products", icon: Warehouse },
         { label: "Ожидают ответа отзывы", n: c.reviewsWaiting, to: "/seller/reviews", icon: Star },
         { label: "Товары без фото", n: c.noPhoto, to: "/seller/products", icon: Camera },
       ]
