@@ -1,10 +1,12 @@
 meta:
   environment: nodejs
-  toolVersion: "20"
+  toolchain:
+    name: node
+    version: "20"
 
 build:
   nixPacks:
-    buildCmd: npm run build
+    buildCmd: npm install && npm run build
 
 run:
   persistenceMount: /data
