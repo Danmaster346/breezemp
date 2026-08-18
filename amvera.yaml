@@ -6,7 +6,7 @@ meta:
 
 build:
   nixPacks:
-    buildCmd: npm install && npm run build
+    buildCmd: npm install && NITRO_PRESET=node-server npm run build
 
 run:
   persistenceMount: /data
