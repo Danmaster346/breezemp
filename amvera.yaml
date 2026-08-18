@@ -1,0 +1,11 @@
+meta:
+  environment: nodejs
+  toolVersion: "20"
+
+build:
+  nixPacks:
+    buildCmd: npm run build
+
+run:
+  persistenceMount: /data
+  cmd: node .output/server/index.mjs
