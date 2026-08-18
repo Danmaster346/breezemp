@@ -1,8 +1,8 @@
 meta:
   environment: nodejs
   toolchain:
-    name: node
-    version: "20"
+    name: nodejs
+    version: "22"
 
 build:
   nixPacks:
